@@ -1,0 +1,129 @@
+/* Tienda Pesca — brands.css (design tokens)
+   Uso: incluir DESPUÉS de Tailwind CDN/build para que los tokens estén disponibles.
+   Ruta sugerida: public_html/assets/css/brands.css
+*/
+
+/* ========== Tokens base (modo oscuro por defecto) ========== */
+:root {
+  /* Colores de marca */
+  --brand:        #016d6e;  /* principal */
+  --brand-600:    #015a5b;  /* hover/active */
+  --accent:       #00c1d5;  /* acento / highlights */
+  --brand-yellow: #ffc300;  /* NUEVO: acento secundario */
+
+  /* Neutros */
+  --bg:           #0f1214;  /* fondo global oscuro */
+  --bg-soft:      #141a1d;  /* superficies */
+  --fg:           #e8f1f2;  /* texto principal */
+  --muted:        #a8b3b6;  /* texto secundario */
+  --border:       #223036;  /* bordes sutiles */
+
+  /* Estados */
+  --success:      #2fb67b;
+  --warning:      #ffb020;
+  --danger:       #e5484d;
+
+  /* Tipografía */
+  --font-sans:    ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, 'Helvetica Neue', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+  --font-mono:    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+
+  /* Dimensiones & radios */
+  --radius-xs:    6px;
+  --radius:       12px;
+  --radius-lg:    16px;
+
+  /* Sombra */
+  --shadow-soft:  0 8px 24px rgba(0,0,0,.18);
+
+  /* Transiciones */
+  --ease:         cubic-bezier(.2,.8,.2,1);
+  --speed:        180ms;
+}
+
+/* ========== Modo claro opcional ========== */
+/* Si algún día usamos modo claro, podemos activar con data-theme="light" en <html> */
+:root[data-theme="light"] {
+  --bg:      #f7fbfc;
+  --bg-soft: #ffffff;
+  --fg:      #0f1416;
+  --muted:   #5c6b70;
+  --border:  #dde7ea;
+}
+
+/* ========== Aplicación global mínima ========== */
+html, body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+hr { border-color: var(--border); }
+
+/* ========== Helpers de marca (optativo) ========== */
+.text-brand          { color: var(--brand); }
+.bg-brand            { background-color: var(--brand); }
+.border-brand        { border-color: var(--brand); }
+.text-brand-yellow   { color: var(--brand-yellow); }     /* NUEVO */
+.bg-brand-yellow     { background-color: var(--brand-yellow); } /* NUEVO */
+.border-brand-yellow { border-color: var(--brand-yellow); }     /* NUEVO */
+
+.btn-brand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  padding: .625rem 1rem;
+  border-radius: var(--radius);
+  background: var(--brand);
+  color: #fff;
+  box-shadow: var(--shadow-soft);
+  transition: transform var(--speed) var(--ease), box-shadow var(--speed) var(--ease), background var(--speed) var(--ease);
+}
+.btn-brand:hover { background: var(--brand-600); transform: translateY(-1px); }
+.btn-brand:active{ transform: translateY(0); }
+
+.badge-accent {
+  display: inline-block;
+  padding: .25rem .5rem;
+  border-radius: var(--radius-xs);
+  background: color-mix(in oklab, var(--accent) 18%, transparent);
+  color: var(--accent);
+  border: 1px solid color-mix(in oklab, var(--accent) 50%, transparent);
+}
+
+/* Tarjetas base para grids de productos — FIX contraste */
+.card {
+  background: var(--bg-soft);   /* antes: var(--fg) */
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.02) inset;
+}
+
+/* Inputs consistentes — FIX contraste */
+.input,
+input[type="text"], input[type="search"], input[type="email"], input[type="number"],
+select, textarea {
+  background: var(--bg-soft);   /* antes: var(--fg) */
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  padding: .5rem .75rem;
+  outline: none;
+}
+.input::placeholder, input::placeholder, textarea::placeholder { color: var(--muted); }
+.input:focus, input[type="text"]:focus, input[type="search"]:focus, select:focus, textarea:focus {
+  border-color: color-mix(in oklab, var(--brand) 60%, var(--border));
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--brand) 24%, transparent);
+}
+
+/* Links */
+a { color: var(--accent); }
+a:hover { text-decoration: underline; }
+
+/* Utilidad para contenedores máximos */
+.container-narrow { max-width: 1100px; margin-inline: auto; padding-inline: 1rem; }
+
+/* ========== Fin brands.css ========== */

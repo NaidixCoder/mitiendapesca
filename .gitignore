@@ -1,0 +1,14 @@
+# Entorno & secretos
+.env
+/storage/*
+!/storage/.gitkeep
+
+# Varios
+/vendor/
+/public_html/assets/build/
+.idea/
+.vscode/
+.DS_Store
+*.log
+*.bak
+*.tmp

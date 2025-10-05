@@ -1,0 +1,42 @@
+/* Paleta de marca */
+:root{
+  --mainColor: #016d6e;      /* primario */
+  --secondaryColor: #ffc300; /* acento */
+  --lightColor: #f2efea;     /* fondo claro */
+  --darkColor: #111827;      /* gris muy oscuro para textos */
+  --mutedColor: #6b7280;     /* gris medio */
+}
+
+.bg-brand{ background-color: var(--mainColor); }
+.text-brand{ color: var(--mainColor); }
+.border-brand{ border-color: var(--mainColor); }
+.bg-accent{ background-color: var(--secondaryColor); }
+.text-accent{ color: var(--secondaryColor); }
+.bg-light{ background-color: var(--lightColor); }
+
+.btn{ display:inline-flex; align-items:center; gap:.5rem; padding:.5rem .75rem; border-radius:.75rem; border:1px solid #e5e7eb; background:#fff; }
+.btn:hover{ background:#f9fafb; }
+.btn-primary{ background: var(--mainColor); color:#fff; border-color: transparent; }
+.btn-primary:hover{ filter: brightness(.95); }
+
+/* Evita que el theme agregue íconos duplicados a los botones de cantidad */
+.qty-btn::before,
+.qty-btn::after {
+  content: none !important;
+}
+.qty-btn {
+  font-variant-ligatures: none;
+  line-height: 1;
+}
+
+/* Oculta spinners nativos de inputs number */
+.no-spin::-webkit-outer-spin-button,
+.no-spin::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.no-spin {
+  -moz-appearance: textfield; /* Firefox */
+  appearance: textfield;      /* Estándar */
+}
+

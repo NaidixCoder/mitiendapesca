@@ -1,0 +1,11 @@
+{
+  "name": "mitiendapesca/app",
+  "description": "Base skeleton for Mi Tienda Pesca",
+  "type": "project",
+  "require": {},
+  "autoload": {
+    "psr-4": {
+      "App\\": "app/"
+    }
+  }
+}
