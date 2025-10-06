@@ -1,3 +1,8 @@
+// Admin product images module
+export function init() {
+  if (!(document.body && document.body.dataset.page === 'admin-product-form')) return;
+  (function(){
+// --- original product_images.js start ---
 // Subida AJAX + acciones de galería (portada/eliminar) con fallback
 (function () {
   const msg = (el, t, ok = true) => {
@@ -57,3 +62,7 @@
     }
   });
 })();
+
+// --- original product_images.js end ---
+  })();
+}

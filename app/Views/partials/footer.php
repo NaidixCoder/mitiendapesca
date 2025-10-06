@@ -101,13 +101,8 @@
   </div>
 </footer>
 
-<!-- Scripts del sitio -->
-<script src="<?= e(asset('js/catalog.js')) ?>" defer></script>
-<script src="<?= e(asset('js/header.js')) ?>" defer></script>
-<script src="<?= e(asset('js/flash.js')) ?>" defer></script>
-<script src="<?= asset('js/admin/product_form.js') ?>" defer></script>
-<script src="<?= asset('js/admin/product_images.js') ?>" defer></script>
-<script src="<?= asset('js/catalog/qty.js') ?>" defer></script>
+<!-- JS de la app (módulos) -->
+<script type="module" src="<?= asset('js/app.js') ?>" defer></script>
 
 <!-- Mini hook para “voler arriba” -->
 <script>

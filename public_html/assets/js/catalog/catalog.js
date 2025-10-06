@@ -1,3 +1,8 @@
+// Public catalog/listing page
+export function init() {
+  if (!(document.body && (document.body.dataset.page === 'catalog' || document.body.dataset.page === 'search'))) return;
+  (function(){
+// --- original catalog.js start ---
 // Toggle de densidad (sin inline)
 (() => {
   const LS_KEY = 'gridDensity';
@@ -32,3 +37,7 @@
     apply(btn.dataset.density);
   });
 })();
+
+// --- original catalog.js end ---
+  })();
+}

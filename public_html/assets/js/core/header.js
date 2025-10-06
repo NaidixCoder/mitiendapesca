@@ -1,3 +1,7 @@
+// Core header behavior (scoped init)
+export function init() {
+  (function(){
+// --- original header.js start ---
 (function () {
     const root = document.querySelector('[x-auth-menu]');
     if (!root) return;
@@ -36,3 +40,6 @@
         }
     });
 })();
+// --- original header.js end ---
+  })();
+}

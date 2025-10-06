@@ -1,3 +1,8 @@
+// Public product gallery
+export function init() {
+  if (!(document.body && document.body.dataset.page === 'product')) return;
+  (function(){
+// --- original product_gallery.js start ---
 (function () {
     const $main = document.getElementById('pg-main');
     if (!$main) return;
@@ -74,3 +79,6 @@
         preload(imgs[(idx - 1 + imgs.length) % imgs.length]);
     });
 })();
+// --- original product_gallery.js end ---
+  })();
+}

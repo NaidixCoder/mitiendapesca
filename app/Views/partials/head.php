@@ -54,4 +54,4 @@
 
   <?= $extraHead /* JSON-LD opcional */ ?>
 </head>
-<body class="bg-gray-50 text-gray-900">
+<body class="bg-gray-50 text-gray-900" <?= !empty($pageId) ? 'data-page="'.e($pageId).'"' : '' ?>>

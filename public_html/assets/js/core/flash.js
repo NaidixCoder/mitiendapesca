@@ -1,3 +1,7 @@
+// Core flash/toast behavior (always safe)
+export function init() {
+  (function(){
+// --- original flash.js start ---
 (function () {
     const root = document.getElementById('toast-root');
     if (!root) return;
@@ -60,3 +64,6 @@
         if (btnClose) btnClose.addEventListener('click', () => leave(toast));
     });
 })();
+// --- original flash.js end ---
+  })();
+}

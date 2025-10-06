@@ -1,3 +1,8 @@
+// Public product qty widget
+export function init() {
+  if (!(document.body && document.body.dataset.page === 'product')) return;
+  (function(){
+// --- original qty.js start ---
 (function () {
   const form = document.getElementById('buy-form');
   if (!form) return;
@@ -12,3 +17,7 @@
     input.value = next;
   });
 })();
+
+// --- original qty.js end ---
+  })();
+}

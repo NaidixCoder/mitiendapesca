@@ -43,9 +43,7 @@ class ProductsController extends BaseController
         $inv    = (new InventoryService($db))->get($id);
         $imgs   = $repo->images($id);
 
-        render_page('admin/products/form', [
-            'product'=>$p, 'brands'=>$brands, 'cats'=>$cats, 'inv'=>$inv, 'imgs'=>$imgs
-        ]);
+        render_page('admin/products/form', ['pageId' => 'admin-product-form', 'product'=>$p, 'brands'=>$brands, 'cats'=>$cats, 'inv'=>$inv, 'imgs'=>$imgs]);
     }
 
     public function save(): void

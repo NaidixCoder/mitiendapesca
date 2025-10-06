@@ -1,3 +1,8 @@
+// Auth Google module
+export function init() {
+  if (!(document.body && document.body.dataset.page === 'auth-google')) return;
+  (function(){
+// --- original auth-google.js start ---
 (function () {
     const container = document.getElementById('google-btn-container');
     const CLIENT_ID = window.GOOGLE_CLIENT_ID;
@@ -64,3 +69,6 @@
         waitGoogle();
     }
 })();
+// --- original auth-google.js end ---
+  })();
+}

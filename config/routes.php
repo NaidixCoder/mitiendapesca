@@ -5,7 +5,7 @@ return [
   'GET /index.php'              => 'public/home',
 
   // Catálogo
-  'GET /productos'              => 'catalogo/productos',
+  'GET /productos'              => 'Catalog\\ProductsController@index',
   'GET /producto'               => 'Catalog\\ProductController@show',
 
   // Auth

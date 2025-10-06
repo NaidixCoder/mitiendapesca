@@ -2,7 +2,7 @@
 <figure class="relative border rounded overflow-hidden" data-id="<?= (int)$im['id'] ?>">
   <img
     class="w-full h-full object-cover"
-    src="<?= public_url($im['path']) ?>"
+    src="<?= url($im['path']) ?>"
     alt="<?= e($im['alt'] ?? '') ?>"
   >
   <?php if ((int)$im['is_cover'] === 1): ?>

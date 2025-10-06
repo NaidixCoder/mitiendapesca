@@ -19,12 +19,12 @@ $newArrivals = [
 ];
 
 // Orquestación de secciones
-section('home/hero');
-section('home/trust-bar');
-section('home/categorias-destacadas');
-section('home/featured-grid',    ['items'=>$featured,    'title'=>'Destacados',     'badge'=>'En stock']);
-section('home/cta-banner');
-section('home/new-arrivals-grid',['items'=>$newArrivals,'title'=>'Nuevos ingresos','badge'=>'Nuevo']);
-section('home/testimonials');
-section('home/newsletter');
-section('home/seo-info');
+section('/partials/home/hero');
+section('/partials/home/trust-bar');
+section('/partials/home/categorias-destacadas');
+section('/partials/home/featured-grid',    ['items'=>$featured,    'title'=>'Destacados',     'badge'=>'En stock']);
+section('/partials/home/cta-banner');
+section('/partials/home/new-arrivals-grid',['items'=>$newArrivals,'title'=>'Nuevos ingresos','badge'=>'Nuevo']);
+section('/partials/home/testimonials');
+section('/partials/home/newsletter');
+section('/partials/home/seo-info');

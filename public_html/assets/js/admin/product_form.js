@@ -1,3 +1,8 @@
+// Admin product form module
+export function init() {
+  if (!(document.body && document.body.dataset.page === 'admin-product-form')) return;
+  (function(){
+// --- original product_form.js start ---
 // Tabs + slug autogenerado (form de producto)
 (function () {
   // Tabs
@@ -31,3 +36,7 @@
     });
   }
 })();
+
+// --- original product_form.js end ---
+  })();
+}

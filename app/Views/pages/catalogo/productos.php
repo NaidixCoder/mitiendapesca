@@ -1,7 +1,6 @@
 <?php
 use App\Repositories\ProductRepository;
 
-require_once BASE_PATH . '/app/Repositories/ProductRepository.php';
 
 $repo = new ProductRepository(db());
 
