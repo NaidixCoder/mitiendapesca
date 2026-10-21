@@ -197,3 +197,32 @@ Auditoría pública solo lectura ahora; edición pública únicamente tras acuer
 **Prohibiciones:** no editar `app/Controllers/Catalog/**`, `app/Services/Catalog/**`, `app/Repositories/Catalog/**`, SEO compartido, home/SEO/sitemap, settings, controllers admin, JS, CSS, HTML, rutas, DB real, migraciones, gate global ni otros chats. Solo leer y **escribir `docs/modulos/categorias.md`** (entrega). Scripts de investigación se guardan fuera del árbol web/Git y solo usan DB descartable; no ejecutar APPLY/POST/desactivaciones reales. Si se navega automatizado, protocolo de teardown obligatorio.
 
 **Cierre:** registrar resultados y pendientes, liberar las reservas previas de CategoriesController y CategorySaveService al cerrar V4 (sin permiso a otros para tocar sin autorización), **detenerse** para que principal y propietario aprueben política pública y habiliten eventualmente Ventana 6 de implementación. Mantener estado «pendiente de aceptación visual» del admin.
+
+## Actualización 2026-10-21 — Ventana 5 auditada; resolución técnica y Ventana 6A AUTORIZADA
+
+**Evidencia:** `docs/modulos/categorias.md` §17 contiene matriz por ruta, 54 GET en clon sintético (settings ON/OFF), verificaciones focales de breadcrumbs, sitemaps, home y SEO, SELECT sobre BD comercial y teardown. **BD habitual: 18 categorías, ninguna rama activa debajo de ancestro inactivo; 25 productos, 19 activos y ninguno activo asignado directamente a categoría inactiva**, en el corte leído. La inconsistencia es real en código/fixtures, no incidencia comercial vigente demostrada.
+
+### Decisiones técnicas y comercial aún reservada
+
+- **V5-D1 — APROBADA TÉCNICAMENTE:** `category_effectively_visible` requiere `is_active=1` en nodo **y en todos sus ancestros**, cadena válida hasta raíz, sin ciclos ni IDs inexistentes. Aplicar por lectura; no cambiar `categories.is_active`, `products.is_active`, relaciones ni datos históricos. Nunca promover automáticamente una hija activa con padre invisible a raíz.
+- **V5-D2 — PENDIENTE DE RATIFICACIÓN COMERCIAL DEL PROPIETARIO:** la recomendación del principal es **B1**, preservar flag `catalog_hide_inactive_category_products` (actualmente **OFF/0**) y hacerlo coherente: OFF = productos activos siguen vendiéndose aun en ramas ocultas, pero sin enlaces rotos de breadcrumb; ON = excluir también desde todos los consumidores a productos de categoría inactiva o ancestro inactivo, sin tocar su bandera. **No se autoriza implementar B1 ni ocultar productos** hasta confirmación y nueva reserva específica.
+- **V5-D3 — criterio técnico provisional:** categoría activa y vacía sigue disponible por URL (200); `catalog_show_empty_categories` controla tarjeta. Indexación/SEO editorial queda para ventana SEO exclusiva con pruebas.
+- **V5-D4 — criterio técnico para próxima fase:** landing de categoría jerárquicamente oculta debe devolver **HTTP 404 real**; no usar 410 para baja reversible ni hacer 301 genérico a Inicio. Reparación del `head` 404, canonical, sitemap, redirects y JSON-LD quedan sin permiso hasta ventana exclusiva SEO.
+- **V5-D5:** respetar profundidad ilimitada, contar solo categorías efectivamente elegibles, sin N+1 por producto/por categoría; contrastar `EXPLAIN`/índices sobre esquema aislado.
+
+### Ventana 6A — Implementación de NÚCLEO DE CATEGORÍAS PÚBLICAS, solo alcance específico
+
+**Autorizada ahora al chat de Categorías.** Reserva temporal exclusiva de edición:
+1. **Nuevo** `app/Services/Catalog/CategoryPublicVisibilityService.php` (o denominación autocontenida justificada): método común de elegibilidad jerárquica con detección de ciclos/huérfanos y coste controlado.
+2. `app/Repositories/Catalog/CategoryRepository.php` **solo consultas públicas de categoría/featured y nuevas APIs de solo lectura**; preservar interfaces de `create/resolveId/resolveIdPlanned` y cualquier método usado por importador.
+3. `app/Services/Catalog/FacetService.php` **solo construcción de árbol visible de categorías/facetas**, sin cambiar la política de elegibilidad de PRODUCTOS ni proveedores/marcas/tags/precios. Las hijas ocultas no se promueven a raíz.
+4. `app/Controllers/Catalog/CategoryController.php` y `CategoriesController.php` **solo control de categoría elegible y composición de vista del directorio**; no modificar productos, URL/SEO global.
+5. **Nuevo** `scripts/build/categories_public_visibility_contract.php` y pruebas focales exclusivas en `scripts/dev/categories_public_*.php`; `docs/modulos/categorias.md`.
+
+**Incluido:** GET `/categoria?slug=...` → 404 si nodo o ancestro inactivo/huérfano/cíclico, GET `/categorias` sin promover hijos invisibles; facetas de categorías elegibles; lista de categorías destacadas del home mediante `CategoryRepository::listHomeFeatured()`. No alterar UI/estilos. Solo si necesario, datos de breadcrumbs de `CategoryController` para categorías efectivamente visibles, sin modificar partial/layout compartidos.
+
+**NO incluido:** `ProductRepository.php`, `ProductsController.php`, `ProductController.php`, `RecommendedProductsService.php`, servicios Home compartidos, `MetaController.php`, `SeoFrontService.php`, `public_html/index.php`, `head.php`, settings, filtros de productos, sitemap/robots, SEO redirects, `SeoSlugHistoryRepository.php`, importaciones ni Git. **La política de productos B1/B2 permanece comercialmente sin aprobar.** Tampoco cambiar `catalog_hide_inactive_category_products`.
+
+**Pruebas obligatorias de V6A:** HTTP GET reales contra clon MySQL descartable (y selector de BD seguro) para raíz/hija/nieta, nodos inactivos, ancestros inactivos, ciclo/huérfano en fixture no comercial, reactivación solo del nodo, categorías vacías y featured/home/facetas sin huérfanos promovidos; count y performance sin N+1; regresiones de `CategoryRepository` usadas por Importaciones (sin hacer import real), búsqueda/producto **solo observación** para registrar limitaciones de V6A. Contrato focal, lint, gate fuera de ventanas de prueba de otros chats y teardown según protocolo. Sin escribir BD habitual.
+
+**Cierre y aviso:** V6A **NO se considera corrección integral del catálogo público**: productos, menú móvil, breadcrumbs de producto, sugerencias, sitemap, redirects y 404/head siguen pendientes de ventanas de integración posteriores. No hacer commit/push; documentar evidencia, archivos y discrepancias en `docs/modulos/categorias.md`, detener edición. No aprobar publicación pública integral hasta resolver B1/B2 y consumidores/SEO.
