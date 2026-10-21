@@ -82,3 +82,31 @@ Auditoría pública solo lectura ahora; edición pública únicamente tras acuer
 - Una carpeta y rama `main`; **los chats especializados no realizan Git** ni cambian ramas. El chat principal integra selectivamente solo tras pruebas y aprobación.
 - Reservas documentadas **no equivalen a bloqueo de filesystem**: el propietario debe comunicar esta autorización al chat especializado; los demás chats deben respetar los archivos asignados.
 - No modificar `docs/ESTADO_DESARROLLO.md`, `MANIFEST.md`, archivos de Productos/SEO/Público ni CSS del Admin desde el chat especializado sin nueva autorización.
+
+## Actualización 2026-10-21 — Ventana 1 validada y Ventana 2 AUTORIZADA
+
+**Evidencia:** `docs/modulos/categorias.md` §13 documenta implementación del servicio único, pruebas directas MySQL con fixtures, transacciones propias/externas y dos procesos concurrentes; contrato focal **16/16**, build gate **828 PHP / 120 JS OK** en su ejecución. **No son pruebas HTTP del formulario** y la inconsistencia persiste hasta completar esta ventana.
+
+**VENTANA 1 CERRADA.** Conserva la reserva del servicio de estados y guard jerárquico para el mismo responsable solo si es indispensable un ajuste derivado de la integración.
+
+### Ventana 2: permiso de edición exclusivo al chat de Categorías
+
+**Archivos autorizados:**
+- `app/Controllers/Admin/CategoriesController.php`: únicamente métodos `save()` y `toggle()` y dependencias/imports estrictamente necesarios. **No tocar `quick()`**.
+- `app/Services/Catalog/CategoryAdminService.php`, `app/Services/Admin/Categories/CategoryVisibilityPolicyService.php`, `app/Services/Admin/Categories/CategoryHierarchyGuard.php`: solo ajustes mínimos derivados del contrato probado.
+- `app/Views/pages/admin/categories/form.php` y `app/Views/partials/admin/categories/toggle_action.php`: **solo** mensajes/confirmación de impacto o error funcional, si fueran imprescindibles. Sin cambios CSS.
+- `scripts/build/categories_admin_contract.php` y pruebas focales exclusivas de Categorías en `scripts/dev/`.
+- `docs/modulos/categorias.md` (informe exclusivo).
+
+**Alcance funcional obligatorio:**
+1. Formulario y toggle deben ejecutar el **mismo caso de uso de visibilidad**; en `save` usar estado deseado explícito (no aplicar toggle); en toggle preservar su contrato existente.
+2. Validar dentro de una misma unidad de trabajo transaccional el estado y jerarquía final (padre nuevo, hijos y ancestros). Evitar TOCTOU: validar y escribir bajo locks consistentes. Conservar unicidad y validaciones anteriores.
+3. Al editar, **no escribir `categories.is_active` por fuera del servicio**. La actualización de los campos propios de categoría y su transición de estado deben ser atómicas **entre sí**; si falla validación/cascada, `ROLLBACK` y **no** emitir flash/auditoría de éxito ni dejar cambios parciales.
+4. En creación, aplicar `validatePlacement` con estado pedido y padre elegido antes de escribir; si hay error, no crear registro. En edición, rechazar reparentado/activación inválida sin persistencia parcial.
+5. Mantener idempotencia (guardar otro dato de nodo inactivo no vuelve a desactivar descendientes); al activar un padre, no activar hijos. Mostrar mensaje útil sobre alcance cuando desactiva descendientes; auditar estados reales tras commit.
+6. La gestión SEO e imágenes actual **no es aún plenamente atómica** y pertenece a **Ventana 4**. No asegurar que esté corregida. Si la integración detecta que el flujo actual deja un riesgo nuevo o intolerable, detenerse e informar, sin ampliar por cuenta propia a servicios SEO ni subir cambios destructivos.
+7. Preservar rate limit, CSRF, rutas, nombres POST, uploader y semántica de redirección. No intervenir `quick`, Productos, catálogo público, CSS, layout, `config/routes.php`, `scripts/build/gate.php` ni migraciones.
+
+**Criterio de aceptación de Ventana 2:** pruebas **HTTP autenticadas reales sobre MySQL descartable** con `SELECT DATABASE()` y CSRF para desactivar por save/toggle (estados equivalentes), reactivar nodo solo, guardar otro campo sin cascada, rechazar ancestro inactivo/reparentado/ciclo, rollback ante fallo SQL, auditoría/feedback apropiados y regresión de alta/edición/SEO. Verificar no hubo escrituras en BD habitual. Ejecutar contrato focal y build gate, navegador headless con teardown si aplica. Documentar claramente cualquier limitación de atomicidad SEO/archivos. **Detenerse y solicitar aprobación de Ventana 3 tras cerrar y documentar Ventana 2.**
+
+**Ventanas 3 (quick + dos archivos Productos), 4 (SEO/portadas) y 5 (público): siguen NO ABIERTAS.** No se autoriza editar sus archivos con este permiso.

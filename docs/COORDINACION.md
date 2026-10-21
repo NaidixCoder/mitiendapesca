@@ -71,3 +71,10 @@
 - **Ventana 1 autorizada únicamente al chat de Categorías:** `app/Services/Catalog/CategoryAdminService.php`, `app/Services/Admin/Categories/CategoryHierarchyGuard.php`, nuevo servicio de política `app/Services/Admin/Categories/CategoryVisibilityPolicyService.php`, su contrato/pruebas focales e informe `docs/modulos/categorias.md`. No permitir edición concurrente de esos archivos.
 - **No autorizadas aún:** adaptación de Controller/formulario, dos archivos Productos de creación rápida, SEO compartido, catálogo público, CSS global, migraciones o Git desde ese chat. Cada fase necesita evidencias y próxima autorización expresa.
 - Marcas continúa **sin aprobación visual** y en trabajo exclusivo de CSS. Atributos mantiene correcciones P0 compartidas bloqueadas; Marketing y otros chats deben respetar esta reserva.
+
+### Actualización — Ventana 2 de Categorías autorizada (2026-10-21)
+
+- Ventana 1 finalizada según `docs/modulos/categorias.md` §13; ver decisión detallada `docs/DECISIONES_CATEGORIAS_FASE3.md` (adenda final).
+- **Reserva exclusiva para chat Categorías, Ventana 2:** `app/Controllers/Admin/CategoriesController.php` **solo save/toggle**, los tres servicios de estado/jerarquía previamente reservados, `app/Views/pages/admin/categories/form.php` y `app/Views/partials/admin/categories/toggle_action.php` **solo si se necesitan mensajes funcionales**, contratos/pruebas focales y `docs/modulos/categorias.md`.
+- No autorizados: `quick()`, archivos de Productos, servicios SEO compartidos, catálogo público, CSS, layouts, rutas, migraciones, otros módulos o Git. `scripts/build/gate.php` puede ejecutarse, **no editarse**.
+- El formulario debe respetar la política única, validar antes de confirmar y evitar escrituras parciales de categoría/visibilidad; la atomicidad completa con SEO/archivos sigue como deuda de Ventana 4. Terminado el E2E HTTP sobre MySQL aislado, liberar reserva y esperar siguiente autorización.
