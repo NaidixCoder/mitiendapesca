@@ -1,9 +1,11 @@
 # Arquitectura objetivo — admin-v3
 
-## Estado
-Etapa 2: arquitectura definida; adopción progresiva pendiente. No modificar apariencia pública ni geometría del sidebar.
+> **Guía normativa de UI (2026-10-21):** [`GUIA_VISUAL_ADMIN_V3.md`](GUIA_VISUAL_ADMIN_V3.md). Los bloques de implementación por fecha más abajo son **históricos** y pueden haber quedado superados por etapas posteriores; comprobar siempre código actual e informes de módulo.
 
-## Árbol objetivo
+## Estado actual de arquitectura
+Admin V3 está en adopción progresiva con shell maestro, Page Header compacto, tokens, componentes propios y hojas CSS por página **ya implementados en varios módulos**. La limpieza integral de todos los consumidores legacy no se considera terminada. No alterar apariencia pública ni geometría del sidebar. El trabajo de Marcas, Categorías y Atributos sigue a cargo de chats especializados.
+
+## Árbol objetivo (esquema conceptual; no todos los archivos existen aún)
 - public_html/assets/css/admin-v3/tokens.css
 - public_html/assets/css/admin-v3/base.css
 - public_html/assets/css/admin-v3/layout.css

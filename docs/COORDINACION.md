@@ -12,7 +12,7 @@
 
 ## 2. Fuentes y jerarquía práctica
 1. Decisiones expresas vigentes del propietario; ante duda o contradicción, detener el cambio conflictivo.
-2. Contrato específico vigente: `CONTRATO_VISUAL_ADMIN_2026.md`, `docs/ARQUITECTURA_ADMIN_V3.md` y contratos `scripts/build/*` aplicables.
+2. **Para UI Admin V3:** estándar operativo `docs/GUIA_VISUAL_ADMIN_V3.md` (versión consolidada de las decisiones visuales) + contrato formal `CONTRATO_VISUAL_ADMIN_2026.md` + arquitectura `docs/ARQUITECTURA_ADMIN_V3.md` y contratos `scripts/build/*` aplicables. No confundir un bloque histórico con la decisión más reciente.
 3. `PLAN_CSS_UNIFICADO.md` y `PLAN_DE_TRABAJO.md` (este último conserva las prioridades aunque su detalle de avance es anterior).
 4. `MANIFEST.md` como historial y evidencia de cambios; `docs/ESTADO_DESARROLLO.md` como síntesis operativa, **no** reemplaza el historial.
 5. Ante documentos desactualizados o incompatibles: dejar constancia de la discrepancia y acordar la resolución antes de implementar.
@@ -23,7 +23,10 @@
 | Arquitectura, documentación y coordinación | Chat principal (este chat) | Activo | Escribir únicamente documentación de coordinación hasta acordar un cambio técnico |
 | `/admin/marketing/*` (Campañas y Email) | Otro chat de Marketing, informado por el usuario | **Trabajo en curso, reserva preventiva** | Este chat y cualquier tercero: SOLO LECTURA; no pisar cambios |
 | Dashboard, Pedidos, SEO | Sin chat nuevo asignado | Implementaciones recientes documentadas; revisiones visuales pendientes | No iniciar escrituras sin nueva asignación |
-| Catálogo, Clientes, Proveedores y demás módulos | Sin asignar | Por planificar | Definir alcance y archivos antes de abrir trabajo paralelo |
+| Marcas `/admin/brands/*` | Chat especializado de Marcas | En desarrollo | Responsable exclusivo del módulo y `docs/modulos/marcas.md` |
+| Categorías `/admin/categories/*` | Chat especializado de Categorías | Segunda revisión / desarrollo | Responsable exclusivo del módulo y `docs/modulos/categorias.md` |
+| Atributos `/admin/attributes/*` | Chat especializado de Atributos | En desarrollo | Responsable exclusivo del módulo y `docs/modulos/atributos.md` |
+| Otros módulos | Sin asignar | Por planificar | Definir alcance y archivos antes de abrir trabajo paralelo |
 
 **Reserva preventiva:** la asignación Marketing procede de la indicación del usuario. No existe un lock técnico ni confirmación automática de que el otro chat haya leído este archivo.
 
@@ -41,22 +44,22 @@
 5. Antes de cambios grandes, realizar respaldo privado **fuera** del proyecto; no crear ZIP incremental salvo orden expresa.
 
 ## 6. Durante y al cerrar cada tarea
-- Trabajar en archivos acotados, conservar backend, rutas, nombres de campos, selectores JS y DB salvo autorización explícita; respetar `av3-`, CSS por ámbito y componentes comunes.
+- Trabajar en archivos acotados, conservar backend, rutas, nombres de campos, selectores JS y DB salvo autorización explícita; respetar `av3-`, CSS por ámbito y componentes comunes. **Para tareas de UI, leer y aplicar `docs/GUIA_VISUAL_ADMIN_V3.md`** (mobile-first, tokens, componentes y referencias).
 - Para un archivo compartido, detener la edición propia, registrar el conflicto y asignar un único responsable temporal. No hay ediciones simultáneas sobre el mismo archivo.
 - No realizar pruebas con envíos reales de emails, trabajadores scheduler/queue, pagos, cambios de datos, migraciones ni acciones irreversibles sin entorno/alcance seguro y autorización específica.
 - Al cerrar: detallar archivos tocados, funcionalidad, respaldo, resultado de `scripts/build/gate.php`, pruebas focales, validación visual real o pendiente y posibles conflictos.
-- Registrar conclusión en `docs/ESTADO_DESARROLLO.md`; el chat ejecutor actualiza el `MANIFEST.md` en ventana coordinada si corresponde. No declarar aprobado algo verificado solo de forma sintética.
+- **Regla de entrega multichat:** cada chat actualiza exclusivamente `docs/modulos/<su-modulo>.md` tras cada etapa significativa y al cerrar, siguiendo `docs/modulos/README.md`. Debe registrar fallas, cambios efectivos, CSS, pruebas reales/sintéticas, archivos y pendientes; el chat principal lee ese informe sin necesidad de recibir copias de la conversación.
+- El chat principal mantiene `docs/ESTADO_DESARROLLO.md` y coordina las actualizaciones del `MANIFEST.md` en una ventana exclusiva. No declarar aprobado algo verificado solo de forma sintética.
 - Si falla una prueba, falta conexión o hay colisión de cambios, registrar bloqueo; nunca informar como concluido.
 
 ## 7. Integración y control de concurrencia
-- La carpeta **no tenía `.git` al auditarse el 2026-10-20** (`git status` devolvió «not a git repository»); no existen ramas ni worktrees que aíslen cambios.
-- El repositorio remoto **sí existe y es accesible en lectura**: `https://github.com/NaidixCoder/mitiendapesca.git`, rama por defecto `main` (comprobado con `git ls-remote --symref ... HEAD` el 2026-10-20). Eso **no** vincula automáticamente esta carpeta local ni demuestra permisos de escritura.
-- **Actualización posterior (2026-10-20):** se inicializó Git en la carpeta XAMPP, con `origin` apuntando al remoto y rama local `main` basada en la remota. El usuario aprobó una sola carpeta y no utilizar worktrees por ahora; el chat principal administra los commits/push. Ver `docs/PROTOCOLO_GIT_MULTICHAT.md`.
-- Sigue siendo obligatorio un único editor por archivo y seguimiento manual de reservas/estado; Git no bloquea archivos compartidos.
-- Git, ramas o worktrees son una **mejora propuesta**, no implementada. No inicializar Git ni alterar la estructura del proyecto sin acordarlo.
-- El chat principal revisa integración y documentación; NO puede dirigir ni notificar de forma autónoma a otro chat. El usuario debe transmitirle las instrucciones iniciales.
+- **Vigente desde 2026-10-20:** Git está conectado localmente a `https://github.com/NaidixCoder/mitiendapesca.git`, rama `main`. El propietario aprobó **una sola carpeta de XAMPP** y sin worktrees por ahora; el código local es fuente de verdad. Ver `docs/PROTOCOLO_GIT_MULTICHAT.md`.
+- **Solo el chat principal** administra commits, push e integración; los especializados no ejecutan cambios de rama, Git destructivo o publicación.
+- **Un único editor por archivo** y seguimiento manual de las reservas activas. Git no bloquea archivos ni coordina automáticamente los chats. Los archivos globales requieren autorización/turno de edición.
+- La carpeta fue vinculada después de la auditoría inicial; la trazabilidad histórica está en `docs/ESTADO_DESARROLLO.md`, no es una instrucción de volver a configurar Git.
+- El chat principal **no puede** notificar automáticamente a otros chats: el propietario transmite nuevas reglas, y luego cada chat consulta la documentación compartida.
 
 ## 8. Protocolo Git y mensaje de arranque para chats especializados
-- **Lectura obligatoria general:** `docs/PROTOCOLO_GIT_MULTICHAT.md` antes de cualquier operación Git, sin importar el módulo. Por ahora es un protocolo documentado, no una conexión Git activa.
+- **Lectura obligatoria general:** `docs/PROTOCOLO_GIT_MULTICHAT.md` y `docs/modulos/README.md` antes de cualquier edición. Git está conectado; solamente el chat principal gestiona commits y push.
 
-«Trabajás en MiTiendaPesca, ruta `C:\xampp\htdocs\mi-pesca`. Antes de editar leé `docs/COORDINACION.md`, `docs/ESTADO_DESARROLLO.md`, `docs/PROTOCOLO_GIT_MULTICHAT.md`, `CONTRATO_VISUAL_ADMIN_2026.md`, `PLAN_CSS_UNIFICADO.md`, `MANIFEST.md` y `docs/ARQUITECTURA_ADMIN_V3.md`. Respetá la asignación de archivos, no toques áreas ajenas ni compartidas sin coordinar. NO inicialices Git ni cambies ramas hasta que el coordinador habilite el baseline. Al finalizar, registrá cambios, pruebas y pendientes; no crees ZIP incrementales».
+«Trabajás en MiTiendaPesca, ruta `C:\xampp\htdocs\mi-pesca`. Antes de editar leé `docs/COORDINACION.md`, `docs/ESTADO_DESARROLLO.md`, `docs/PROTOCOLO_GIT_MULTICHAT.md`, `docs/GUIA_VISUAL_ADMIN_V3.md`, `CONTRATO_VISUAL_ADMIN_2026.md`, `PLAN_CSS_UNIFICADO.md`, `MANIFEST.md` y `docs/ARQUITECTURA_ADMIN_V3.md`. Respetá la asignación de archivos, no toques áreas ajenas ni compartidas sin coordinar. Git ya está conectado: no hagas commits, push ni cambies ramas. Mantené actualizado el informe exclusivo de tu módulo en docs/modulos/ y al finalizar registrá cambios, pruebas y pendientes; no crees ZIP incrementales».

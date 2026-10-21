@@ -1,4 +1,8 @@
 # Contrato visual — MiTiendaPesca Admin 2026 (v1.0)
+
+> **Aplicación vigente desde 2026-10-21:** para desarrollar nuevas pantallas consultar **[`docs/GUIA_VISUAL_ADMIN_V3.md`](docs/GUIA_VISUAL_ADMIN_V3.md)**, que consolida criterios aprobados de identidad, Tabler/Shopify/Tiendanube, componentes reutilizables y mobile-first. Este contrato contiene también **historial cronológico**, incluidas decisiones posteriormente superadas. La UI vigente se contrasta con CSS y código reales. No alterar módulos ajenos ni CSS global sin coordinación.
+> **Aclaración tipográfica:** la propuesta inicial de título 24 px (más abajo) fue reemplazada por el **Page Header compacto de 20 px** del 20/10, implementado en `admin-v3/components/page-header.css`; no reinstalar 24 px en cada módulo.
+
 Aprobado: 2026-10-17 · Densidad: **equilibrada**.
 
 ## Alcance

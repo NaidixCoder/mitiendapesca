@@ -1,5 +1,8 @@
 # Plan maestro — Unificación CSS de MiTiendaPesca
 
+> **Regla de diseño unificada (2026-10-21):** [`docs/GUIA_VISUAL_ADMIN_V3.md`](docs/GUIA_VISUAL_ADMIN_V3.md) establece identidad visual, inspiraciones aprobadas, componentes existentes, mobile-first y criterios de entrega. Este plan es la **bitácora de migración**; las casillas y fotografías de etapas antiguas no deben tratarse como implementación actual sin verificar el código.
+> Prioridad técnica: tokens existentes → componentes `av3-ui-*` compartidos → composición exclusiva por módulo → revisión responsive 363/390/768/1024/1600 → pruebas y documentación. No duplicar botones, campos, tarjetas ni estados bajo namespaces de módulo sin justificación y coordinación.
+
 Estado: EN EJECUCIÓN. Documento vivo. Actualizar después de cada etapa.
 
 ## Objetivo

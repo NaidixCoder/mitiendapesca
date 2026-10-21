@@ -84,3 +84,13 @@
 - Decisión vigente: **un único directorio de XAMPP y rama `main`**, edición por módulos coordinada; worktrees no necesarios actualmente. El chat principal gestiona commits/push, los especializados no cambian de rama unilateralmente.
 - Nota: `git diff --cached --check` detectó advertencias heredadas de espacios al final de línea o líneas vacías; no se reformatearon masivamente para no afectar código de otro chat.
 - Como el otro chat puede seguir editando Marketing, comprobar `git status` antes de cualquier futuro commit; el hecho de que este baseline esté publicado no significa que modificaciones posteriores estén subidas.
+
+## Estándar visual Admin V3 consolidado — 2026-10-21
+
+- Publicado en la carpeta local `docs/GUIA_VISUAL_ADMIN_V3.md` el **estándar operativo v2.0**, con identidad, tokens existentes, inventario de componentes `av3-ui-*`, mobile-first real, criterios de UX, checklist de validación y referencias aprobadas.
+- Fuentes visuales aprobadas documentadas: **Tabler** como principal de componentes y **falcolee/e-commerce-dashboard** para flujos; Shopify Polaris, Tiendanube/Nimbus, Medusa y Saleor/Macaw como complementarias. Vuexy, Vuesy PHP, Panelux, Behance y Envato quedan como referencias evaluadas, no adoptadas.
+- Ajustados `CONTRATO_VISUAL_ADMIN_2026.md`, `docs/ARQUITECTURA_ADMIN_V3.md`, `PLAN_CSS_UNIFICADO.md`, `docs/ADMIN_DESIGN_SYSTEM_TABLER.md`, `docs/README.md`, `docs/COORDINACION.md` y `docs/modulos/README.md` para remitir a la norma sin sobrescribir su historial.
+- Decisión explícita aclarada: **Page Header compacto vigente de 20 px** (reemplazó el concepto anterior de 24 px); shell, sidebar y componentes globales no se modifican desde módulos.
+- Deuda técnica señalada, **no corregida** en esta etapa: tamaños auxiliares de 11 px, variables `--av3-ui-*` que necesitan armonización con `--av3-color-*`, y algunos controles locales duplicados. Coordinar refactor global después de terminar los módulos activos.
+- **Solo documentación**: no se cambiaron archivos CSS/PHP/JS ni archivos de Marcas, Categorías, Atributos o Marketing. Sin aprobación visual nueva; cada chat debe validar y dejar evidencias en `docs/modulos/<modulo>.md`.
+- Respaldo original fuera del proyecto: `C:\xampp\mi-pesca-backups\admin_visual_docs_20261021_0006`.

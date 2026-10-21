@@ -8,8 +8,12 @@
 2. [Estado de desarrollo](ESTADO_DESARROLLO.md) — avances documentados, pendientes y limitaciones de prueba.
 3. [Protocolo Git multichat](PROTOCOLO_GIT_MULTICHAT.md) — estrategia actual: una carpeta, rama `main` y commits coordinados; worktrees no necesarios.
 4. [Plan de trabajo y prioridades](../PLAN_DE_TRABAJO.md) — conserva prioridades acordadas; parte del progreso es histórico.
-5. **Si se trabaja en el administrador:** [Contrato visual](../CONTRATO_VISUAL_ADMIN_2026.md), [Arquitectura Admin V3](ARQUITECTURA_ADMIN_V3.md) y [Plan de unificación CSS](../PLAN_CSS_UNIFICADO.md).
+5. **Si se trabaja en el administrador (lectura obligatoria):** aplicar el **[Estándar de diseño Admin V3 — v2.0](GUIA_VISUAL_ADMIN_V3.md)** (referencias aprobadas, variables reales, biblioteca `av3-ui-*`, mobile-first, QA y entrega); contrastar con [Contrato visual](../CONTRATO_VISUAL_ADMIN_2026.md), [Arquitectura Admin V3](ARQUITECTURA_ADMIN_V3.md) y [Plan de unificación CSS](../PLAN_CSS_UNIFICADO.md).
 6. **Antes de editar código:** revisar contratos y pruebas específicos; usar [MANIFEST.md](../MANIFEST.md) como historial de cambios, no como lista de tareas.
+
+## Informes de módulos activos
+
+- [docs/modulos/](modulos/README.md): seguimiento que actualiza cada chat especializado. Marcas, Categorías y Atributos tienen archivo propio. El chat principal los lee desde Desktop Commander sin necesidad de reenviar respuestas.
 
 ## Directorios por propósito
 
@@ -28,7 +32,7 @@
 ## Documentos que permanecen en posiciones compatibles
 
 - [Auditoría CSS](AUDITORIA_CSS_2026.md) y [auditoría de encabezados](AUDITORIA_ADMIN_ENCABEZADOS.md): scripts existentes las consultan/generan por esas rutas.
-- [Design System Tabler](ADMIN_DESIGN_SYSTEM_TABLER.md): fotografía de octubre 2026, con pendientes que pueden estar superados; priman contrato visual y arquitectura actuales.
+- [Referencias aprobadas de Design System](ADMIN_DESIGN_SYSTEM_TABLER.md): Tabler y e-commerce-dashboard como fuentes principales, Shopify/Tiendanube/Medusa/Saleor como complementarias. Se utiliza junto al [estándar visual vigente](GUIA_VISUAL_ADMIN_V3.md).
 - [MANIFEST.md](../MANIFEST.md), [PLAN_CSS_UNIFICADO.md](../PLAN_CSS_UNIFICADO.md), [CONTRATO_VISUAL_ADMIN_2026.md](../CONTRATO_VISUAL_ADMIN_2026.md) y [PLAN_DE_TRABAJO.md](../PLAN_DE_TRABAJO.md): rutas conocidas por otros chats y scripts; no moverlas durante el trabajo activo de Marketing.
 
 ## Reglas de mantenimiento documental
