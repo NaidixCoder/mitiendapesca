@@ -269,3 +269,31 @@ El propietario **aprueba expresamente B1**. Esta decisión **reemplaza** todas l
 **Próxima Ventana 6B-2 PREPARADA, NO ABIERTA:** núcleo y consumidores públicos de **lectura** de Productos. Ver `docs/POLITICA_VISIBILIDAD_PRODUCTOS_B1.md` §3 (propuesta de reservas por archivo), §4 (matriz de pruebas ON/OFF). **Requiere primero cierre técnico y liberación de reservas de V6B-1, revisión del principal y autorización expresa**. No comenzar por el mero hecho de aprobar B1. A posteriori: V6B-3 Cart/Checkout (validación transaccional de no-compra ON) y V6C SEO/sitemap Productos/redirect/head, ambas aún sin autorización.
 
 **Coordinación:** mantener MetaController `sitemapCategories()` y bloque de chips móviles exclusivos del chat Categorías en V6B-1. Importaciones trabaja hotfix P0 V1C separado. Los módulos comparten Git worktree; solo principal puede hacer commit/push.
+
+## Adenda 2026-10-21 — Ventana 6B-1 VALIDADA; Ventana 6B-2 AUTORIZADA bajo B1
+
+**Revisión técnica:** sección 19 de `docs/modulos/categorias.md` documenta GET reales, XML sitemap, chips móviles 8/3, 2.200 niveles, rendimiento y teardown; principal verificó por lectura el nuevo método `CategoryRepository::listPublicVisibleOrdered()` y sus dos consumidores, y volvió a ejecutar contratos **24/24 público y 28/28 Admin**. El especialista reportó gate general **836 PHP/120 JS OK**. Se **cierra V6B-1** y se liberan sus reservas de `MetaController::sitemapCategories()` y `_mobile_search_sheet.php`, que no pueden editarse en V6B-2. El `noindex`/canonical editorial sigue pendiente de V6C.
+
+**Política B1 ratificada expresamente por propietario**: `docs/POLITICA_VISIBILIDAD_PRODUCTOS_B1.md` es documento vinculante; los textos anteriores «B1/B2 pendiente» son históricos. OFF (`catalog_hide_inactive_category_products=0`) deja visibles/vendibles los productos activos de categorías ocultas; ON (=1) excluye de **toda** superficie pública y compra a los productos cuya categoría o ancestro no sea visible, sin cambiar `products.is_active`, stock, precio, relaciones ni pedidos históricos.
+
+### V6B-2 AUTORIZADA — exclusivamente LECTURA pública de Productos
+
+Responsable único: chat de Categorías. Implementar una política pública común `ProductPublicVisibilityService` (nuevo) que combina `products.is_active`, setting B1 y `CategoryPublicVisibilityService`. **No duplicar filtros o hacer N+1.** Bajo ON, filtro antes de LIMIT/OFFSET para totales, paginación, facetas, priceBounds, ranking, recomendaciones y resultados consistentes; bajo OFF, producto activo de categoría oculta conserva ficha, búsqueda, recomendación y QuickAdd. Evitar breadcrumb/enlace público a categoría 404 cuando OFF (si requiere HTML compartido, detener y solicitar reserva). Producto huérfano bajo ON debe fallar cerrado; no arreglar datos reales.
+
+**Archivos reservados EXCLUSIVAMENTE para cambios focales descritos:**
+- **Nuevo** `app/Services/Catalog/ProductPublicVisibilityService.php` — comprobación, conjunto elegible y cache por request.
+- `app/Repositories/Catalog/ProductRepository.php` — **solo selectores SELECT públicos** (`publicVisibilitySql`, `buildCatalogWhere`, `paginate`, `priceBounds`, `searchPreview`, `findRelatedFill`, `findRelatedForCart`, `findVisibleByIdsOrdered`, `findQuickAdd` si procede). No editar insert/update, SKU, stock, precios ni selectores de Admin/Importaciones.
+- `app/Controllers/Catalog/ProductsController.php` — solo `index/suggest/suggestFragment`; preservar contratos JSON/HTML y 301 legacy.
+- `app/Controllers/Catalog/ProductController.php` — solo elegibilidad GET de ficha y datos de breadcrumb, sin cambiar pricing/SEO global.
+- `app/Controllers/Catalog/QuickAddController.php` — solo guard GET; conservar 400/404/409 y pricing.
+- `app/Controllers/Catalog/CategoryController.php` — solo selección/lista de productos dentro de landing ya elegible; no alterar guard 6A.
+- `app/Services/Catalog/FacetService.php` — solo SELECT/conteos públicos de productos, marcas/tags coherentes con B1; no reestructurar el árbol de categorías.
+- `app/Services/Catalog/RecommendedProductsService.php` — solo filtrado visible de resultados relacionados y globales, sin modificar ranking/stock/precios.
+- `app/Services/Public/HomePageViewService.php` — solo tarjetas públicas de secciones manuales/YouTube; filtrar después de lectura batch o API pública específica, **sin cambiar el repositorio compartido de Cart**.
+- Nuevos `scripts/build/categories_product_visibility_contract.php`, scripts `scripts/dev/categories_product_visibility_*.php`, y `docs/modulos/categorias.md` exclusivamente.
+
+**SOLO LECTURA y SIN EDICIÓN en V6B-2:** `CategoryPublicVisibilityService.php`, `CategoryRepository.php`, `ProductReadRepository.php`, `AppSettingsRepository.php`, `MetaController.php`, `_mobile_search_sheet.php`, `public_html/index.php`, `SeoFrontService.php`, Layout/404, rutas, vistas/HTML/CSS/JS, Cart/Checkout/Payment, Settings, Admin, otros repositorios e Importaciones. Si un requisito exige modificar un archivo no reservado, detener ese punto y pedir permiso; **no ampliar alcance unilateralmente**.
+
+**Pruebas obligatorias:** clon MySQL descartable con `SELECT DATABASE()`, fixture de raíz/hija/nieta/ancestros inactivos, ciclos/huérfanos, categorías vacías, productos activos/inactivos, variantes; repetir todo con flag **OFF y ON**. Verificar por HTTP GET `/productos`, `/producto?slug`, `/categoria?slug`, JSON y fragment search, `/productos/quick-add`, Home (manual/YouTube), recomendados y filtros/facetas. Misma elegibilidad, precio, conteos, rango y paginación, sin enlaces a 404 y sin N+1. Asegurar regresión de catálogo habitual, Admin e Importaciones (sin escrituras comerciales). Ejecutar contratos focales, lint y gate coordinado, limpiar recursos y documentar evidencia real.
+
+**IMPORTANTE:** V6B-2 **no habilita producción**; la política B1 ON todavía necesita una ventana **V6B-3** de guardas transaccionales de Carrito/Checkout/Payment y carritos existentes. **V6C** corregirá sitemap Productos, canonical/noindex, redirecciones, 404/head/JSON-LD bajo reserva SEO global. Ambas ventanas NO están autorizadas. Detenerse al concluir 6B-2 y solicitar aprobación, no hacer commit/push.

@@ -61,3 +61,7 @@ En **clon MySQL descartable**, con `SELECT DATABASE()` y dos variantes ON/OFF:
 ## 5. Fuente de verdad y cambios a la decisión
 
 La aprobación expresa B1 del propietario prevalece sobre los textos históricos `B1/B2 pendiente` redactados durante V5/V6A/V6B-1; estos quedan como antecedentes del momento en que se escribieron. No reabrir decisión B1/B2 a menos que el propietario la modifique de forma explícita. Documento rector complementario: `docs/DECISIONES_CATEGORIAS_FASE3.md`.
+
+## Estado actualizado del plan — 2026-10-21
+
+**V6B-1 completada y validada técnicamente. V6B-2 ABIERTA con autorización expresa del chat principal**, exclusivamente en los archivos y métodos descritos en la última adenda de `docs/DECISIONES_CATEGORIAS_FASE3.md` y su reserva en `docs/COORDINACION.md`. Las menciones anteriores de «PREPARADA/NO ABIERTA» describían el estado antes del cierre de V6B-1 y han quedado superadas. V6B-3 Cart/Checkout y V6C SEO siguen **NO autorizadas**. B1 sigue siendo la decisión comercial definitiva.
