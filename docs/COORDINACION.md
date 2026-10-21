@@ -64,3 +64,10 @@
 - **Lectura obligatoria general:** `docs/PROTOCOLO_GIT_MULTICHAT.md` y `docs/modulos/README.md` antes de cualquier edición. Git está conectado; solamente el chat principal gestiona commits y push.
 
 «Trabajás en MiTiendaPesca, ruta `C:\xampp\htdocs\mi-pesca`. Antes de editar leé `docs/COORDINACION.md`, `docs/ESTADO_DESARROLLO.md`, `docs/PROTOCOLO_GIT_MULTICHAT.md`, `docs/GUIA_VISUAL_ADMIN_V3.md`, `CONTRATO_VISUAL_ADMIN_2026.md`, `PLAN_CSS_UNIFICADO.md`, `MANIFEST.md` y `docs/ARQUITECTURA_ADMIN_V3.md`. Respetá la asignación de archivos, no toques áreas ajenas ni compartidas sin coordinar. Git ya está conectado: no hagas commits, push ni cambies ramas. Mantené actualizado el informe exclusivo de tu módulo en docs/modulos/ y al finalizar registrá cambios, pruebas y pendientes; no crees ZIP incrementales».
+
+## 9. Reserva temporal — Categorías Fase 3 (2026-10-21)
+
+- **Decisión formal vigente:** [`docs/DECISIONES_CATEGORIAS_FASE3.md`](DECISIONES_CATEGORIAS_FASE3.md). Leer antes de editar el servicio de estados, quick o SEO.
+- **Ventana 1 autorizada únicamente al chat de Categorías:** `app/Services/Catalog/CategoryAdminService.php`, `app/Services/Admin/Categories/CategoryHierarchyGuard.php`, nuevo servicio de política `app/Services/Admin/Categories/CategoryVisibilityPolicyService.php`, su contrato/pruebas focales e informe `docs/modulos/categorias.md`. No permitir edición concurrente de esos archivos.
+- **No autorizadas aún:** adaptación de Controller/formulario, dos archivos Productos de creación rápida, SEO compartido, catálogo público, CSS global, migraciones o Git desde ese chat. Cada fase necesita evidencias y próxima autorización expresa.
+- Marcas continúa **sin aprobación visual** y en trabajo exclusivo de CSS. Atributos mantiene correcciones P0 compartidas bloqueadas; Marketing y otros chats deben respetar esta reserva.
