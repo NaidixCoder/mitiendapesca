@@ -107,3 +107,10 @@
 - **Ventana 5 autorizada exclusivamente como investigación pública de solo lectura** al chat de Categorías. Puede leer rutas/controladores/repositorios/vistas públicas, SEO, sitemap y settings; puede ejecutar GET/SELECT o ensayos sobre una copia MySQL descartable. **Solo puede EDITAR `docs/modulos/categorias.md`**. Ningún otro archivo del proyecto está reservado para escritura en V5.
 - Quedan liberadas al terminar V4 las reservas de edición anteriores de `CategoriesController::save()` y `CategorySaveService.php`; ello **no** autoriza a otros chats a editarlos sin nueva reserva. Importaciones continúa Ventana 1, Marcas trabajo visual exclusivo, Atributos pendiente QA/P0.
 - El propietario deberá decidir política pública y tratamiento de productos/enlaces tras el informe, antes de permitir cambios en catálogo, SEO, sitemap, rutas o migraciones. Ver `docs/DECISIONES_CATEGORIAS_FASE3.md` (última adenda).
+
+### Importaciones — Ventana 1B de QA y refinamiento autorizada (2026-10-21)
+
+- V1 completada técnicamente por chat de Importaciones; principal reejecutó **68/68 contrato** y `node --check`; examinó capturas sintéticas. **No hay aprobación estética final** ni refactor de backend autorizado.
+- **V1B al mismo responsable**: conservar reserva de vistas/parciales solo Importaciones, `public_html/assets/css/admin-v3/pages/imports.css`, `public_html/assets/js/admin/imports/preview.js`, sus ViewModels/presenter solo para presentación, contrato/tests focales y `docs/modulos/importaciones.md`. Pruebas HTTP autenticadas únicamente con fixtures/BD descartable; NO tocar datos reales.
+- Ver `docs/PLAN_IMPORTACIONES_ADMIN_V3.md` (adenda V1B) para suite visual/funcional; comparar con shell real Dashboard/Pedidos, 363/390/768/1024/1600. Sin edición de ImportsController, motor, repositories, productos, SEO, otras apps, CSS global, head.php, app.js, gate.php o Git.
+- V2 y V3 siguen **NO autorizadas**. Categorías está en Ventana 5 de auditoría pública (solo lectura); su informe no se solapa con esta reserva.
