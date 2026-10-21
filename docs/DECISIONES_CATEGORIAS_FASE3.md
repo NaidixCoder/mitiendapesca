@@ -255,3 +255,17 @@ Auditoría pública solo lectura ahora; edición pública únicamente tras acuer
 **Pendiente comercial V5-D2:** el propietario **todavía no ratificó B1/B2**. La recomendación es B1: setting OFF mantiene productos activos vendibles de categoría oculta (valor comercial actual 0), ON los oculta coherentemente en todos los consumidores, sin cambiar flags de DB. No implementar B1/B2 sin respuesta y ventana exclusiva posterior (6B-2). Los flujos SEO/redirecciones/head requieren otra reserva (6C). No publicar corrección incompleta como final.
 
 **Salida:** cerrar V6B-1 tras pruebas y documentación en `docs/modulos/categorias.md`; detener trabajo y solicitar aprobación para consumidores/SEO. La aprobación visual del Admin de categorías también continúa pendiente.
+
+## Resolución comercial definitiva — V5-D2 APROBADA: B1 (2026-10-21)
+
+El propietario **aprueba expresamente B1**. Esta decisión **reemplaza** todas las menciones previas de «B1/B2 pendiente» en documentos y adendas anteriores. Documento de contrato y matriz de consumidores: `docs/POLITICA_VISIBILIDAD_PRODUCTOS_B1.md`.
+
+- **Categoría visible** solo si su flag y el de todos los ancestros son activos (política ya implementada en V6A).
+- **Flag `catalog_hide_inactive_category_products=0` (OFF, configuración actual):** los productos con `products.is_active=1` siguen públicamente disponibles y a la venta aunque su categoría o ancestro esté oculto. Deben evitarse breadcrumbs, filtros y enlaces hacia categorías con 404.
+- **Flag = 1 (ON):** los productos de categoría directa inactiva o de cualquier ancestro inactivo dejan de estar disponibles en fichas, listados, búsqueda/sugerencias, cards, recomendados, home, QuickAdd, carrito/checkout y sitemap de Productos. No se modifica `products.is_active`, stock, precio, categorías ni pedidos históricos. Una compra preexistente en carrito deberá validarse al confirmar para bloquear producto no elegible sin borrar el carrito silenciosamente.
+- Solo es política de visibilidad/venta PÚBLICA; búsquedas admin, importación, datos históricos y contabilidad no deben filtrar por B1.
+- Categorías vacías y señalización SEO en errores siguen políticas diferenciadas; no asumir 410/301 para ocultación reversible.
+
+**Próxima Ventana 6B-2 PREPARADA, NO ABIERTA:** núcleo y consumidores públicos de **lectura** de Productos. Ver `docs/POLITICA_VISIBILIDAD_PRODUCTOS_B1.md` §3 (propuesta de reservas por archivo), §4 (matriz de pruebas ON/OFF). **Requiere primero cierre técnico y liberación de reservas de V6B-1, revisión del principal y autorización expresa**. No comenzar por el mero hecho de aprobar B1. A posteriori: V6B-3 Cart/Checkout (validación transaccional de no-compra ON) y V6C SEO/sitemap Productos/redirect/head, ambas aún sin autorización.
+
+**Coordinación:** mantener MetaController `sitemapCategories()` y bloque de chips móviles exclusivos del chat Categorías en V6B-1. Importaciones trabaja hotfix P0 V1C separado. Los módulos comparten Git worktree; solo principal puede hacer commit/push.
