@@ -113,3 +113,35 @@ El chat principal leyó `docs/modulos/importaciones.md` (bitácora V1), inspecci
 5. **Salida:** capturas antes/después **reales o aisladas autenticadas** y especificar cuál, casos de error y éxito, ejecuciones de scripts focales y gate cuando no esté ocupado por otros chats; certificar teardown (no matar Firefox/XAMPP), archivar fuera de repo screenshots. Marcar `EN REVISIÓN VISUAL`, no autodeclarar diseño aprobado. Detenerse para visto bueno del propietario antes de V2.
 
 **Pendientes funcionales de V2/V3:** I05/I06/I07/I08/I09/I10/I12 no autorizados; si se reproducen fallos graves con fixtures, documentar P0 y bloquear cambios funcionales hasta autorización puntual.
+
+## Adenda 2026-10-21 — Ventana 1B revisada; HOTFIX P0 de reversión AUTORIZADO (Ventana 1C)
+
+**Verificación del chat principal:** `docs/modulos/importaciones.md` registra E2E HTTP autenticado contra la aplicación completa y MySQL descartable, 50 capturas con sidebar en 363/390/768/1024/1600, preview sin escritura, apply, LIFO, rollback, CSRF y teardown. El principal leyó `ImportRevertService.php`, `ImportRevertRepository.php` y `ImportService.php`, examinó capturas reales de carga y detalle a 390 y 1600 px, y **re-ejecutó `imports_admin_contract.php`: 71/71 OK**. V1B **completada técnicamente**, el diseño es consistente con la identidad pero **aceptación visual definitiva sigue a cargo del propietario**. No se integra en Git de manera prematura.
+
+### Riesgo P0 reproducido y confirmado por código
+
+- El E2E aislado demuestra que un precio modificado manualmente después del import (`2480→2499`) fue restaurado incorrectamente al precio anterior (`2000`) y el job se marcó `reverted`.
+- `ImportRevertRepository::getUpdatedAt()` retorna null si falta `updated_at` (la tabla real `products` no lo tiene) y `ImportRevertService::detectConflicts()` **omite** ese caso. El v2 `_rollback.json` guarda `before` pero **no tiene valores `after` verificables**.
+- Otros riesgos existentes I05/I06/I07/I09/I12 siguen pendientes de un ciclo propio. Este hotfix solo debe evitar la **destrucción silenciosa de ediciones posteriores**, sin prometer que resuelve toda la integridad de la importación.
+
+### Autorización V1C — seguridad funcional de rollback, excepcional y acotada
+
+Se **pospone Ventana 2** (refactor general) y se habilita **Ventana 1C exclusivamente al chat de Importaciones**, con reserva temporal de escritura en:
+- `app/Services/Import/ImportRevertService.php`: comprobar estado y bloquear antes de cualquier RESTORE/DELETE.
+- `app/Repositories/Imports/ImportRevertRepository.php`: API de lectura de estado actual **con listas blancas de tabla/columnas**, bloqueo transaccional y operaciones del mismo módulo; no afectar repositorios Catalog.
+- `app/Services/Import/ImportService.php`: **solo generación/registro del snapshot de rollback de ejecuciones futuras**, para incluir postestado verificable de campos o entidades afectados. Si se necesita modificar ProductImporter/VariantImporter/InventoryImporter u otro servicio, parar y solicitar ampliación concreta antes de editar.
+- `app/Services/Admin/Imports/ImportsViewPresenterService.php`: **solo** detectar formatos seguros/incompatibles y reflejar disponibilidad real de Revertir. Si hace falta, `app/Views/partials/admin/imports/view/notices.php` **solo** mensaje de bloqueo, sin cambios estéticos amplios.
+- `scripts/build/imports_admin_contract.php`, nuevos `scripts/build/imports_revert_contract.php` y `scripts/dev/imports_rollback_integrity_isolated.php` (o equivalentes), `docs/modulos/importaciones.md`.
+
+**Contrato de seguridad obligatorio:**
+1. **Nunca sobrescribir/borrrar** datos si la última versión del registro no se puede confirmar; **fail-closed** ante falta de `updated_at`, `after`, información incompleta o snapshot legacy. El timestamp es señal adicional, no única defensa. Para snapshots v2 anteriores sin `after`, **bloquear revert automático con explicación precisa** y conservar opción de recuperación manual revisada; jamás asumir ausencia de conflicto.
+2. Para nuevos imports registrar un **postestado verificable** de todas las operaciones destructivas (updates y deletes por creación), incluyendo producto, variante, stock/inventario y entidades auxiliares cuando aplique. Elegir formato versionado explícito (v3 o extensión compatible), adaptar consumidor y UI **en conjunto**. No suponer seguridad si solo se compara precio y no SKU, stock, variante o atributo. Si hay una operación no contrastable, bloquear el lote completo.
+3. Realizar **lectura/comparación con locks dentro de la misma transacción PDO de rollback** que ejecuta RESTORE/DELETE; detectar alteraciones manuales y carreras **antes de la primera escritura**. Sin verificación fuera de transacción que permita TOCTOU. Rechazo = **cero alteraciones del catálogo** y estado/feedback explícito; audit y LIFO coherentes con el bloqueo.
+4. Preservar compatibilidad de snapshots previos sin convertirlos ni eliminarlos; para v1/v2 no verificable bloquear por defecto en lugar de ofrecer botón engañoso. Evitar que bloquear el último import permita revertir uno anterior indebidamente (revisar cómputo LIFO).
+5. **No migraciones** de tablas ni columnas en BD comercial. No reescribir precio, inventario, márgenes o reglas de negocios al crear el snapshot; no cambiar la semántica de Apply salvo lo mínimo necesario para registrar estado de verificación.
+6. Proteger el caso de varias filas/importaciones que tocan el mismo registro, valor NULL/0/decimales, updates no-op, entidad nueva luego editada, variante/stock, snapshot ausente/incompleto y dos reversions concurrentes. Evitar restauración parcial cuando se detecta conflicto. No confiar en comparaciones meramente textuales de floats/fechas.
+7. **No ampliar** a reparación de `_rollback.json` después del commit, all-or-nothing de importación, refactor de controller/export, cambios visuales adicionales, SEO, Productos/Categorías, Settings o Git. Registrar esos problemas por separado; si impiden una solución segura, detener y pedir autorización.
+
+**Aceptación V1C:** replicar primero el bug P0 en clon descartable (precio 2000→2480, edición posterior 2499; rollback debe quedar bloqueado y 2499 preservado); éxito normal de reversión segura sin ediciones; bloqueo para snapshot v2 sin after; alteración del precio/costo/stock/variante/creados/entidades auxiliares; ausencia de postestado/archivo; LIFO y intentos simultáneos, CSRF, audit; E2E autenticado con asserts SQL antes/después; contrato focal y gate cuando otros chats no lo estén ejecutando. Verificar explícitamente DB del fixture y teardown de procesos/credenciales; sin escritura en BD habitual.
+
+**Cierre:** documentar pruebas y limitaciones, pedir revisión del chat principal. **Ventana 2 y Ventana 3 generales siguen NO AUTORIZADAS**. El usuario aún debe aprobar el diseño final antes de integrar el módulo o publicarlo.
