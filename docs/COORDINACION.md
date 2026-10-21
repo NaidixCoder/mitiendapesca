@@ -85,3 +85,10 @@
 - **Reserva EXCLUSIVA temporal para Categorías (Ventana 3):** `app/Controllers/Admin/CategoriesController.php` **solo quick()**; `public_html/assets/js/admin/product_form/index.js` **solo initCategoryQuickCreate()**; `app/Views/partials/admin/products/tab_basicos.php` **solo modal quick Categorías**; contratos/pruebas focales y `docs/modulos/categorias.md`.
 - La reserva de los **dos archivos Productos** es una excepción focal autorizada por principal. No abrir edición simultánea desde otro chat, y confirmar disponibilidad antes de escribir. Sin permiso para el resto del formulario de Productos ni el modal de Marcas.
 - Contrato y pruebas exactas en `docs/DECISIONES_CATEGORIAS_FASE3.md` (adenda V3). **No cambiar SEO, público, CSS, layout, otros servicios compartidos ni Git**. V4 y V5 siguen sin autorización.
+
+### Actualización 2026-10-21 — Categorías Ventana 4
+
+- **Ventana 3 documentada y terminada**: `docs/modulos/categorias.md` §15. Liberadas las reservas temporales de Productos `public_html/assets/js/admin/product_form/index.js` y `app/Views/partials/admin/products/tab_basicos.php` de Categorías.
+- **Ventana 4 reservada solo al chat de Categorías**: `app/Controllers/Admin/CategoriesController.php` **solo save()/storeCoverImage()**, nuevo orquestador local `CategorySaveService.php`, ajustes compatibles indispensables de servicios Categorías, contrato y pruebas focales, `docs/modulos/categorias.md`. Ver `docs/DECISIONES_CATEGORIAS_FASE3.md` (última adenda).
+- **SEO compartido en SOLO LECTURA**, incluido `SeoSlugHistoryRepository.php` (riesgo conocido de cambio silencioso de propietario), y cualquier archivo de otros módulos. Si hace falta modificarlo, detenerse y pedir permiso preciso. No tocar CSS, Productos, catálogo público, rutas, schema, migraciones, gate global, Git ni base comercial.
+- Marcas sigue sin aprobación visual; sus archivos continúan exclusivos de su chat hasta cierre declarado por propietario. Atributos sin autorización para sus P0 compartidos.

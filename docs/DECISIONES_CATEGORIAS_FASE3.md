@@ -140,3 +140,31 @@ Auditoría pública solo lectura ahora; edición pública únicamente tras acuer
 **Pruebas de salida:** Q01–Q06 de `docs/modulos/categorias.md` §12.6 con HTTP autenticado en **MySQL descartable**, CSRF y `SELECT DATABASE()`; navegador headless para modal de Productos probando conservar datos ante error y seleccionar al crear/reutilizar; colisión concurrente, padre inactivo/ancestro inactivo, interacción con marca quick y regresión de Productos. Contrato, smoke focal, build gate; teardown de todos los procesos/perfiles propios según protocolo. No escribir BD habitual.
 
 **Cierre:** informar archivos tocados, resultados reales y limitaciones en `docs/modulos/categorias.md`, detenerse y pedir autorización para Ventana 4. **No hay permiso de CSS/layout, SEO compartido, catálogo público, migraciones, rutas, gate global, Git o datos comerciales.**
+
+## Actualización 2026-10-21 — Ventana 3 CERRADA y Ventana 4 AUTORIZADA (ámbito acotado)
+
+**Evidencia Ventana 3:** `docs/modulos/categorias.md` §15; contrato 25/25, prueba HTTP autenticada Q01–Q06, cuatro carreras reales con dos servidores PHP y validación del modal en 390/1280 px, regresión del modal Marcas, teardown confirmado y gate global OK (829 PHP /120 JS) **en su ejecución**. La implementación de quick y su JS queda entregada dentro del alcance, sin declaración de aprobación visual.
+
+**Reserva de Productos LIBERADA:** `public_html/assets/js/admin/product_form/index.js` y `app/Views/partials/admin/products/tab_basicos.php`. **No volver a editarlos desde Categorías en V4**; cualquier intervención nueva exige otra reserva.
+
+### Ventana 4: aprobación para Categorías, un responsable y alcance limitado
+
+**Objetivo:** orquestar en una unidad transaccional y coherente la escritura de categorías + visibilidad + historial de slugs + redirects + `seo_settings` + bloques SEO, con manejo seguro de la portada. Evitar falsos éxitos, reasignación histórica indebida y residuos de archivos ante rollback. No modificar el comportamiento público ni las rutas del admin.
+
+**Reserva de escritura exacta:**
+- `app/Controllers/Admin/CategoriesController.php` — **solo `save()` y helper `storeCoverImage()`** en cuanto sea imprescindible para staging/compensación. No tocar `quick()`, `toggle()` ni otros endpoints.
+- Nuevo `app/Services/Admin/Categories/CategorySaveService.php` u orquestador local de nombre justificado; extraer validaciones y transacción del controlador sin perder contratos/POST.
+- `app/Services/Admin/Categories/CategoryHierarchyGuard.php`, `app/Services/Admin/Categories/CategoryVisibilityPolicyService.php`, `app/Services/Catalog/CategoryAdminService.php`: **solo si la orquestación necesita ajuste mínimo compatible**; documentar la justificación.
+- `scripts/build/categories_admin_contract.php`, nuevos scripts focales `scripts/dev/categories_*.php` y `docs/modulos/categorias.md`.
+
+**SEO compartido: SOLO LECTURA en esta ventana**, incluidos `SeoManagerService.php`, `CategorySeoBlocksService.php`, `SeoSlugHistoryRepository.php`, `SeoRedirectRepository.php`, `SeoSettingsRepository.php` y `CategorySeoBlocksRepository.php`. Reutilizar sus APIs actuales dentro del mismo PDO/transacción **solo si no hacen commits internos ni silencian fallos**. Si se requiere cambiar un contrato/repositorio común, detenerse, registrar el bloqueo y pedir reserva específica al principal.
+
+**Punto crítico del historial:** `SeoSlugHistoryRepository::add()` contiene `ON DUPLICATE KEY UPDATE entity_id=VALUES(entity_id)`. **Debe impedirse, con protección transaccional comprobable, que un slug histórico de otra categoría se transfiera silenciosamente**. No alcanza una comprobación previa fuera de transacción; diseñar y probar guardas y concurrencia/unique o detenerse si la seguridad necesita cambiar el repositorio global. A→B→A de la misma categoría no debe generar bucles 301 ni transferir propiedad. No modificar semánticas de slugs de productos o marcas.
+
+**Portada:** preparar/validar nueva imagen bajo ruta temporal privada; promover a destino definitivo con estrategia de compensación bien definida. Ante error de SQL/SEO o fallo de publicación, conservar portada anterior, revertir datos de DB cuando proceda y limpiar solo archivos nuevos de la petición. No eliminar las tres referencias históricas ausentes de la BD habitual. No suponer que el sistema de archivos participa en la transacción.
+
+**Garantías:** mantener CSRF, rate limits, validaciones comerciales, JSON POST/flash, permisos, datos de SEO y categoría actuales. Flash de éxito y auditoría tras commit integral, no antes. Errores con rollback; no tragarse excepciones SEO. No alterar `products.is_active` ni otros consumidores.
+
+**Pruebas obligatorias para cerrar:** T01–T07 y regresiones de `docs/modulos/categorias.md` §12.6, con inyección de fallas en historial, redirect, settings, bloques, archivo y commit, escenarios históricos de slug ajeno y A→B→A, concurrencia/unique, alta y edición normal, CSRF, quick y toggle como regresión, gate global/contrato focal. Todo en copia y **MySQL aislados con fixtures descartables**; verificar `SELECT DATABASE()`, sin datos comerciales. Teardown propio y evitar procesos/browser huérfanos.
+
+**Estado de salida:** al completar, documentar la evidencia, archivos y riesgos, detener las ediciones y solicitar autorización de Ventana 5. Si surge necesidad de editar servicios SEO compartidos, **no hacerlo sin nueva reserva**. Prohibidos CSS, layout, Productos, público, rutas, migraciones, gate global, Git y operaciones en BD habitual.
