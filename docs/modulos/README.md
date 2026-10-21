@@ -1,6 +1,6 @@
 # Informes vivos por módulo
 
-Esta carpeta es la fuente de entrega del trabajo de cada chat especializado. Cada uno actualiza solamente su archivo: categorias.md, marcas.md o atributos.md. El chat principal consulta los archivos mediante Desktop Commander, sin necesidad de copiar mensajes entre chats.
+Esta carpeta es la fuente de entrega del trabajo de cada chat especializado. Cada uno actualiza solamente su archivo: categorias.md, marcas.md, atributos.md, marketing.md o importaciones.md, según corresponda. El chat principal consulta los archivos mediante Desktop Commander, sin necesidad de copiar mensajes entre chats.
 
 ## Procedimiento obligatorio
 1. Antes de trabajar, leer docs/README.md, docs/COORDINACION.md, docs/PROTOCOLO_GIT_MULTICHAT.md, docs/GUIA_VISUAL_ADMIN_V3.md y contratos aplicables.
