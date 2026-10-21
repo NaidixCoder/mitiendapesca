@@ -430,6 +430,7 @@ final class MarketingCampaignRepository
             "SELECT id, created_at, status, total, shipping_full_name
                FROM orders
               WHERE marketing_campaign_id = ?
+                AND status IN ('paid','processing','packed','shipped','delivered')
                 AND created_at >= (NOW() - INTERVAL {$days} DAY)
               ORDER BY created_at DESC
               LIMIT {$limit}"

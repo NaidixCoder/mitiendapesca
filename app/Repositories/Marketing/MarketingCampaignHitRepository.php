@@ -39,8 +39,13 @@ final class MarketingCampaignHitRepository
     private function dedupeWindowSeconds(): int
     {
         // Override ENV: MARKETING_HIT_DEDUPE_SECONDS=60
-        $v = (string)($_ENV['MARKETING_HIT_DEDUPE_SECONDS'] ?? getenv('MARKETING_HIT_DEDUPE_SECONDS') ?? '60');
-        $n = (int)trim($v);
+        $value = $_ENV['MARKETING_HIT_DEDUPE_SECONDS'] ?? getenv('MARKETING_HIT_DEDUPE_SECONDS');
+        // getenv() devuelve false cuando falta la variable: ?? no reemplaza false.
+        // También consultamos el cargador .env de la aplicación.
+        if ($value === false || $value === null || trim((string)$value) === '') {
+            $value = function_exists('env') ? env('MARKETING_HIT_DEDUPE_SECONDS', '60') : '60';
+        }
+        $n = (int)trim((string)$value);
         if ($n < 0) $n = 0;
         if ($n > 600) $n = 600; // hard cap
         return $n;

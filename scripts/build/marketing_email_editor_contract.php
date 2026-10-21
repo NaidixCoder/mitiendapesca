@@ -64,6 +64,14 @@ foreach($files as $file=>$tokens){
  foreach($tokens as $token)if(!str_contains($text,$token))throw new RuntimeException($file.': falta '.$token);
 }
 $part=file_get_contents($root.'/app/Views/partials/admin/marketing_email/campaign_form/form_block.php');
+// Regresión E2E: el id debe viajar en el POST principal al EDITAR.
+// Si se asigna form="save-as-template-form", Editar crea una campaña nueva.
+if (!preg_match('/<input\\s+type="hidden"\\s+name="id"\\s+value="<\\?=\\s*\\$id\\s*\\?>"/', $part)) {
+    throw new RuntimeException('Falta id de campaña en formulario principal de guardado');
+}
+if (preg_match('/<input[^>]*name="id"[^>]*form="save-as-template-form"/', $part)) {
+    throw new RuntimeException('ID de campaña asociado incorrectamente al formulario de plantillas');
+}
 if(preg_match('/form="save-as-template-form"[^>]*form="apply-template-form"/',$part))
  throw new RuntimeException('Input tiene atributos form contradictorios');
 if(str_contains($part,'<style>'))throw new RuntimeException('CSS inline heredado en formulario');

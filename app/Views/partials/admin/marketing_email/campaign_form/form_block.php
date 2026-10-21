@@ -1,6 +1,6 @@
   <form method="post" action="<?= e((string)($links['save'] ?? url('/admin/marketing/email/campanas/save'))) ?>" class="av3-email-composer__form" data-email-campaign-save>
     <?= csrf_field() ?>
-    <input type="hidden" name="id" form="save-as-template-form" value="<?= $id ?>">
+    <input type="hidden" name="id" value="<?= $id ?>">
     <section class="av3-email-panel av3-email-composer__section" aria-labelledby="email-campaign-fields-title">
       <header class="av3-email-panel__header"><div><h2 id="email-campaign-fields-title">Configuración del envío</h2><p>Identificá la campaña, elegí a quién llegará y prepará el asunto.</p></div></header>
       <div class="av3-email-composer__fields">
