@@ -168,3 +168,32 @@ Auditoría pública solo lectura ahora; edición pública únicamente tras acuer
 **Pruebas obligatorias para cerrar:** T01–T07 y regresiones de `docs/modulos/categorias.md` §12.6, con inyección de fallas en historial, redirect, settings, bloques, archivo y commit, escenarios históricos de slug ajeno y A→B→A, concurrencia/unique, alta y edición normal, CSRF, quick y toggle como regresión, gate global/contrato focal. Todo en copia y **MySQL aislados con fixtures descartables**; verificar `SELECT DATABASE()`, sin datos comerciales. Teardown propio y evitar procesos/browser huérfanos.
 
 **Estado de salida:** al completar, documentar la evidencia, archivos y riesgos, detener las ediciones y solicitar autorización de Ventana 5. Si surge necesidad de editar servicios SEO compartidos, **no hacerlo sin nueva reserva**. Prohibidos CSS, layout, Productos, público, rutas, migraciones, gate global, Git y operaciones en BD habitual.
+
+## Actualización 2026-10-21 — Ventana 4 cerrada; Ventana 5 AUTORIZADA solo para AUDITORÍA PÚBLICA
+
+**Evaluación:** `docs/modulos/categorias.md` §16 documenta orquestador `CategorySaveService` y T01–T07 en MySQL aislado: atomicidad de cinco tablas SQL, A→B→A sin loop, prevención de robo de historial para este camino, compensación de portada, pruebas de inyección de fallas, carreras y gate 830 PHP/120 JS. El chat principal leyó servicio y reejecutó `scripts/build/categories_admin_contract.php`: **28/28 OK**. No se ejecutó nuevamente E2E HTTP completo desde el principal. Archivo huérfano tras caída abrupta y repositorio SEO global no quedan resueltos y se documentan como deuda separada.
+
+### Ventana 5: ÚNICAMENTE auditoría y propuesta de política para visibilidad pública (D3)
+
+**Propietario:** chat de Categorías, pero **sin autorización para editar código de catálogo público**. Como otros chats trabajan en carpeta compartida, esta ventana es de lectura, diagnóstico y entrega de matriz, no de implementación.
+
+**Superficies mínimas a caracterizar:**
+- GET `/categoria?slug=...`, `/categorias`, `/productos`, `/producto?slug=...`, búsqueda/sugerencias, filtros/facetas, home/destacadas, links internos, sitemap categories/products y redirecciones SEO. Registrar rutas reales y consumers; no inferir nombres inexistentes.
+- `app/Controllers/Catalog/{CategoryController,CategoriesController,ProductController,ProductsController}.php`;
+- `app/Repositories/Catalog/{CategoryRepository,ProductRepository}.php`;
+- `app/Services/Catalog/FacetService.php`, servicios de filtros/SEO relacionados, `app/Services/Public/{HomePageViewService,HomeSectionsViewService}.php`, `app/Controllers/System/MetaController.php`, plantillas públicas pertinentes.
+- Contrastar flags `categories.is_active`, jerarquía de ancestros y `products.is_active`. Revisar la opción `catalog_hide_inactive_category_products`, su valor y consumidores; observar regla para productos sin categoría.
+- Analizar categorías heredadas activas bajo ancestro inactivo, categorías directas inactivas, hijas profundas, hijos al reactivar padre, enlaces SEO y navegación. Registrar comportamiento actual observable sin sanear datos.
+
+**Hechos de lectura ya comprobados por principal:** `CategoryRepository::findActiveBySlug()` solo filtra `is_active=1` del nodo; `FacetService::categoriesWithCounts()` carga todos los nodos activos y trata como raíces los de padre no presente; `ProductController::show()` oculta según setting solo cuando **la categoría directa** está inactiva; `MetaController::sitemapCategories()` consulta `categories WHERE is_active=1`. No son todavía resultados de E2E/impacto comercial: probar o reproducir en fixture aislado y distinguir resultados reales de hipótesis.
+
+**Entregables obligatorios en `docs/modulos/categorias.md`:**
+1. Tabla por superficie: archivo/consulta, comportamiento actual, riesgo concreto, política candidata, impacto esperado y responsable del archivo.
+2. Matriz de casos de estado (activo/inactivo directo y ancestros, producto activo/inactivo, setting ON/OFF, jerarquía profunda), comprobada en tests **solo GET** sobre entorno descartable o lectura SQL, sin falsear cobertura.
+3. Propuesta de contrato público con alternativas explícitas para decisión de propietario: (a) ocultar categorías/landings/facetas/sitemap si nodo o ancestro está inactivo; (b) definir **aparte** si productos propios activos de esas categorías deben seguir siendo accesibles por URL/otras búsquedas y bajo qué setting; (c) qué HTTP/SEO emplear para página oculta y redirecciones históricas (404/410/301/noindex según caso fundamentado). No cambiar estos comportamientos sin decisión.
+4. Mapa exacto de archivos compartidos para futura ventana EXCLUSIVA de edición; estimación de regresiones y consultas/indexes/performance; plan de pruebas aisladas, sin trabajo de actualización de datos comerciales.
+5. **Deuda separada:** señalar pero no corregir `SeoSlugHistoryRepository` global y limpieza ante crash de archivo huérfano; reservar a otro mandato de alcance específico. No expandir V5.
+
+**Prohibiciones:** no editar `app/Controllers/Catalog/**`, `app/Services/Catalog/**`, `app/Repositories/Catalog/**`, SEO compartido, home/SEO/sitemap, settings, controllers admin, JS, CSS, HTML, rutas, DB real, migraciones, gate global ni otros chats. Solo leer y **escribir `docs/modulos/categorias.md`** (entrega). Scripts de investigación se guardan fuera del árbol web/Git y solo usan DB descartable; no ejecutar APPLY/POST/desactivaciones reales. Si se navega automatizado, protocolo de teardown obligatorio.
+
+**Cierre:** registrar resultados y pendientes, liberar las reservas previas de CategoriesController y CategorySaveService al cerrar V4 (sin permiso a otros para tocar sin autorización), **detenerse** para que principal y propietario aprueben política pública y habiliten eventualmente Ventana 6 de implementación. Mantener estado «pendiente de aceptación visual» del admin.

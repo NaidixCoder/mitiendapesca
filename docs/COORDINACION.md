@@ -100,3 +100,10 @@
 - **No autorizados en Ventana 1:** `ImportsController.php`, `app/Services/Import/**`, `app/Repositories/Imports/**`, SQL/DB, importadores Catalog/Variants/SEO/Marcas/Categorías/Atributos, `head.php`, `app.js`, `gate.php`, rutas y shell compartidos. Un refactor de negocio requiere ventanas futuras. No usar `git add .`, ni commits/push desde el chat especializado.
 - **Concurrencia:** Categorías conserva su Ventana 4 sobre `CategoriesController` y servicios Categorías; Marcas sigue pendiente de aceptación visual, Atributos pendiente P0/visual. Importaciones no modifica sus archivos ni ejecuta pruebas de escritura sobre base comercial. Su suite aislada no debe coincidir con ejecuciones pesadas de otros chats sin coordinación.
 - Criterio visual obligatorio: Dashboard/Pedidos + `docs/GUIA_VISUAL_ADMIN_V3.md`; no aprobación automática por passing tests. La V1 finaliza con entrega para **revisión visual del propietario**, no habilita Ventana 2 por sí misma.
+
+### Actualización 2026-10-21 — Categorías Ventana 5 (auditoría pública, SOLO LECTURA)
+
+- Ventana 4 **cerrada técnicamente** según `docs/modulos/categorias.md` §16: 28/28 contrato reejecutado por principal. Deuda separada: filesystem ante caída abrupta y `SeoSlugHistoryRepository` global.
+- **Ventana 5 autorizada exclusivamente como investigación pública de solo lectura** al chat de Categorías. Puede leer rutas/controladores/repositorios/vistas públicas, SEO, sitemap y settings; puede ejecutar GET/SELECT o ensayos sobre una copia MySQL descartable. **Solo puede EDITAR `docs/modulos/categorias.md`**. Ningún otro archivo del proyecto está reservado para escritura en V5.
+- Quedan liberadas al terminar V4 las reservas de edición anteriores de `CategoriesController::save()` y `CategorySaveService.php`; ello **no** autoriza a otros chats a editarlos sin nueva reserva. Importaciones continúa Ventana 1, Marcas trabajo visual exclusivo, Atributos pendiente QA/P0.
+- El propietario deberá decidir política pública y tratamiento de productos/enlaces tras el informe, antes de permitir cambios en catálogo, SEO, sitemap, rutas o migraciones. Ver `docs/DECISIONES_CATEGORIAS_FASE3.md` (última adenda).
