@@ -117,6 +117,7 @@ Estos selectores **existen actualmente** en `public_html/assets/css/admin-v3/com
 - Cambios de presentación **no** autorizan cambios en negocio, pagos, inventario, DB, migraciones ni catálogo público sin aprobación. Si la auditoría detecta fallas funcionales, documentar impacto y coordinar antes de alterar contratos compartidos.
 - Revisar sintaxis PHP/JS, CSS y build gate, contratos específicos, rutas, `name`/CSRF/`data-*`, accesibilidad básica, rendimiento y ausencia de colisiones entre vistas.
 - Comparar **antes/después** en los cinco anchos, con capturas o evidencia precisa. Diferenciar prueba de código, render HTML sintético, smoke de DB de solo lectura/rollback y flujo HTTP autenticado real.
+- **Limpieza obligatoria de pruebas de navegador** según `docs/pruebas/PROTOCOLO_NAVEGADORES.md`: headless por defecto y cierre en `finally`/teardown de páginas, contextos, navegador y procesos propios, también ante errores. No generar ventanas visibles persistentes en la PC compartida.
 - Sin pruebas destructivas ni envíos reales para validar UI. Sin commits/push ni cambios de rama desde chats especializados.
 - Registrar en `docs/modulos/<modulo>.md`: hallazgos, problemas corregidos, pruebas ejecutadas, problemas pendientes, evidencias y archivos modificados. Solo chat principal modifica documentación transversal y publica en Git.
 - No declarar módulo terminado por pasar contrato estático; falta inspección visual real y segunda pasada, o estado explícito **pendiente de validación**.
