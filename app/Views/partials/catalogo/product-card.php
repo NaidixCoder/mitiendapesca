@@ -1,31 +1,97 @@
 <?php
-// Espera $p
-$price = number_format((float)$p['price'], 0, ',', '.');
-$list  = $p['list_price'] ? number_format((float)$p['list_price'], 0, ',', '.') : null;
-$off   = ($list && $p['price'] < $p['list_price']) ? max(5, min(70, round(100 - ($p['price']/$p['list_price'])*100))) : null;
+$card = $product ?? ($card ?? []);
+if (!is_array($card)) {
+  $card = [];
+}
+
+$id = (int)($card['id'] ?? 0);
+$name = (string)($card['name'] ?? 'Producto');
+$href = (string)($card['href'] ?? base_url('producto'));
+$img = (string)($card['image'] ?? asset('img/placeholder.svg'));
+$brandName = (string)($card['brand_name'] ?? '');
+$catName = (string)($card['category_name'] ?? '');
+$priceLabel = (string)($card['price_label'] ?? '');
+$transferLabel = (string)($card['transfer_label'] ?? '');
+$transferNoteLabel = (string)($card['transfer_note_label'] ?? '');
+$transferDetailLabel = (string)($card['transfer_detail_label'] ?? '');
+$installmentLabel = (string)($card['installment_label'] ?? '');
+$installmentDetailLabel = (string)($card['installment_detail_label'] ?? '');
+$hasOffer = !empty($card['has_offer']);
+$discountPct = (int)($card['discount_pct'] ?? 0);
+$hasVariants = !empty($card['has_variants']);
+$inStock = !array_key_exists('in_stock', $card) || !empty($card['in_stock']);
+$backUrl = (string)($card['back_url'] ?? ($_SERVER['REQUEST_URI'] ?? ''));
 ?>
-<article class="js-card group relative rounded-2xl border border-gray-100 p-3 hover:shadow-md hover:-translate-y-[2px] transition bg-white">
-  <a href="<?= e(url('/producto').'?slug='.rawurlencode($p['slug'])) ?>" class="block">
-    <div class="relative aspect-[4/3] overflow-hidden rounded-xl bg-gray-50">
-      <img src="<?= e($p['thumb']) ?>" alt="<?= e($p['title']) ?>" class="w-full h-full object-cover group-hover:scale-105 transition" loading="lazy"/>
-      <?php if (!empty($p['is_new'])): ?><span class="absolute top-2 left-2 px-2 py-1 text-xs rounded-full bg-emerald-600 text-white">Nuevo</span><?php endif; ?>
-      <?php if (!empty($p['is_sale'])): ?><span class="absolute top-2 right-2 px-2 py-1 text-xs rounded-full bg-rose-600 text-white">Oferta<?= $off?' -'.$off.'%':'' ?></span><?php endif; ?>
-      <?php foreach(($p['badges'] ?? []) as $b): ?><span class="absolute bottom-2 left-2 px-2 py-1 text-xs rounded-full bg-gray-900/90 text-white"><?= e($b) ?></span><?php endforeach; ?>
+
+<article class="catalog-card js-card">
+  <a class="catalog-card__link" href="<?= e($href) ?>" aria-label="Ver <?= e($name) ?>">
+    <div class="catalog-card__media">
+      <?php if ($hasOffer): ?>
+        <span class="catalog-card__badge">
+          <?= $discountPct ? (' -' . $discountPct . '%') : '' ?>
+        </span>
+      <?php endif; ?>
+      <img class="catalog-card__image" src="<?= e($img) ?>" alt="<?= e($name) ?>" loading="lazy">
     </div>
-    <div class="mt-3 space-y-1">
-      <h3 class="font-medium leading-tight line-clamp-2 group-hover:text-brand"><?= e($p['title']) ?></h3>
-      <div class="flex items-center gap-2">
-        <?php if ($list && $off): ?><span class="text-sm text-gray-400 line-through">$<?= $list ?></span><?php endif; ?>
-        <span class="text-lg font-semibold">$<?= $price ?></span>
-      </div>
-      <div class="flex items-center gap-1 text-amber-500 text-sm">
-        <?php $stars=(int)floor($p['rating']); for($i=1;$i<=5;$i++): ?><span><?= $i <= $stars ? '★' : '☆' ?></span><?php endfor; ?>
-        <span class="text-gray-400">(<?= (int)$p['reviews'] ?>)</span>
+
+    <div class="catalog-card__body">
+      <?php if ($brandName !== '' || $catName !== ''): ?>
+        <div class="catalog-card__meta">
+          <?= e($brandName) ?>
+          <?php if ($brandName !== '' && $catName !== ''): ?> · <?php endif; ?>
+          <?= e($catName) ?>
+        </div>
+      <?php endif; ?>
+
+      <h3 class="catalog-card__title"><?= e($name) ?></h3>
+
+      <div class="catalog-card__price-row">
+        <div class="catalog-card__pricing">
+          <div class="catalog-card__price">
+            <?= e($priceLabel) ?>
+            <?php if ($installmentLabel !== ''): ?>
+              <span class="catalog-card__price-note"><?= e($installmentLabel) ?></span>
+            <?php endif; ?>
+          </div>
+          <?php if ($installmentDetailLabel !== ''): ?>
+            <div class="catalog-card__installment"><?= e($installmentDetailLabel) ?></div>
+          <?php endif; ?>
+          <?php if ($transferLabel !== ''): ?>
+            <div class="catalog-card__transfer">
+              <?= e($transferLabel) ?>
+              <?php if ($transferNoteLabel !== ''): ?>
+                <span class="catalog-card__transfer-note"><?= e($transferNoteLabel) ?></span>
+              <?php endif; ?>
+            </div>
+            <?php if ($transferDetailLabel !== ''): ?>
+              <div class="catalog-card__transfer-detail"><?= e($transferDetailLabel) ?></div>
+            <?php endif; ?>
+          <?php endif; ?>
+
+        </div>
       </div>
     </div>
   </a>
-  <div class="mt-3 flex items-center gap-2">
-    <button class="flex-1 px-3 py-2 rounded-xl bg-brand text-white hover:opacity-90">Agregar</button>
-    <button class="px-3 py-2 rounded-xl border border-gray-200 hover:border-gray-300" title="Favorito">♡</button>
+
+  <div class="catalog-card__actions">
+    <?php if (!$inStock): ?>
+      <button type="button" class="catalog-card__btn" disabled aria-disabled="true">Sin stock</button>
+    <?php elseif ($hasVariants): ?>
+      <button
+        type="button"
+        class="catalog-card__btn"
+        data-quick-add-trigger
+        data-product-id="<?= e((string)$id) ?>"
+      ><span class="catalog-card__btn-icon" aria-hidden="true"><?= ui_icon('cart-arrow') ?></span>Agregar
+      </button>
+    <?php else: ?>
+      <form method="post" action="<?= e(base_url('carrito/agregar')) ?>" data-cart-add-card>
+        <?= csrf_field() ?>
+        <input type="hidden" name="product_id" value="<?= e((string)$id) ?>">
+        <input type="hidden" name="qty" value="1">
+        <input type="hidden" name="_back" value="<?= e($backUrl) ?>">
+        <button class="catalog-card__btn" type="submit"><span class="catalog-card__btn-icon" aria-hidden="true"><?= ui_icon('cart-arrow') ?></span>Agregar</button>
+      </form>
+    <?php endif; ?>
   </div>
 </article>

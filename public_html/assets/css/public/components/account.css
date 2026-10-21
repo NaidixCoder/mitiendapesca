@@ -1,0 +1,287 @@
+/* Mi Cuenta — Design System (Account)
+   Scope: componentes y jerarquía visual del panel /cuenta
+*/
+
+
+.account-container{ max-width: 80rem; margin: 0 auto; padding: 0 1rem; }
+@media (min-width: 768px){ .account-container{ padding: 0 2rem; } }
+
+/* Superficie principal */
+/* Token fallback (solo cuenta) */
+.account-surface{ --radius-xl: 1.25rem; }
+
+.account-surface{
+  background: color-mix(in srgb, var(--bg-soft) 10%, #ffffff 90%);
+  border: 1px solid color-mix(in srgb, var(--border) 18%, transparent 82%);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 10px 30px rgba(0,0,0,.06);
+}
+
+/* Header de identidad */
+.account-hero{
+  display:flex; align-items:center; justify-content:space-between; gap: 1rem;
+  padding: 1.25rem 1.25rem;
+}
+@media (min-width: 768px){ .account-hero{ padding: 1.5rem 1.75rem; } }
+
+.account-hero__left{ display:flex; align-items:center; gap: 1rem; min-width: 0; }
+.account-avatar{
+  width:56px; height:56px; border-radius: 999px; overflow:hidden;
+  border: 2px solid color-mix(in srgb, var(--brand) 35%, transparent 65%);
+  background: #fff;
+  flex: 0 0 auto;
+}
+.account-avatar img{ width:100%; height:100%; object-fit: cover; }
+
+.account-hero__name{ font-weight: 700; letter-spacing: -.02em; font-size: 1.125rem; line-height: 1.2; white-space: nowrap; overflow:hidden; text-overflow: ellipsis; }
+@media (min-width: 768px){ .account-hero__name{ font-size: 1.25rem; } }
+.account-hero__meta{ margin-top: .25rem; font-size: .875rem; color: var(--muted); display:flex; gap:.5rem; flex-wrap: wrap; }
+.account-hero__meta .dot{ opacity:.6; }
+
+.account-actions{ display:flex; gap:.5rem; flex-wrap: wrap; justify-content:flex-end; }
+.account-actions .btn{ border-radius: 999px; padding: .55rem .9rem; }
+.account-actions .btn-ghost{ background: transparent; border-color: color-mix(in srgb, var(--border) 28%, transparent 72%); color: var(--fg); }
+.account-actions .btn-ghost:hover{ background: color-mix(in srgb, var(--bg-soft) 55%, #fff 45%); }
+
+/* Bloque CTA principal */
+.account-cta{
+  margin-top: 1rem;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius);
+  border: 1px solid color-mix(in srgb, var(--border) 28%, transparent 72%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--brand) 10%, transparent 90%), color-mix(in srgb, var(--bg-soft) 90%, #fff 10%));
+}
+@media (min-width: 768px){ .account-cta{ padding: 1.25rem 1.5rem; } }
+.account-cta__title{ font-size: 1.1rem; font-weight: 700; letter-spacing: -.01em; }
+@media (min-width: 768px){ .account-cta__title{ font-size: 1.25rem; } }
+.account-cta__desc{ margin-top:.35rem; font-size:.9rem; color: var(--muted); max-width: 48rem; }
+.account-cta__row{ display:flex; gap: 1rem; flex-direction: column; }
+@media (min-width: 768px){ .account-cta__row{ flex-direction: row; align-items:center; justify-content: space-between; } }
+
+/* Grid principal */
+.account-grid{ display:grid; gap: 1rem; margin-top: 1rem; }
+@media (min-width: 1024px){
+  .account-grid{ grid-template-columns: 2fr 1fr; gap: 1.25rem; }
+}
+.account-col{ display:grid; gap: 1rem; }
+
+/* Cards */
+.acc-card{
+  background: #fff;
+  border: 1px solid color-mix(in srgb, var(--border) 18%, transparent 82%);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 22px rgba(0,0,0,.05);
+  overflow: hidden;
+}
+.acc-card--soft{
+  background: color-mix(in srgb, var(--bg-soft) 35%, #fff 65%);
+}
+.acc-card__head{
+  padding: 1rem 1.25rem;
+  display:flex; align-items:center; justify-content: space-between; gap: .75rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 28%, transparent 72%);
+}
+.acc-card__title{ font-weight: 800; letter-spacing: -.01em; font-size: 1rem; }
+.acc-card__hint{ font-size: .85rem; color: var(--muted); }
+
+.acc-card__body{ padding: 1rem 1.25rem; }
+@media (min-width: 768px){
+  .acc-card__head, .acc-card__body{ padding: 1.15rem 1.5rem; }
+}
+
+/* Sub-secciones dentro de Mis datos */
+.acc-block{
+  border: 1px solid color-mix(in srgb, var(--border) 28%, transparent 72%);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--bg-soft) 75%, #fff 25%);
+  padding: .9rem 1rem;
+}
+.acc-block__row{ display:flex; align-items:flex-start; justify-content: space-between; gap: .75rem; }
+.acc-block__title{ font-weight: 700; }
+.acc-kv{ margin-top: .6rem; display:grid; gap:.4rem; font-size: .9rem; }
+.acc-kv__item{ display:flex; justify-content: space-between; gap: 1rem; }
+.acc-kv__k{ color: var(--muted); }
+.acc-kv__v{ font-weight: 600; color: var(--fg); }
+
+/* Empty state */
+.acc-empty{
+  padding: .9rem 1rem;
+  border-radius: var(--radius);
+  border: 1px dashed color-mix(in srgb, var(--border) 32%, transparent 68%);
+  color: var(--muted);
+  background: color-mix(in srgb, var(--bg-soft) 85%, #fff 15%);
+  font-size: .92rem;
+}
+
+/* Pills */
+.pill{
+  display:inline-flex; align-items:center; gap:.35rem;
+  font-size:.75rem; font-weight:700;
+  padding: .25rem .6rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--border) 18%, transparent 82%);
+  background: #fff;
+  color: var(--fg);
+}
+.pill--ok{ border-color: color-mix(in srgb, var(--success) 35%, var(--border) 65%); color: color-mix(in srgb, var(--success) 70%, var(--fg) 30%); background: color-mix(in srgb, var(--success) 10%, #fff 90%); }
+.pill--warn{ border-color: color-mix(in srgb, var(--warning) 35%, var(--border) 65%); color: color-mix(in srgb, var(--warning) 75%, var(--fg) 25%); background: color-mix(in srgb, var(--warning) 12%, #fff 88%); }
+.pill--info{ border-color: color-mix(in srgb, var(--brand) 35%, var(--border) 65%); color: color-mix(in srgb, var(--brand) 85%, var(--fg) 15%); background: color-mix(in srgb, var(--brand) 10%, #fff 90%); }
+.pill--err{ border-color: color-mix(in srgb, var(--danger) 35%, var(--border) 65%); color: color-mix(in srgb, var(--danger) 75%, var(--fg) 25%); background: color-mix(in srgb, var(--danger) 10%, #fff 90%); }
+.pill--muted{ border-color: var(--border); color: color-mix(in srgb, var(--muted) 80%, var(--fg) 20%); background: color-mix(in srgb, var(--border) 35%, #fff 65%); }
+
+/* Pills clickeables (ej: chips en CTA) */
+.pill--link{ text-decoration:none; cursor:pointer; }
+.pill--link:hover{ filter: brightness(0.98); text-decoration:none; }
+
+/* Chips de la CTA superior */
+.account-cta__chips{ margin-top:.55rem; display:flex; flex-wrap:wrap; gap:.5rem; }
+
+/* Valores vacíos */
+.acc-kv__v--empty{ font-weight:600; color: var(--muted); font-style: italic; }
+
+/* Links/CTA secundarios */
+.acc-link{ font-weight: 700; color: var(--brand); text-decoration: none; }
+.acc-link:hover{ text-decoration: underline; }
+
+/* Barra de progreso lealtad (usa CSS var --loyalty-pct) */
+.loyalty-bar{ height: 10px; border-radius: 999px; background: color-mix(in srgb, var(--border) 40%, transparent 60%); overflow:hidden; }
+.loyalty-bar__fill{ height:100%; width: var(--loyalty-pct, 0%); background: linear-gradient(90deg, var(--brand), color-mix(in srgb, var(--brand) 35%, #fff 65%)); }
+
+.account-avatar__fallback{ width:100%; height:100%; display:grid; place-items:center; font-size:.9rem; font-weight:700; color: var(--brand); background: color-mix(in srgb, var(--brand) 10%, #fff 90%); }
+.acc-muted{ color: var(--muted); }
+
+/* ===== Pedido / cuenta (vista) ===== */
+.order-view .account-surface{ max-width: 1100px; margin-left:auto; margin-right:auto; }
+
+/* En la vista de pedido usamos botones más livianos (sin tocar global) */
+.order-view .btn{ font-size:.875rem; padding:.55rem .9rem; font-weight:600; border-radius:.75rem; }
+
+.order-status{ border:1px solid color-mix(in srgb, var(--border) 14%, transparent 86%); background:#fff; border-radius:1.15rem; padding:1.05rem 1.15rem; }
+.order-status__eyebrow{ font-size:.72rem; letter-spacing:.08em; text-transform:uppercase; color: color-mix(in srgb, var(--fg) 55%, transparent 45%); font-weight:700; }
+.order-status__title{ font-size:1.15rem; font-weight:700; letter-spacing:-.01em; margin-top:.15rem; }
+.order-status__meta{ margin-top:.35rem; display:flex; flex-wrap:wrap; gap:.5rem; align-items:center; color: color-mix(in srgb, var(--fg) 70%, transparent 30%); font-size:.9rem; }
+.order-status__badge{ display:inline-flex; align-items:center; gap:.35rem; font-size:.8rem; padding:.25rem .55rem; border-radius:.7rem; font-weight:600; border:1px solid color-mix(in srgb, var(--border) 14%, transparent 86%); background: color-mix(in srgb, var(--bg-soft) 18%, #fff 82%); }
+
+.order-pay{ padding:1.05rem 1.15rem; }
+.order-pay__hero{ background:#fff; border:1px solid color-mix(in srgb, var(--border) 14%, transparent 86%); border-radius:1.05rem; padding:1rem; display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; }
+.order-pay__heroTitle{ font-size:1.05rem; font-weight:700; letter-spacing:-.01em; }
+.order-pay__heroText{ margin-top:.35rem; font-size:.9rem; line-height:1.45; color: color-mix(in srgb, var(--fg) 72%, transparent 28%); }
+.order-pay__heroText strong{ font-weight:700; color: var(--fg); }
+.order-pay__heroCtas{ display:flex; align-items:center; gap:.55rem; flex-wrap:wrap; }
+
+.order-pay__sectionTitle{ font-weight:700; font-size:.95rem; letter-spacing:-.01em; }
+.order-pay__pill{ font-size:.75rem; padding:.18rem .5rem; border-radius:.65rem; font-weight:600; border:1px solid color-mix(in srgb, var(--border) 12%, transparent 88%); background: color-mix(in srgb, var(--bg-soft) 18%, #fff 82%); }
+.order-pay__grid{ margin-top:1rem; display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:.9rem 1rem; }
+@media (max-width: 640px){ .order-pay__grid{ grid-template-columns:1fr; } }
+.order-pay__label{ font-size:.72rem; letter-spacing:.07em; text-transform:uppercase; color: color-mix(in srgb, var(--fg) 55%, transparent 45%); font-weight:700; }
+.order-pay__amount{ font-size:1.35rem; font-weight:700; letter-spacing:-.01em; }
+.order-pay__ref{ display:inline-flex; align-items:center; gap:.4rem; font-size:.95rem; padding:.35rem .6rem; border-radius:.7rem; font-weight:600; border:1px solid color-mix(in srgb, var(--border) 14%, transparent 86%); background: #fff; }
+
+.order-pay__missing{ margin-top:1rem; padding:.85rem 1rem; border-radius:1rem; border:1px solid color-mix(in srgb, var(--warning) 22%, transparent 78%); background: color-mix(in srgb, var(--warning) 6%, #fff 94%); }
+.order-pay__missingTitle{ font-weight:700; }
+.order-pay__missingText{ margin-top:.25rem; font-size:.9rem; color: color-mix(in srgb, var(--fg) 70%, transparent 30%); }
+.order-pay__missingDetails summary{ cursor:pointer; user-select:none; font-size:.85rem; }
+.order-pay__missingCode{ margin-top:.35rem; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:.82rem; padding:.55rem .7rem; border-radius:.85rem; background:#fff; border:1px solid color-mix(in srgb, var(--border) 14%, transparent 86%); }
+
+.order-divider{ margin:1.1rem 0; height:1px; background: color-mix(in srgb, var(--border) 14%, transparent 86%); }
+
+.order-sidebar__inner{ position: sticky; top: 1.25rem; }
+@media (max-width: 1024px){ .order-sidebar__inner{ position: static; top: auto; } }
+
+
+
+
+/* Mi Cuenta: empty state con acción lateral */
+.acc-empty--row{display:flex;align-items:center;justify-content:space-between;gap:16px;}
+@media (max-width: 640px){.acc-empty--row{flex-direction:column;align-items:flex-start;}}
+
+
+/* Banners (feedback) */
+.acc-banner{
+  display:flex; gap:.85rem; align-items:flex-start;
+  padding: .9rem 1.05rem;
+  border-radius: 1rem;
+  border: 1px solid color-mix(in srgb, var(--border) 14%, transparent 86%);
+  background: #fff;
+}
+.acc-banner__icon{
+  width: 34px; height: 34px; border-radius: 999px;
+  display:flex; align-items:center; justify-content:center;
+  flex: 0 0 auto;
+  border: 1px solid color-mix(in srgb, var(--border) 14%, transparent 86%);
+  background: #fff;
+}
+.acc-banner__title{ font-weight: 800; letter-spacing:-.01em; }
+.acc-banner__text{ font-size: .9rem; color: color-mix(in srgb, var(--fg) 75%, transparent 25%); margin-top:.15rem; }
+
+.acc-banner--ok{
+  border-color: color-mix(in srgb, var(--success) 28%, transparent 72%);
+  background: color-mix(in srgb, var(--success) 10%, #fff 90%);
+}
+.acc-banner--ok .acc-banner__icon{
+  border-color: color-mix(in srgb, var(--success) 35%, transparent 65%);
+  background: color-mix(in srgb, var(--success) 14%, #fff 86%);
+  color: color-mix(in srgb, var(--success) 85%, #000 15%);
+}
+.acc-banner--info{
+  border-color: color-mix(in srgb, var(--brand) 22%, transparent 78%);
+  background: color-mix(in srgb, var(--brand) 7%, #fff 93%);
+}
+.acc-banner--info .acc-banner__icon{
+  border-color: color-mix(in srgb, var(--brand) 28%, transparent 72%);
+  background: color-mix(in srgb, var(--brand) 12%, #fff 88%);
+}
+
+/* Timeline pro (con línea) */
+.acc-timeline{ position:relative; }
+.acc-timeline__item{ position:relative; padding-left: .25rem; }
+.acc-timeline__item:not(:last-child)::after{
+  content:"";
+  position:absolute;
+  left: 11px;
+  top: 26px;
+  bottom: -10px;
+  width: 2px;
+  background: color-mix(in srgb, var(--border) 18%, transparent 82%);
+}
+.acc-timeline__dot{
+  box-shadow: 0 2px 10px rgba(0,0,0,.06);
+}
+
+/* Tabla en cuenta: más premium */
+.account-surface .table th{
+  font-size:.75rem;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: color-mix(in srgb, var(--fg) 65%, transparent 35%);
+  padding-top: .85rem;
+  padding-bottom: .85rem;
+}
+.account-surface .table td{
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+.account-surface .table tbody tr{
+  border-top: 1px solid color-mix(in srgb, var(--border) 12%, transparent 88%);
+}
+.account-surface .table tbody tr:hover{
+  background: color-mix(in srgb, var(--bg-soft) 10%, #fff 90%);
+}
+
+/* Botones dentro de cuenta: un toque más premium sin afectar global */
+.account-surface .btn{
+  border-radius: .9rem;
+}
+.account-surface .btn.btn-outline{
+  border-color: color-mix(in srgb, var(--border) 18%, transparent 82%);
+}
+
+/* --- /cuenta/completar (wizard) --- */
+.acc-steps{display:grid;gap:12px}
+.acc-step{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;border:1px solid var(--pv-border-soft);border-radius:16px;background:rgba(255,255,255,.6)}
+.acc-step__title{font-weight:800}
+.acc-step__desc{margin-top:2px;font-size:.875rem;color:var(--acc-muted)}
+@media (max-width:640px){
+  .acc-step{flex-direction:column;align-items:stretch}
+  .acc-step .btn{width:100%;justify-content:center}
+}

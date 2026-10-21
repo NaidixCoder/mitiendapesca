@@ -1,0 +1,190 @@
+.account-complete-page__hero {
+  display: grid;
+  gap: var(--v2-space-3);
+}
+
+.account-complete-page__hero-main {
+  display: grid;
+  gap: var(--v2-space-2);
+}
+
+.account-complete-page__back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--v2-space-2);
+  font-size: var(--v2-text-sm);
+  font-weight: 700;
+  color: var(--v2-color-primary);
+  text-decoration: none;
+}
+
+.account-complete-page__back:hover {
+  text-decoration: underline;
+}
+
+.account-complete-page__eyebrow {
+  font-size: var(--v2-text-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: color-mix(in srgb, var(--v2-color-primary) 78%, var(--v2-color-white) 22%);
+}
+
+.account-complete-page__title {
+  margin: 0;
+  font-size: var(--v2-text-xl);
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--v2-color-text);
+}
+
+.account-complete-page__intro {
+  margin: 0;
+  max-width: 64ch;
+  font-size: var(--v2-text-md);
+  line-height: 1.6;
+  color: var(--v2-color-text-muted);
+}
+
+.account-complete-card {
+  background: color-mix(in srgb, var(--v2-color-primary) 3%, var(--v2-color-white));
+  border: 1px solid color-mix(in srgb, var(--v2-color-primary) 12%, var(--v2-color-border));
+  border-radius: var(--v2-radius-sm);
+  box-shadow: var(--v2-shadow-sm);
+  overflow: hidden;
+}
+
+.account-complete-card__head {
+  padding: var(--v2-space-4);
+}
+
+.account-complete-card__head-copy {
+  display: grid;
+  gap: var(--v2-space-2);
+}
+
+.account-complete-card__title {
+  margin: 0;
+  font-size: var(--v2-text-lg);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--v2-color-text);
+}
+
+.account-complete-card__intro {
+  margin: 0;
+  font-size: var(--v2-text-sm);
+  line-height: 1.55;
+  color: var(--v2-color-text-muted);
+}
+
+.account-complete-card__body {
+  padding: var(--v2-space-4);
+  border-top: 1px solid color-mix(in srgb, var(--v2-color-primary) 10%, var(--v2-color-border));
+  display: grid;
+  gap: var(--v2-space-4);
+}
+
+.account-complete-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0 var(--v2-space-3);
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--v2-color-primary) 14%, var(--v2-color-border));
+  background: var(--v2-color-white);
+  font-size: var(--v2-text-sm);
+  font-weight: 700;
+  color: var(--v2-color-text);
+}
+
+.account-complete-badge--ok {
+  color: var(--v2-color-success);
+  background: color-mix(in srgb, var(--v2-color-success) 10%, var(--v2-color-white));
+  border-color: color-mix(in srgb, var(--v2-color-success) 24%, var(--v2-color-border));
+}
+
+.account-complete-badge--warn {
+  color: var(--v2-color-warning);
+  background: color-mix(in srgb, var(--v2-color-warning) 10%, var(--v2-color-white));
+  border-color: color-mix(in srgb, var(--v2-color-warning) 24%, var(--v2-color-border));
+}
+
+.account-complete-steps {
+  display: grid;
+  gap: var(--v2-space-3);
+}
+
+.account-complete-step {
+  display: grid;
+  gap: var(--v2-space-3);
+  padding: var(--v2-space-4);
+  border: 1px solid color-mix(in srgb, var(--v2-color-primary) 10%, var(--v2-color-border));
+  border-radius: var(--v2-radius-sm);
+  background: var(--v2-color-white);
+}
+
+.account-complete-step__main {
+  display: grid;
+  gap: var(--v2-space-2);
+}
+
+.account-complete-step__top {
+  display: grid;
+  gap: var(--v2-space-2);
+}
+
+.account-complete-step__title {
+  margin: 0;
+  font-size: var(--v2-text-md);
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--v2-color-text);
+}
+
+.account-complete-step__desc {
+  margin: 0;
+  font-size: var(--v2-text-sm);
+  line-height: 1.55;
+  color: var(--v2-color-text-muted);
+}
+
+.account-complete-step__actions {
+  display: grid;
+}
+
+.account-complete-step__actions .v2-btn {
+  width: 100%;
+}
+
+.account-complete-note {
+  margin: 0;
+  font-size: var(--v2-text-sm);
+  line-height: 1.6;
+  color: var(--v2-color-text-muted);
+}
+
+@media (min-width: 720px) {
+  .account-complete-page__hero {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+  }
+
+  .account-complete-step {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .account-complete-step__top {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .account-complete-step__actions .v2-btn {
+    width: auto;
+    min-width: 160px;
+  }
+}
+
+

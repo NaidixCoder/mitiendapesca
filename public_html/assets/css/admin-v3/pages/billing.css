@@ -1,0 +1,405 @@
+/* Source before consolidation: css/v2/pages/admin/facturacion/shared.css */
+/* Facturacion v2: shared layout/components for fiscal module pages */
+
+.fisc-wrap {
+  max-width: 1240px;
+  margin: 0 auto;
+  display: grid;
+  gap: var(--v2-space-4);
+}
+
+.fisc-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--v2-space-4);
+  flex-wrap: wrap;
+}
+
+.fisc-title {
+  margin: 0;
+  font-size: clamp(1.55rem, 1.35rem + 0.5vw, 1.95rem);
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+  color: var(--v2-color-text);
+}
+
+.fisc-subtitle {
+  margin: var(--v2-space-2) 0 0;
+  color: var(--v2-color-text-muted);
+  font-size: var(--v2-text-sm);
+}
+
+.fisc-head-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--v2-space-2);
+}
+
+.fisc-btn-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--v2-space-2);
+}
+
+.fisc-grid-main {
+  display: grid;
+  grid-template-columns: minmax(0, 2.1fr) minmax(0, 1fr);
+  gap: var(--v2-space-4);
+  align-items: start;
+}
+
+.fisc-col {
+  display: grid;
+  gap: var(--v2-space-4);
+}
+
+.fisc-card {
+  background: var(--v2-color-surface);
+  border: 1px solid var(--v2-color-border);
+  border-radius: var(--v2-radius-sm);
+  box-shadow: var(--v2-shadow-sm);
+  overflow: hidden;
+}
+
+.fisc-card-head {
+  padding: var(--v2-space-4);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--v2-space-3);
+  border-bottom: 1px solid color-mix(in srgb, var(--v2-color-border) 78%, transparent);
+}
+
+.fisc-card-head h2 {
+  margin: 0;
+  font-size: clamp(1.04rem, 0.96rem + 0.2vw, 1.2rem);
+  letter-spacing: -0.01em;
+}
+
+.fisc-card-head p {
+  margin: var(--v2-space-1) 0 0;
+  font-size: var(--v2-text-sm);
+  color: var(--v2-color-text-muted);
+}
+
+.fisc-card-body {
+  padding: var(--v2-space-4);
+}
+
+.fisc-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in srgb, var(--v2-color-border) 84%, transparent);
+  background: color-mix(in srgb, var(--v2-color-surface) 92%, var(--v2-color-bg));
+  color: var(--v2-color-text);
+  padding: 6px 12px;
+  font-size: var(--v2-text-sm);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.fisc-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: var(--v2-color-info);
+  flex: 0 0 auto;
+}
+
+.fisc-dot.is-warning {
+  background: var(--v2-color-warning);
+}
+
+.fisc-dot.is-ok {
+  background: var(--v2-color-success);
+}
+
+.fisc-dot.is-danger {
+  background: var(--v2-color-danger);
+}
+
+.fisc-table-wrap {
+  border: 1px solid color-mix(in srgb, var(--v2-color-border) 84%, transparent);
+  border-radius: var(--v2-radius-sm);
+  overflow: auto;
+}
+
+.fisc-table {
+  width: 100%;
+  min-width: 620px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--v2-text-sm);
+}
+
+.fisc-table th {
+  text-align: left;
+  color: color-mix(in srgb, var(--v2-color-text-muted) 88%, var(--v2-color-text));
+  font-size: 11px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--v2-color-surface) 92%, var(--v2-color-bg));
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.fisc-table th,
+.fisc-table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid color-mix(in srgb, var(--v2-color-border) 72%, transparent);
+}
+
+.fisc-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.fisc-table td.is-right,
+.fisc-table th.is-right {
+  text-align: right;
+}
+
+.fisc-table td.is-strong {
+  font-weight: 700;
+}
+
+.fisc-quick-links {
+  display: grid;
+  gap: var(--v2-space-2);
+}
+
+.fisc-mt-3 {
+  margin-top: var(--v2-space-3);
+}
+
+.fisc-link-card {
+  border: 1px solid color-mix(in srgb, var(--v2-color-border) 84%, transparent);
+  border-radius: var(--v2-radius-sm);
+  padding: 10px 12px;
+  color: var(--v2-color-text);
+  text-decoration: none;
+  font-weight: 650;
+  background: color-mix(in srgb, var(--v2-color-surface) 94%, var(--v2-color-bg));
+  transition: border-color .15s ease, background .15s ease, transform .15s ease;
+}
+
+.fisc-link-card:hover {
+  border-color: color-mix(in srgb, var(--v2-color-primary) 32%, var(--v2-color-border));
+  background: color-mix(in srgb, var(--v2-color-primary) 7%, var(--v2-color-surface));
+  transform: translateY(-1px);
+}
+
+@media (max-width: 1160px) {
+  .fisc-grid-main {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Layout global admin: la facturacion comparte el gutter y offset del shell. */
+body[data-page^="admin"] > .fisc-wrap {
+  box-sizing: border-box;
+  width: calc(100% - var(--v2-sidebar-offset));
+  max-width: none;
+  min-width: 0;
+  margin: 0 0 0 var(--v2-sidebar-offset);
+  padding: var(--v2-content-top) var(--v2-content-gutter) var(--v2-content-bottom);
+}
+body[data-page^="admin"] > .fisc-wrap .fisc-grid-main,
+body[data-page^="admin"] > .fisc-wrap .fisc-col {
+  min-width: 0;
+}
+@media (max-width: 900px) {
+  body[data-page^="admin"] > .fisc-wrap .fisc-grid-main {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+
+/* Source before consolidation: css/v2/pages/admin/facturacion/nav.css */
+/* Facturacion v2: module navigation */
+
+.fisc-nav-shell {
+  max-width: 1240px;
+  margin: 0 auto;
+}
+
+.fisc-nav {
+  background: var(--v2-color-surface);
+  border: 1px solid var(--v2-color-border);
+  border-radius: var(--v2-radius-sm);
+  box-shadow: var(--v2-shadow-sm);
+  padding: var(--v2-space-3);
+  display: grid;
+  gap: var(--v2-space-3);
+}
+
+.fisc-nav-groups {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--v2-space-3);
+  flex-wrap: wrap;
+}
+
+.fisc-nav-group {
+  display: grid;
+  gap: var(--v2-space-2);
+}
+
+.fisc-nav-label {
+  color: color-mix(in srgb, var(--v2-color-text-muted) 90%, var(--v2-color-text));
+  font-size: 11px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.fisc-nav-links {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--v2-space-2);
+}
+
+.fisc-nav-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in srgb, var(--v2-color-border) 88%, transparent);
+  background: color-mix(in srgb, var(--v2-color-surface) 95%, var(--v2-color-bg));
+  color: color-mix(in srgb, var(--v2-color-text) 88%, var(--v2-color-text-muted));
+  padding: 8px 12px;
+  text-decoration: none;
+  font-size: var(--v2-text-sm);
+  font-weight: 650;
+  line-height: 1;
+  transition: border-color .15s ease, background .15s ease, color .15s ease, transform .15s ease;
+}
+
+.fisc-nav-link:hover {
+  border-color: color-mix(in srgb, var(--v2-color-primary) 36%, var(--v2-color-border));
+  color: var(--v2-color-primary);
+  transform: translateY(-1px);
+}
+
+.fisc-nav-link.is-active {
+  color: var(--v2-color-primary);
+  border-color: color-mix(in srgb, var(--v2-color-primary) 34%, var(--v2-color-border));
+  background: color-mix(in srgb, var(--v2-color-primary) 10%, var(--v2-color-surface));
+  font-weight: 750;
+}
+
+.fisc-nav-hint {
+  color: var(--v2-color-text-muted);
+  font-size: var(--v2-text-sm);
+}
+
+.fisc-nav-hint b {
+  color: var(--v2-color-text);
+}
+
+/* Navegacion de facturacion: ancho y alineacion comunes a todas sus subrutas. */
+body[data-page^="admin"] > .fisc-nav-shell {
+  box-sizing: border-box;
+  width: calc(100% - var(--v2-sidebar-offset));
+  max-width: none;
+  min-width: 0;
+  margin: 0 0 0 var(--v2-sidebar-offset);
+  padding: var(--v2-space-2) var(--v2-content-gutter) 0;
+}
+
+
+/* Source before consolidation: css/v2/pages/admin/facturacion/control.css */
+/* Facturacion v2: control fiscal dashboard page */
+
+.fisc-control .fisc-alert-box {
+  border: 1px solid color-mix(in srgb, var(--v2-color-danger) 30%, var(--v2-color-border));
+  background: color-mix(in srgb, var(--v2-color-danger) 8%, var(--v2-color-surface));
+  border-radius: var(--v2-radius-sm);
+  padding: var(--v2-space-3);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--v2-space-3);
+}
+
+.fisc-control .fisc-alert-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--v2-color-danger);
+  color: var(--v2-color-white);
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  line-height: 1;
+}
+
+.fisc-control .fisc-alert-title {
+  margin: 0;
+  font-size: clamp(1rem, 0.95rem + 0.2vw, 1.15rem);
+}
+
+.fisc-control .fisc-alert-list {
+  margin: var(--v2-space-2) 0 0 18px;
+  padding: 0;
+  color: color-mix(in srgb, var(--v2-color-danger) 72%, var(--v2-color-text));
+  font-weight: 650;
+}
+
+.fisc-control .fisc-alert-list li {
+  margin: 4px 0;
+}
+
+.fisc-control .fisc-alert-actions {
+  margin-top: var(--v2-space-3);
+}
+
+.fisc-control .fisc-state-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--v2-space-2);
+}
+
+.fisc-control .fisc-state-item {
+  border: 1px solid color-mix(in srgb, var(--v2-color-border) 84%, transparent);
+  border-radius: var(--v2-radius-sm);
+  background: color-mix(in srgb, var(--v2-color-surface) 94%, var(--v2-color-bg));
+  padding: var(--v2-space-3);
+}
+
+.fisc-control .fisc-state-k {
+  margin: 0;
+  color: color-mix(in srgb, var(--v2-color-text-muted) 90%, var(--v2-color-text));
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.fisc-control .fisc-state-v {
+  margin: var(--v2-space-2) 0 0;
+  font-size: clamp(1.15rem, 1.05rem + 0.28vw, 1.45rem);
+  line-height: 1.05;
+  font-weight: 800;
+  color: var(--v2-color-text);
+}
+
+.fisc-control .fisc-op-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--v2-space-2);
+}
+
+@media (max-width: 740px) {
+  .fisc-control .fisc-state-grid,
+  .fisc-control .fisc-op-grid {
+    grid-template-columns: 1fr;
+  }
+}

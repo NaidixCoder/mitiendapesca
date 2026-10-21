@@ -1,26 +1,19 @@
-# Desactivar listado de directorios
+# Seguridad básica
 Options -Indexes
 
-# Bloquear acceso a archivos sensibles
-<FilesMatch "^(\.env|composer(\.json|\.lock)|\.git|\.htaccess)$">
-  Require all denied
-</FilesMatch>
-
-# Forzar UTF-8
-AddDefaultCharset utf-8
-
-# Seguridad (requiere mod_headers)
-<IfModule mod_headers.c>
-  Header set X-Content-Type-Options "nosniff"
-  Header set X-Frame-Options "SAMEORIGIN"
-  Header set Referrer-Policy "strict-origin-when-cross-origin"
-</IfModule>
-
-# Reescrituras básicas: todo a index.php si no existe archivo/directorio físico
 <IfModule mod_rewrite.c>
   RewriteEngine On
-  # RewriteBase /mi-pesca/public_html/   # <-- solo descomenta si tu Apache local lo requiere
-  RewriteCond %{REQUEST_FILENAME} !-f
-  RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteRule ^ index.php [QSA,L]
+
+  # No reescribir archivos/carpetas existentes (assets, uploads, etc.)
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Front controller
+  RewriteRule ^ index.php [L]
 </IfModule>
+
+# Bloquear archivos sensibles
+<FilesMatch "(^\.env|composer\.(json|lock)|phpunit\.xml|\.git|\.htaccess)$">
+  Require all denied
+</FilesMatch>

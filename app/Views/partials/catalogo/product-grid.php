@@ -1,5 +1,22 @@
-<div class="container mx-auto px-3 sm:px-4 lg:px-6">
-  <div id="catalog-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 py-4">
-    <?php foreach ($products as $p): section('catalogo/product-card', ['p'=>$p]); endforeach; ?>
+<?php
+/**
+ * Grid de productos.
+ * Acepta tanto $products como $items por compatibilidad.
+ */
+$rows = $products ?? ($items ?? []);
+if (!is_array($rows)) {
+  $rows = [];
+}
+?>
+
+<?php if (empty($rows)): ?>
+  <?php section('partials/catalogo/empty-state'); ?>
+<?php else: ?>
+  <div id="catalog-grid" class="catalog-grid">
+    <?php foreach ($rows as $p): ?>
+      <?php section('partials/catalogo/product-card', ['product' => $p]); ?>
+    <?php endforeach; ?>
   </div>
-</div>
+
+  <?php section('partials/catalogo/quick-add-modal'); ?>
+<?php endif; ?>

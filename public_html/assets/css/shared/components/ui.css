@@ -1,0 +1,71 @@
+/* V2 UI base (reusable, cross-site)
+   Regla: componentes neutros, sin acoplar a una pagina puntual.
+*/
+
+/* Block: backgrounds */
+.bg-gradient {
+  background: var(--v2-bg-gradient);
+}
+
+/* Block: buttons */
+.ui-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--v2-space-2);
+  min-height: 40px;
+  padding: 0 var(--v2-space-4);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: var(--v2-text-sm);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform .15s ease, filter .15s ease, background .15s ease;
+}
+
+.ui-btn:active { transform: translateY(1px); }
+
+.ui-btn-primary {
+  background: var(--v2-color-primary);
+  color: #fff;
+}
+
+.ui-btn-primary:hover { filter: brightness(0.95); }
+
+.ui-btn-outline {
+  background: #fff;
+  color: var(--v2-color-text);
+  border-color: var(--v2-color-border);
+}
+
+.ui-btn-outline:hover { background: #f8fafc; }
+
+/* Block: cards */
+.ui-card {
+  background: var(--v2-color-surface);
+  border: 1px solid var(--v2-color-border);
+  border-radius: var(--v2-radius-sm);
+  box-shadow: var(--v2-shadow-sm);
+  padding: var(--v2-space-4);
+}
+
+.ui-card-title {
+  font-size: var(--v2-text-md);
+  font-weight: 700;
+  margin: 0 0 var(--v2-space-2);
+}
+
+/* Block: badges */
+.ui-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  padding: 0 var(--v2-space-2);
+  border-radius: 999px;
+  font-size: var(--v2-text-xs);
+  font-weight: 700;
+  border: 1px solid var(--v2-color-border);
+  background: #fff;
+}

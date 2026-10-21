@@ -1,42 +1,85 @@
 <?php
-use App\Repositories\ProductRepository;
+/**
+ * Catalogo - listado principal.
+ * Render puro: filtros, facetas y productos ya llegan preparados.
+ */
 
-
-$repo = new ProductRepository(db());
-
-// Parámetros de UI
-$q = [
-  'q'         => $_GET['q'] ?? '',
-  'categoria' => $_GET['categoria'] ?? '',
-  'min'       => $_GET['min'] ?? '',
-  'max'       => $_GET['max'] ?? '',
-  'orden'     => $_GET['orden'] ?? 'relevancia',
-  'page'      => max(1, (int)($_GET['page'] ?? 1)),
-  'perPage'   => 12,
-];
-
-// Datos
-$pager = $repo->paginate($q);
-$products = $pager['items'];
-$total    = $pager['total'];
-$page     = $pager['page'];
-$perPage  = $pager['perPage'];
-
-// Categorías (lista simple para filtros)
-$categories = [];
-$stmt = db()->query("SELECT slug, name FROM categories WHERE is_active=1 ORDER BY sort ASC, name ASC");
-foreach ($stmt->fetchAll() as $c) $categories[] = ['slug'=>$c['slug'],'name'=>$c['name']];
-
-// Orquestación (reutiliza tus partials)
-$query = $q['q']; $categoria = $q['categoria']; $min = $q['min']; $max = $q['max']; $orden = $q['orden'];
-
-section('catalogo/filter-bar', compact('query','categoria','min','max','orden','categories'));
-section('catalogo/active-filters', compact('query','categoria','min','max'));
-
-if (empty($products)) {
-  section('catalogo/empty-state');
-} else {
-  section('catalogo/product-grid', compact('products'));
-  section('catalogo/pagination', compact('total','perPage','page'));
-  section('catalogo/seo-text');
+if (!isset($filters['q']) && isset($filters['query'])) {
+  $filters['q'] = $filters['query'];
 }
+if (!isset($filters['orden']) && isset($filters['order'])) {
+  $filters['orden'] = $filters['order'];
+}
+
+$total = (int)($total ?? ($pager['total'] ?? 0));
+$page = (int)($page ?? ($pager['page'] ?? 1));
+$perPage = (int)($perPage ?? ($pager['per_page'] ?? 12));
+$basePath = '/productos';
+$pageId = 'catalog';
+$facets = $facets ?? ['categories' => []];
+$totalLabel = ($total === 1) ? 'producto' : 'productos';
+?>
+
+<section class="catalog-page">
+  <div class="catalog-page__inner">
+    <div class="catalog-page__layout">
+      <?php section('partials/catalogo/sidebar', [
+        'filters' => $filters,
+        'facets' => $facets,
+        'basePath' => $basePath,
+        'priceBounds' => ($priceBounds ?? null),
+        'filterAside' => ($filterAside ?? []),
+      ]); ?>
+
+      <main class="catalog-main" id="catalog-main">
+        <header class="catalog-header">
+          <div class="catalog-header__intro">
+            <div class="catalog-header__title-row">
+              <h1 class="catalog-header__title">Productos</h1>
+              <span class="catalog-header__results">(<?= $total ?>)</span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            class="catalog-header__toggle"
+            data-filter-toggle
+          aria-controls="catalog-filters"
+          aria-expanded="false"
+          aria-label="Abrir filtros"
+        >
+            <?= ui_icon('filter-sliders', 'catalog-header__toggle-icon') ?>
+            <span>Filtrar</span>
+          </button>
+        </header>
+
+        <?php if (!empty($products)): ?>
+          <?php section('partials/catalogo/topbar', [
+            'filters' => $filters,
+            'basePath' => $basePath,
+            'sortOptions' => ($sortOptions ?? []),
+            'currentSortLabel' => ($currentSortLabel ?? 'Relevancia'),
+          ]); ?>
+        <?php endif; ?>
+
+        <?php section('partials/catalogo/active-filters', [
+          'chips' => ($chips ?? []),
+          'clearAll' => ($clearAll ?? url($basePath)),
+        ]); ?>
+
+        <?php if (empty($products)): ?>
+          <?php section('partials/catalogo/empty-state'); ?>
+        <?php else: ?>
+          <?php section('partials/catalogo/product-grid', compact('products')); ?>
+          <?php section('partials/catalogo/pagination', compact('total', 'perPage', 'page', 'basePath')); ?>
+        <?php endif; ?>
+
+        <?php if (is_file(base_path('app/Views/partials/catalogo/catalog-support.php'))): ?>
+          <?php section('partials/catalogo/catalog-support', [
+            'whatsUrl' => ($whatsUrl ?? ''),
+          ]); ?>
+        <?php endif; ?>
+      </main>
+    </div>
+  </div>
+</section>

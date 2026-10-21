@@ -18,3 +18,11 @@ if (!function_exists('env')) {
     return $ENV[$key] ?? $default;
   }
 }
+
+// ---------- Timezone (evita desfases server/local) ----------
+$__tz = env('APP_TIMEZONE', 'America/Argentina/Buenos_Aires');
+if (!@date_default_timezone_set($__tz)) {
+  date_default_timezone_set('UTC');
+  $__tz = 'UTC';
+}
+if (!defined('APP_TIMEZONE')) define('APP_TIMEZONE', $__tz);

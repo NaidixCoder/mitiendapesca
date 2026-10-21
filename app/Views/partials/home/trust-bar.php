@@ -1,10 +1,27 @@
-<section aria-label="Marcas" class="py-6 border-y border-gray-100 bg-white/60 backdrop-blur">
-    <div class="max-w-7xl mx-auto px-4 md:px-8 grid grid-cols-2 md:grid-cols-6 items-center gap-6 grayscale opacity-80">
-        <img src="<?= asset('img/brands/shimano.svg') ?>" alt="Shimano" class="h-8 w-auto mx-auto">
-        <img src="<?= asset('img/brands/abu.svg') ?>" alt="Abu Garcia" class="h-8 w-auto mx-auto">
-        <img src="<?= asset('img/brands/okuma.svg') ?>" alt="Okuma" class="h-8 w-auto mx-auto">
-        <img src="<?= asset('img/brands/rapala.svg') ?>" alt="Rapala" class="h-8 w-auto mx-auto">
-        <img src="<?= asset('img/brands/owner.svg') ?>" alt="Owner" class="h-8 w-auto mx-auto">
-        <img src="<?= asset('img/brands/savage.svg') ?>" alt="Savage Gear" class="h-8 w-auto mx-auto">
+<section aria-label="Marcas" class="home-brand-strip">
+  <div class="home-brand-strip__container">
+    <header class="home-sec__head">
+      <h2 class="home-sec__title">Marcas</h2>
+      <div class="home-sec__nav">
+        <p class="home-sec__subtitle">Buscá por tu marca favorita</p>
+        <a href="<?= url('/marcas') ?>" class="home-sec__link">Ver todas</a>
+      </div>
+    </header>
+
+    <div class="home-brand-strip__grid" role="list">
+      <?php foreach (($homeBrands ?? []) as $brand): ?>
+        <?php
+          $logo = (string)($brand['logo'] ?? '');
+          $name = (string)($brand['name'] ?? 'Marca');
+          $href = (string)($brand['href'] ?? '#');
+          if ($logo === '') continue;
+        ?>
+        <a href="<?= e($href) ?>" aria-label="<?= e($name) ?>" class="home-brand-strip__item" role="listitem">
+          <span class="home-brand-strip__logo-wrap">
+            <img src="<?= e($logo) ?>" alt="<?= e($name) ?>" class="home-brand-strip__logo">
+          </span>
+        </a>
+      <?php endforeach; ?>
     </div>
+  </div>
 </section>

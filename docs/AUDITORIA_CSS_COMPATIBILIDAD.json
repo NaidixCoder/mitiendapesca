@@ -1,0 +1,17 @@
+{
+  "legacy-bridge.css": {
+    "rules": 67,
+    "certainly_unused": 0,
+    "selectors": []
+  },
+  "ui-admin-compat.css": {
+    "rules": 52,
+    "certainly_unused": 0,
+    "selectors": []
+  },
+  "foundations.css": {
+    "rules": 25,
+    "certainly_unused": 0,
+    "selectors": []
+  }
+}

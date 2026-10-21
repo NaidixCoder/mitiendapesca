@@ -1,0 +1,56 @@
+{
+  "count": {
+    "text-decoration:underline": 1,
+    "border-top:1px": 2,
+    "font-family:": 1,
+    "text-transform:": 1,
+    "border-left:4px": 1,
+    "text-anchor": 1,
+    "border-radius:": 2,
+    "border-radius:16px": 3,
+    "font-weight:700": 1,
+    "text-align:": 1
+  },
+  "samples": {
+    "text-decoration:underline": [
+      "app/Views/partials/admin/marketing_email/campaign_form/form_block.php",
+      "<button type=\"button\" class=\"av3-pad-x2 av3-pad-y1 av3-radius-control av3-hover-surface-white\" data-cmd=\"underline\" title=\"Subrayado\"><span style=\"text-decoration:underli"
+    ],
+    "border-top:1px": [
+      "app/Views/partials/admin/audit/logins/filters.php",
+      "<div class=\"admin-filters\" style=\"border-top:1px solid rgba(0,0,0,.06);\">"
+    ],
+    "font-family:": [
+      "app/Views/partials/admin/audit/show/header_card.php",
+      "<div style=\"margin-top:6px; color:#5a6b7b; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;\"><?= htmlspeci"
+    ],
+    "text-transform:": [
+      "app/Views/pages/admin/audit/show.php",
+      "<div class=\"audit-chip audit-chip--<?= htmlspecialchars((string)($tone ?? 'neutral')) ?>\" style=\"text-transform: none;\">Detalles</div>"
+    ],
+    "border-left:4px": [
+      "app/Views/pages/admin/products/form.php",
+      "<div class=\"card av3-pad-3\" style=\"border-left:4px solid var(--danger)\"><?= e($err) ?></div>"
+    ],
+    "text-anchor": [
+      "public_html/assets/js/admin/dashboard/trend_draw.js",
+      "'text-anchor': 'end',"
+    ],
+    "border-radius:": [
+      "public_html/assets/js/admin/marketing/campaign_editor/card_builder.js",
+      "'<table role=\"presentation\" data-email-block=\"card\" data-email-card-size=\"' + escHtml(size) + '\" width=\"' + cfg.max + '\" style=\"width:100%;max-width:' + cfg.max + 'px;mar"
+    ],
+    "border-radius:16px": [
+      "public_html/assets/js/admin/marketing/campaign_editor/card_modal.js",
+      "if (html.includes('border-radius:16px') && html.includes('overflow:hidden') && html.includes('<img')) return table;"
+    ],
+    "font-weight:700": [
+      "public_html/assets/js/admin/marketing/campaign_editor/card_modal.js",
+      "const pPrice = wrap.querySelector('p[style*=\"font-weight:700\"]')?.textContent || '';"
+    ],
+    "text-align:": [
+      "public_html/assets/js/admin/marketing/campaign_editor/index.js",
+      "const containerStyle = 'margin:12px 0;text-align:' + (align === 'left' || align === 'right' ? align : 'center') + ';';"
+    ]
+  }
+}

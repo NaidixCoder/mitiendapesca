@@ -1,0 +1,43 @@
+Reglas de trabajo (estilos v2) que estamos siguiendo
+
+1. Revisar y reutilizar primero tokens/utilidades/componentes v2 existentes.
+
+Fuentes en mobile>
+  --v2-text-sm: 14px;
+  --v2-text-md: 16px;
+
+Fuentes en desktop>
+  --v2-text-md: 16px;
+  --v2-text-lg: 20px;
+
+Usar variables para paddings, radius, margins, etc.
+
+
+2. Reusar variables v2 (color, spacing, radius, shadow) y evitar hardcode.
+
+3. No crear arquitectura CSS paralela ni duplicar componentes resueltos en v2.
+
+4. Si el bloque vive en product.css, se mantiene ahí, pero escrito con convenciones/tokens v2.
+
+5. Cambios pequeños, verificables, orientados a layout real.
+
+6. Mobile-first como norma.
+
+7. Breakpoint principal en min-width: 1024px.
+
+8. Priorizar consistencia entre estados (con/sin variantes).
+
+9. Evitar hacks y overrides acumulativos.
+
+10. Ante problemas visuales, ajustar estructura/fuente del layout antes que sumar parches.
+
+11. LA LOGICA NO VA EN VISTAS. Para uso usamos controlles, services, etc.
+
+12. PROHIBIDO EL USO DE CLAMP
+13. PHOBIDIO EL USO DE ETIQUETA HTML STRONG
+
+**Alineación operativa que conviene mantener ya**
+- Base CSS = mobile.
+- Desktop solo en @media (min-width: 768px). 
+- Evitar max-width como regla general (salvo excepción puntual y justificada).
+- Reusar partials existentes (ej: pagination.php) antes de crear variantes ad-hoc.

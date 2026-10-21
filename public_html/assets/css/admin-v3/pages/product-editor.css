@@ -1,0 +1,23 @@
+/* Source before consolidation: css/v2/pages/admin/product-editor-redesign.css */
+/* Editor de Productos — nuevo lenguaje visual sin alterar controles ni flujos JS */
+body[data-page^="admin"] .admin-v3-product-form {display:grid;gap:20px}
+body[data-page^="admin"] .product-editor-head {padding:3px 0 5px;border:0;background:none}
+body[data-page^="admin"] .product-editor-head__tools {display:grid;gap:15px;justify-items:end;align-items:center}
+body[data-page^="admin"] .product-editor-progress {min-width:220px;padding:12px 15px;border:1px solid #dae5eb;border-radius:12px;background:white}
+body[data-page^="admin"] .product-editor-progress .av3-step-text {font-size:12px;font-weight:750;color:#24546b}
+body[data-page^="admin"] .product-editor-progress .av3-progress {height:5px;margin-top:9px;border-radius:99px;overflow:hidden;background:#e4ecef}
+body[data-page^="admin"] .product-editor-progress .av3-progress-bar {background:#007c78}
+body[data-page^="admin"] .admin-v3-product-form #product-tabs-root {border:1px solid #dce6ec;border-radius:15px;background:#fff;box-shadow:0 4px 18px #233c4b0b}
+body[data-page^="admin"] .admin-v3-product-form .product-tabs-nav {background:#f7fafb;padding:14px 20px;gap:9px;border-bottom:1px solid #dce7ed}
+body[data-page^="admin"] .admin-v3-product-form .product-tabs-nav .tab-btn {background:transparent!important;border:1px solid transparent!important;padding:0 15px;border-radius:9px;color:#5c7282;font-weight:700;min-height:42px;box-shadow:none!important}
+body[data-page^="admin"] .admin-v3-product-form .product-tabs-nav .tab-btn.is-active,body[data-page^="admin"] .admin-v3-product-form .product-tabs-nav .tab-btn[aria-selected="true"] {background:#e1f1ee!important;border-color:#b5ddd5!important;color:#006c68!important}
+body[data-page^="admin"] .admin-v3-product-form #product-form {padding:10px}
+body[data-page^="admin"] .admin-v3-product-form #product-form .tab-panel>div.grid {gap:20px!important}
+body[data-page^="admin"] .admin-v3-product-form #product-form label {font-size:13px;font-weight:700;color:#263f54}
+body[data-page^="admin"] .admin-v3-product-form #product-form label :is(input.input,select.input,textarea.input) {margin-top:7px;background:#fff;border:1px solid #d6e2e9;border-radius:10px;min-height:43px;padding:9px 12px;font-size:13px;font-weight:450;color:#1a3246}
+body[data-page^="admin"] .admin-v3-product-form #product-form :is(input,select,textarea):focus {border-color:#008780;box-shadow:0 0 0 3px #00878017}
+body[data-page^="admin"] .admin-v3-product-form #product-form .tab-panel>div.grid>label:first-child {padding-bottom:5px}
+body[data-page^="admin"] .admin-v3-product-form #product-form :is(.text-xs,.text-gray-500) {color:#6c8291;font-size:11px}
+body[data-page^="admin"] .admin-v3-product-form #product-form .btn-soft {border:1px solid #d6e2e9;background:#f7fbfb;border-radius:9px;min-height:41px;color:#22566a}
+body[data-page^="admin"] .admin-v3-product-form #product-form .btn-soft:hover {background:#e9f5f2}
+@media(max-width:880px){body[data-page^="admin"] .product-editor-head__tools{justify-items:start;width:100%}body[data-page^="admin"] .product-editor-head__tools .av3-actions{justify-content:flex-start}body[data-page^="admin"] .product-editor-head__intro .av3-title{font-size:27px}}

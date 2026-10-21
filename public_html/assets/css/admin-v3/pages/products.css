@@ -1,0 +1,183 @@
+/* Source before consolidation: css/v2/pages/admin/products.css */
+/* Vista piloto v2: listado de Productos.
+   Solo body admin-products; no altera el sitio publico ni otros modulos. */
+body[data-page="admin-products"] > .admin-surface {
+  display: flex;
+  flex-direction: column;
+  gap: var(--v2-space-4);
+}
+
+body[data-page="admin-products"] > .admin-surface > .av3-header {
+  margin-bottom: 0;
+}
+
+body[data-page="admin-products"] .products-index-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--v2-space-2);
+}
+
+body[data-page="admin-products"] .products-index-actions > a,
+body[data-page="admin-products"] .products-index-filters .av3-actions > :is(button, a) {
+  box-sizing: border-box;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 var(--v2-space-4);
+  border-radius: var(--v2-radius-sm);
+  border: 1px solid var(--v2-color-border);
+  font-size: var(--v2-text-sm);
+  line-height: 1.2;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+body[data-page="admin-products"] .products-index-actions > .btn-primary {
+  color: var(--v2-color-white);
+  background: var(--v2-color-primary);
+  border-color: var(--v2-color-primary);
+}
+
+body[data-page="admin-products"] .products-index-filters .av3-filter-row {
+  display: flex;
+  gap: var(--v2-space-3);
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+body[data-page="admin-products"] .products-index-filters .av3-filter-row > :first-child {
+  flex: 1 1 260px;
+  max-width: 420px;
+  min-width: 0;
+}
+
+body[data-page="admin-products"] .products-index-filters .av3-filter-row input[type="search"] {
+  box-sizing: border-box;
+  width: 100%;
+}
+
+body[data-page="admin-products"] .products-index-filters .av3-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--v2-space-2);
+}
+
+body[data-page="admin-products"] .products-index-list > .av3-card-header {
+  padding: var(--v2-space-4);
+  margin: 0;
+  align-items: center;
+  border-bottom: 1px solid var(--v2-color-border);
+}
+
+body[data-page="admin-products"] .products-index-list > .av3-card-header .av3-card-title {
+  font-size: var(--v2-text-md);
+}
+
+body[data-page="admin-products"] .products-index-actions a:focus-visible,
+body[data-page="admin-products"] .products-index-filters :is(button, a, input):focus-visible {
+  outline: 2px solid var(--v2-color-primary);
+  outline-offset: 2px;
+}
+
+@media (max-width: 767px) {
+  body[data-page="admin-products"] .products-index-actions,
+  body[data-page="admin-products"] .products-index-filters .av3-actions {
+    width: 100%;
+  }
+  body[data-page="admin-products"] .products-index-filters .av3-filter-row > :first-child {
+    max-width: none;
+    flex-basis: 100%;
+  }
+}
+
+
+/* Source before consolidation: css/v2/pages/admin/products-v3.css */
+/* Admin v3 — piloto de Productos. No afecta el sidebar ni /public.
+   Contrato: encabezado, filtros, tabla y formularios con la misma identidad. */
+body[data-page^="admin"] .admin-v3-products,
+body[data-page^="admin"] .admin-v3-product-form {
+  --v3-line: var(--v2-color-border);
+  --v3-muted: var(--v2-color-text-muted);
+  --v3-space: var(--v2-space-4);
+  --v3-radius: var(--v2-radius-md);
+  min-width: 0;
+}
+body[data-page^="admin"] .admin-v3-products {
+  gap: var(--v2-space-5);
+}
+body[data-page^="admin"] .admin-v3-products .av3-header,
+body[data-page^="admin"] .admin-v3-product-form .av3-page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--v2-space-4);
+  margin: 0;
+}
+body[data-page^="admin"] .admin-v3-products :is(.av3-title),
+body[data-page^="admin"] .admin-v3-product-form :is(.av3-title) {
+  font-size: clamp(1.55rem, 1.3rem + .5vw, 2rem);
+  line-height: 1.18;
+}
+body[data-page^="admin"] .admin-v3-products :is(.av3-card),
+body[data-page^="admin"] .admin-v3-product-form :is(.card) {
+  border: 1px solid var(--v3-line);
+  border-radius: var(--v3-radius);
+  background: var(--v2-color-surface);
+  box-shadow: var(--v2-shadow-sm);
+}
+body[data-page^="admin"] .admin-v3-products .products-index-filters {
+  padding: var(--v2-space-5);
+}
+body[data-page^="admin"] .admin-v3-products .products-index-list {
+  overflow: hidden;
+}
+body[data-page^="admin"] .admin-v3-products .av3-table thead th {
+  background: var(--v2-color-bg);
+  color: var(--v2-color-text-muted);
+}
+body[data-page^="admin"] .admin-v3-products .av3-table tbody td {
+  padding-block: var(--v2-space-3);
+}
+body[data-page^="admin"] .admin-v3-product-form {
+  box-sizing: border-box;
+  width: calc(100% - var(--v2-sidebar-offset));
+  max-width: none;
+  min-width: 0;
+  margin: 0 0 0 var(--v2-sidebar-offset);
+  padding: var(--v2-content-top) var(--v2-content-gutter) var(--v2-content-bottom);
+}
+body[data-page^="admin"] .admin-v3-product-form .av3-header-right {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--v2-space-3);
+  align-items: center;
+}
+body[data-page^="admin"] .admin-v3-product-form #product-tabs-root {
+  overflow: hidden;
+}
+body[data-page^="admin"] .admin-v3-product-form .product-tabs-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--v2-space-2);
+  padding: var(--v2-space-3) var(--v2-space-4);
+  border-bottom: 1px solid var(--v3-line);
+  background: var(--v2-color-bg);
+}
+body[data-page^="admin"] .admin-v3-product-form .product-tabs-nav .tab-btn {
+  min-height: 38px;
+  border-radius: var(--v2-radius-sm);
+}
+body[data-page^="admin"] .admin-v3-product-form :is(input, select, textarea):focus-visible {
+  outline: 2px solid var(--v2-color-primary);
+  outline-offset: 2px;
+}
+@media (max-width: 767px) {
+  body[data-page^="admin"] .admin-v3-product-form .av3-header-right,
+  body[data-page^="admin"] .admin-v3-products .products-index-actions {
+    width: 100%;
+  }
+}

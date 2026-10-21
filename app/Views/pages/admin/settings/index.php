@@ -1,4 +1,14 @@
-<section class="max-w-5xl mx-auto p-6">
-  <h1 class="text-2xl font-bold text-slate-100">Ajustes</h1>
-  <p class="text-slate-400 mt-2">Próximamente: branding, CSP, llaves y políticas.</p>
+<?php
+$pageTitle = 'Ajustes';
+require BASE_PATH.'/app/Views/partials/admin/subnav.php';
+$crumbs = admin_crumbs('settings.index');
+require BASE_PATH.'/app/Views/partials/admin/settings_subnav.php';
+?>
+<section class="admin-surface">
+  <div class="av3-wrap av3-flow-4">
+
+    <?php require BASE_PATH.'/app/Views/partials/admin/settings/index/header.php'; ?>
+    <?php require BASE_PATH.'/app/Views/partials/admin/settings/index/summary.php'; ?>
+
+  </div>
 </section>

@@ -1,0 +1,32 @@
+{
+  "legacy-bridge.css": {
+    "removable_simple_rules": [],
+    "count": 0
+  },
+  "ui-admin-compat.css": {
+    "removable_simple_rules": [
+      ".admin-panel-head",
+      ".admin-panel-title",
+      ".admin-panel-subtitle",
+      ".admin-panel-link",
+      ".admin-scroll-x",
+      ".admin-scroll-y",
+      ".admin-data-wrap",
+      ".admin-data-table",
+      ".admin-data-table thead th",
+      ".admin-data-table td",
+      ".admin-data-cell-nowrap",
+      ".admin-pill",
+      ".admin-pill-dot",
+      ".admin-pill.is-danger",
+      ".admin-pill.is-warn",
+      ".admin-pill.is-ok",
+      ".admin-pill.is-info"
+    ],
+    "count": 17
+  },
+  "foundations.css": {
+    "removable_simple_rules": [],
+    "count": 0
+  }
+}

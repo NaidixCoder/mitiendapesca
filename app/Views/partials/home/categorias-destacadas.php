@@ -1,23 +1,26 @@
-<section class="py-12 md:py-16">
-  <div class="max-w-7xl mx-auto px-4 md:px-8">
-    <h2 class="text-2xl md:text-3xl font-bold">Explorá por categoría</h2>
-    <p class="text-gray-600">Encontrá rápido lo que buscás</p>
+<section class="home-sec" aria-label="Explorar por categoria">
+  <div class="home-sec__container">
+    <header class="home-sec__head">
+      <h2 class="home-sec__title">Explorá por categoría</h2>
+      <div class="home-sec__nav">
+      <p class="home-sec__subtitle">Encontrá rápido lo que buscas</p>
+        <a href="<?= url('/categorias') ?>" class="home-sec__link">Ver todas</a>
+      </div>
+    </header>
 
-    <div class="mt-8 grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-      <?php foreach ([
-        ['img'=>'img/cat/reels.jpg',     'title'=>'Reels',       'href'=>base_url('productos').'?categoria=reels'],
-        ['img'=>'img/cat/canas.jpg',     'title'=>'Cañas',       'href'=>base_url('productos').'?categoria=canas'],
-        ['img'=>'img/cat/senuelos.jpg',  'title'=>'Señuelos',    'href'=>base_url('productos').'?categoria=senuelos'],
-        ['img'=>'img/cat/lineas.jpg',    'title'=>'Líneas',      'href'=>base_url('productos').'?categoria=lineas'],
-      ] as $c): ?>
-      <a class="group rounded-2xl overflow-hidden border border-gray-200 bg-white hover:shadow-md transition"
-        href="<?= e($c['href']) ?>">
-        <div class="aspect-video bg-gray-50 overflow-hidden">
-          <img src="<?= asset($c['img']) ?>" alt="<?= e($c['title']) ?>"
-            class="h-full w-full object-cover group-hover:scale-105 transition">
+    <div class="home-grid">
+      <?php foreach (($homeCategories ?? []) as $c): ?>
+      <?php
+        $img = (string)($c['img'] ?? '');
+        $title = (string)($c['title'] ?? 'Categoria');
+        $href = (string)($c['href'] ?? '#');
+      ?>
+      <a class="home-card" href="<?= e($href) ?>">
+        <div class="home-card__media">
+          <img src="<?= e($img) ?>" alt="<?= e($title) ?>" class="home-card__img">
         </div>
-        <div class="p-4">
-          <h3 class="font-semibold"><?= e($c['title']) ?></h3>
+        <div class="home-card__body">
+          <h3 class="home-card__title"><?= e($title) ?></h3>
         </div>
       </a>
       <?php endforeach; ?>

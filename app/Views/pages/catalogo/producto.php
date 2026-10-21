@@ -5,20 +5,24 @@
 /** @var string $pageTitle */
 /** @var string $pageDesc */
 /** @var string $extraHead */
+/** @var bool $favoriteActive */
 ?>
 
-<?php section('breadcrumbs', ['trail'=>$trail]); ?>
+<?php section('partials/breadcrumbs', ['trail' => $trail]); ?>
 
-<section class="container mx-auto px-3 sm:px-4 lg:px-6 py-6">
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <?php section('producto/gallery', ['product'=>$product]); ?>
-    <div class="space-y-6">
-      <?php section('producto/title-price', ['product'=>$product]); ?>
-      <?php section('producto/buy-box', ['product'=>$product]); ?>
-      <?php section('producto/specs', ['product'=>$product]); ?>
-      <?php section('producto/shipping-info', ['product'=>$product]); ?>
+<section class="product-page">
+  <div class="product-page__inner">
+    <?php section('partials/producto/title-price', ['product' => $product]); ?>
+
+    <div class="product-page__body">
+      <?php section('partials/producto/gallery', ['product' => $product, 'favoriteActive' => $favoriteActive]); ?>
+      <?php section('partials/producto/buy-box', ['product' => $product]); ?>
     </div>
-  </div>
 
-  <?php section('producto/related', ['related'=>$related]); ?>
+    <?php section('partials/producto/mobile-accordions', ['product' => $product]); ?>
+    <?php section('partials/producto/long-desc', ['product' => $product]); ?>
+    <?php section('partials/components/related-products', ['related' => $related]); ?>
+    <?php section('partials/producto/specs', ['product' => $product]); ?>
+    
+  </div>
 </section>

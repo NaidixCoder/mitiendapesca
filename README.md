@@ -1,17 +1,9 @@
-# Mi Tienda Pesca — Estructura Base
+# MiTiendaPesca — guía de entrada
 
-**Fecha:** 2025-10-03
+> **Antes de comenzar cualquier tarea:** abrir [docs/README.md](docs/README.md). Allí figuran reglas actuales, estado, contratos y documentación específica por módulo.
 
-## Estructura
-- `public_html/` → zona pública (index, assets, uploads)
-- Core fuera de `public_html`: `app/`, `config/`, `database/`, `storage/`, `vendor/`, `.env`
-
-## Primeros pasos
-1. Copiá `.env.example` a `.env` y ajustá credenciales.
-2. Asegurate que `BASE_PATH` en `public_html/index.php` apunta a **este** directorio.
-3. (Opcional) Ejecutá `composer dump-autoload` si usás Composer.
-
-## Seguridad
-- Archivos sensibles fuera de `public_html`.
-- `.htaccess` para hardening en `public_html` y bloqueo en `uploads/`.
-- Cookies de sesión seguras, CSRF (placeholder), rate limit (placeholder).
+- Proyecto local servido por XAMPP: `C:\xampp\htdocs\mi-pesca`.
+- Los cambios en esta carpeta se ven al actualizar el navegador local. Worktrees futuros necesitarán su propia URL o integración.
+- Git está conectado a GitHub en esta carpeta. El chat principal gestiona los commits y push en `main`; los demás chats no cambian de rama unilateralmente.
+- Antes de modificar un módulo, verificar las reservas activas en [docs/COORDINACION.md](docs/COORDINACION.md).
+- La documentación histórica está separada de los contratos vigentes. **No asumir que un plan antiguo describe el código actual.**

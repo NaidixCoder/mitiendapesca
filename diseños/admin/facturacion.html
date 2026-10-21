@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Control fiscal | Mi Pesca</title>
+  <style>
+    :root{
+      --sidebar:#0b6b61;
+      --sidebar-dark:#08564f;
+      --bg:#f4f6f8;
+      --card:#fff;
+      --border:#e7edf2;
+      --text:#0f172a;
+      --muted:#5b6472;
+      --header:#fbfcfe;
+      --hover:#eef7f5;
+
+      --ok:#22c55e;
+      --warn:#f59e0b;
+      --danger:#ef4444;
+
+      --radius:14px;
+      --shadow: 0 10px 30px rgba(15,23,42,.06);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+
+    .app{min-height:100vh; display:grid; grid-template-columns:260px 1fr;}
+
+    /* Sidebar */
+    aside.sidebar{
+      background:linear-gradient(180deg, var(--sidebar), var(--sidebar-dark));
+      color:#eafffb;
+      padding:22px 16px;
+      position:sticky;
+      top:0;
+      height:100vh;
+      overflow:auto;
+    }
+    .brand{display:flex; gap:10px; align-items:center; padding:10px 10px 18px;}
+    .logo{
+      width:38px;height:38px;border-radius:12px;
+      background:rgba(255,255,255,.14);
+      display:grid;place-items:center;
+      font-weight:900;
+    }
+    .name{font-weight:900; letter-spacing:.3px; line-height:1.1;}
+    .nav{margin-top:8px; display:flex; flex-direction:column; gap:4px;}
+    .nav .section{
+      margin:14px 10px 6px;
+      font-size:11px; letter-spacing:.12em; text-transform:uppercase;
+      opacity:.75;
+    }
+    .nav a{
+      color:#d9fffb; text-decoration:none;
+      padding:10px 12px; border-radius:12px;
+      display:flex; gap:10px; align-items:center;
+      font-weight:650;
+    }
+    .nav a:hover{background:rgba(255,255,255,.10);}
+    .nav a.active{background:rgba(255,255,255,.16); box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);}
+    .ico{width:22px;height:22px;border-radius:8px;background:rgba(255,255,255,.10);display:grid;place-items:center;font-size:13px;}
+
+    /* Content */
+    main.content{padding:26px;}
+    .container{max-width:1260px; margin:0 auto;}
+
+    .crumb{color:var(--muted); font-size:12px; margin-bottom:8px;}
+    .page-head{
+      display:flex; justify-content:space-between; align-items:flex-start;
+      gap:16px; margin-bottom:14px; flex-wrap:wrap;
+    }
+    .page-title h1{margin:0; font-size:26px;}
+    .page-title p{margin:6px 0 0; color:var(--muted); font-size:13px;}
+
+    .btn{
+      height:38px; padding:0 14px; border-radius:12px;
+      border:1px solid var(--border); background:#fff;
+      font-weight:800; font-size:13px; cursor:pointer;
+      display:inline-flex; align-items:center; gap:8px;
+    }
+    .btn:hover{background:#f6f8fb;}
+    .btn.primary{background:#0b6b61; color:#fff; border-color:transparent;}
+    .btn.primary:hover{background:#095a52;}
+
+    /* Tabs */
+    .tabs{
+      display:flex; gap:8px; flex-wrap:wrap;
+      margin:10px 0 18px;
+    }
+    .tab{
+      padding:9px 12px;
+      border:1px solid var(--border);
+      border-radius:999px;
+      background:#fff;
+      font-weight:850;
+      font-size:13px;
+      color:#334155;
+      cursor:pointer;
+    }
+    .tab.active{
+      background:#0b6b61;
+      color:#fff;
+      border-color:transparent;
+    }
+
+    /* Layout 70/30 */
+    .grid{display:grid; grid-template-columns: 2.33fr 1fr; gap:18px; align-items:start;}
+
+    .card{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+    }
+    .card-head{
+      padding:16px 16px 12px;
+      border-bottom:1px solid #eef2f6;
+      display:flex; justify-content:space-between; align-items:center; gap:12px;
+    }
+    .card-head h2{margin:0; font-size:15px; font-weight:900;}
+    .card-head small{color:var(--muted); font-size:12px;}
+    .card-body{padding:14px 16px 16px;}
+
+    /* Action Recommended */
+    .callout{
+      border:1px solid #ffd2cf;
+      background:#ffefee;
+      border-radius:12px;
+      padding:12px;
+      display:flex;
+      gap:12px;
+      align-items:flex-start;
+    }
+    .callout .badge{
+      min-width:34px;height:34px;border-radius:12px;
+      background:#ef4444;
+      color:#fff;
+      display:grid; place-items:center;
+      font-weight:900;
+    }
+    .callout ul{margin:6px 0 0 18px; color:#7a1f1a; font-weight:650;}
+    .callout li{margin:4px 0;}
+    .callout-actions{margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;}
+
+    /* Table */
+    .table-wrap{
+      overflow:auto;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background:#fff;
+    }
+    table{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      min-width: 740px;
+      font-size:14px;
+    }
+    thead th{
+      position:sticky; top:0; z-index:2;
+      background:var(--header);
+      color:var(--muted);
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      font-size:11px;
+      border-bottom:1px solid var(--border);
+    }
+    th,td{padding:12px 14px; white-space:nowrap;}
+    tbody td{border-bottom:1px solid #eef2f6;}
+    tbody tr:nth-child(even){background:#fafbfc;}
+    tbody tr:hover{background:var(--hover);}
+    .num{text-align:right;}
+
+    /* KPI block */
+    .kpi-grid{display:grid; grid-template-columns: 1fr 1fr; gap:12px;}
+    .kpi{
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:12px;
+      background:#fbfcfe;
+    }
+    .kpi .k{color:var(--muted); font-size:11px; letter-spacing:.08em; text-transform:uppercase; font-weight:900;}
+    .kpi .v{margin-top:6px; font-size:18px; font-weight:950;}
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:6px 10px; border-radius:999px;
+      border:1px solid var(--border);
+      background:#fff;
+      font-weight:900; font-size:12px;
+    }
+    .dot{width:8px;height:8px;border-radius:50%;}
+    .dot.ok{background:var(--ok);}
+    .dot.warn{background:var(--warn);}
+
+    .stack{display:flex; flex-direction:column; gap:18px;}
+
+    @media (max-width: 1100px){
+      .grid{grid-template-columns:1fr;}
+    }
+    @media (max-width: 900px){
+      .app{grid-template-columns:1fr;}
+      aside.sidebar{position:relative; height:auto;}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo">MP</div>
+        <div class="name">MI PESCA<br><span style="opacity:.8;font-weight:750;font-size:12px;">Admin</span></div>
+      </div>
+
+      <nav class="nav">
+        <div class="section">Operación</div>
+        <a href="#"><span class="ico">📊</span>Dashboard</a>
+        <a href="#"><span class="ico">📦</span>Pedidos</a>
+        <a class="active" href="#"><span class="ico">🧾</span>Facturación</a>
+        <a href="#"><span class="ico">📣</span>Marketing</a>
+        <a href="#"><span class="ico">📈</span>Analíticas</a>
+
+        <div class="section">Catálogo</div>
+        <a href="#"><span class="ico">🧩</span>Productos</a>
+        <a href="#"><span class="ico">🏷️</span>Categorías</a>
+
+        <div class="section">Sistema</div>
+        <a href="#"><span class="ico">👤</span>Usuarios</a>
+        <a href="#"><span class="ico">⚙️</span>Ajustes</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <div class="container">
+        <div class="crumb">Admin / Facturación / Control fiscal</div>
+
+        <div class="page-head">
+          <div class="page-title">
+            <h1>Control fiscal</h1>
+            <p>Revisión, alertas, cierres y exportación de libros IVA.</p>
+          </div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn">↗ Ir a Operación diaria</button>
+            <button class="btn">⬇︎ Exportar</button>
+            <button class="btn primary">✓ Iniciar cierre</button>
+          </div>
+        </div>
+
+        <div class="tabs" role="tablist" aria-label="Control fiscal">
+          <button class="tab active">Dashboard</button>
+          <button class="tab">Alertas</button>
+          <button class="tab">Cierres IVA</button>
+          <button class="tab">Libros IVA</button>
+          <button class="tab">Reportes</button>
+        </div>
+
+        <section class="grid">
+          <!-- LEFT (70%) -->
+          <div class="stack">
+            <div class="card">
+              <div class="card-head">
+                <div>
+                  <h2>Acción recomendada</h2>
+                  <small>Resolvé pendientes antes de cerrar el período.</small>
+                </div>
+                <span class="pill"><span class="dot warn"></span>Período abierto</span>
+              </div>
+              <div class="card-body">
+                <div class="callout">
+                  <div class="badge">!</div>
+                  <div>
+                    <strong>Tenés pendientes que pueden bloquear el cierre.</strong>
+                    <ul>
+                      <li>Compras sin validar: <strong>1</strong></li>
+                      <li>Compras sin adjunto: <strong>5</strong></li>
+                      <li>Meses con movimientos sin cierre: <strong>1</strong></li>
+                    </ul>
+                    <div class="callout-actions">
+                      <button class="btn primary">Ver alertas</button>
+                      <button class="btn">Ir a cierres</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <div>
+                  <h2>Últimos cierres</h2>
+                  <small>Resumen de cierres y saldos.</small>
+                </div>
+                <button class="btn">Ver detalle</button>
+              </div>
+              <div class="card-body">
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Período</th>
+                        <th class="num">IVA Ventas</th>
+                        <th class="num">IVA Compras</th>
+                        <th class="num">Saldo</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>2026-01</td>
+                        <td class="num">$ 220.500</td>
+                        <td class="num">$ 10.500</td>
+                        <td class="num">$ 210.000</td>
+                      </tr>
+                      <tr>
+                        <td>2025-12</td>
+                        <td class="num">$ 180.120</td>
+                        <td class="num">$ 32.410</td>
+                        <td class="num">$ 147.710</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <div>
+                  <h2>Operación diaria</h2>
+                  <small>Carga y corrección de comprobantes (ventas y compras).</small>
+                </div>
+              </div>
+              <div class="card-body" style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button class="btn primary">Ventas (comprobantes)</button>
+                <button class="btn">Compras</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT (30%) -->
+          <aside class="stack">
+            <div class="card">
+              <div class="card-head">
+                <div>
+                  <h2>Estado del período</h2>
+                  <small>Contexto y próximo paso</small>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="kpi-grid">
+                  <div class="kpi">
+                    <div class="k">Período</div>
+                    <div class="v">2026-02</div>
+                  </div>
+                  <div class="kpi">
+                    <div class="k">Estado</div>
+                    <div class="v">Abierto</div>
+                  </div>
+                  <div class="kpi">
+                    <div class="k">Alertas</div>
+                    <div class="v">7</div>
+                  </div>
+                  <div class="kpi">
+                    <div class="k">Último cierre</div>
+                    <div class="v">2026-01</div>
+                  </div>
+                </div>
+
+                <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
+                  <button class="btn primary" style="flex:1; justify-content:center;">Iniciar cierre</button>
+                  <button class="btn" style="flex:1; justify-content:center;">Ver cierres</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <div>
+                  <h2>Atajos</h2>
+                  <small>Libros y reportes</small>
+                </div>
+              </div>
+              <div class="card-body" style="display:flex; flex-direction:column; gap:10px;">
+                <button class="btn">📘 Libro IVA Ventas</button>
+                <button class="btn">📗 Libro IVA Compras</button>
+                <button class="btn">🧾 Reporte mensual IVA</button>
+                <button class="btn">📄 Reportes</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <div>
+                  <h2>Salud del sistema</h2>
+                  <small>Chequeos rápidos</small>
+                </div>
+              </div>
+              <div class="card-body" style="display:flex; flex-direction:column; gap:10px;">
+                <span class="pill"><span class="dot ok"></span>Certificados: OK</span>
+                <span class="pill"><span class="dot ok"></span>Conexión: OK</span>
+                <span class="pill"><span class="dot warn"></span>Homologación: Revisar</span>
+              </div>
+            </div>
+          </aside>
+        </section>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

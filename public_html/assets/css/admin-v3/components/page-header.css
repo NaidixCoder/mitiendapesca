@@ -1,0 +1,15 @@
+/* MiTiendaPesca: Page Header compacto para aplicación de gestión */
+body[data-page^="admin"] .av3-page-header{margin:0;min-width:0;color:#182b39}
+body[data-page^="admin"] .av3-page-header__main{display:flex;align-items:center;justify-content:space-between;gap:20px;min-height:36px}
+body[data-page^="admin"] .av3-page-header__copy{display:flex;flex-direction:column;justify-content:center;gap:3px;min-width:0;flex:1 1 auto}
+body[data-page^="admin"] .av3-page-header__copy h1{margin:0;font-family:var(--v2-font-display,"Segoe UI",sans-serif);font-size:20px;line-height:1.25;font-weight:600;letter-spacing:-.015em;color:#182b39}
+body[data-page^="admin"] .av3-page-header__breadcrumb{margin:0;min-width:0}
+body[data-page^="admin"] .av3-page-header__breadcrumb ol{display:flex;align-items:center;flex-wrap:wrap;list-style:none;gap:7px;padding:0;margin:0}
+body[data-page^="admin"] .av3-page-header__breadcrumb li{display:inline-flex;align-items:center;gap:7px;font-size:11px;line-height:1.35;color:#647786}
+body[data-page^="admin"] .av3-page-header__breadcrumb li+li::before{content:"›";font-size:14px;line-height:1;color:#9daeb6}
+body[data-page^="admin"] .av3-page-header__breadcrumb a{color:#647786;text-decoration:none}
+body[data-page^="admin"] .av3-page-header__breadcrumb a:hover{color:#006b6b;text-decoration:underline}
+body[data-page^="admin"] .av3-page-header__breadcrumb a:focus-visible{outline:2px solid #006b6b;outline-offset:2px}
+body[data-page^="admin"] .av3-page-header__breadcrumb [aria-current="page"]{color:#405766;font-weight:500}
+body[data-page^="admin"] .av3-page-header__actions{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px;flex:0 1 auto}
+@media(max-width:650px){body[data-page^="admin"] .av3-page-header__main{align-items:flex-start;flex-wrap:wrap;gap:10px}body[data-page^="admin"] .av3-page-header__actions{justify-content:flex-start;width:100%}}

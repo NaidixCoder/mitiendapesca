@@ -1,0 +1,47 @@
+/* Cross-page reusable controls, opt-in av3 classes. */
+body[data-page^="admin"] .av3-panel {
+  min-width: 0;
+  max-width: 100%;
+  background: var(--av3-color-surface);
+  border: 1px solid var(--av3-color-border);
+  border-radius: var(--av3-radius-card);
+}
+body[data-page^="admin"] .av3-panel__heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 15px var(--av3-space-panel);
+  border-bottom: 1px solid #EDF0F2;
+}
+body[data-page^="admin"] .av3-panel__heading h2 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+}
+body[data-page^="admin"] .av3-action-link {
+  color: var(--av3-color-primary);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+}
+body[data-page^="admin"] .av3-action-link:hover { text-decoration: underline; }
+body[data-page^="admin"] .av3-empty {
+  padding: 18px;
+  color: var(--av3-color-muted);
+  font-size: 13px;
+}
+
+/* Reusable page/form arrangements — admin only */
+body[data-page^="admin"] .av3-page-stack>*+*{margin-top:16px}
+body[data-page^="admin"] .av3-form-columns{display:grid;grid-template-columns:1fr;gap:16px}
+@media(min-width:768px){body[data-page^="admin"] .av3-form-columns{grid-template-columns:repeat(2,minmax(0,1fr))}}
+body[data-page^="admin"] .av3-emphasis{font-weight:500}
+body[data-page^="admin"] .av3-code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+body[data-page^="admin"] .av3-field-followup{display:block;margin-top:8px}
+body[data-page^="admin"] .av3-section-space{margin-top:24px}
+body[data-page^="admin"] .av3-form-actions-end{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:16px}
+
+/* Product variant blocking overlay: state is owned by JS. */
+body[data-page^="admin"] .av3-variant-wait-overlay{position:fixed;inset:0;z-index:80}
+body[data-page^="admin"] .av3-variant-wait-overlay.is-hidden{display:none}

@@ -1,0 +1,133 @@
+/* MiTiendaPesca • Pedidos / Listado 2026.
+   Hoja única de la pantalla, aislada por namespace av3-orders.
+   Las vistas de detalle conservan componentes del sistema admin. */
+body[data-page="admin-orders-index"] .av3-orders-index{
+  --orders-primary:#006B6B;--orders-ink:#182B39;--orders-muted:#647786;
+  --orders-border:#DFE5E9;--orders-surface:#FFFFFF;--orders-soft:#F6F8FA;
+  min-width:0;width:100%;container-type:inline-size;
+  color:var(--orders-ink);font:400 14px/1.5 Inter,"Segoe UI",Arial,sans-serif;
+}
+body[data-page="admin-orders-index"] .av3-orders-index *,
+body[data-page="admin-orders-index"] .av3-orders-index *::before,
+body[data-page="admin-orders-index"] .av3-orders-index *::after{box-sizing:border-box}
+body[data-page="admin-orders-index"] .av3-orders-index a:focus-visible,
+body[data-page="admin-orders-index"] .av3-orders-index :is(button,input,select,summary):focus-visible{outline:2px solid var(--orders-primary);outline-offset:2px}
+.av3-orders-board{min-width:0;overflow:hidden;background:#fff;border:1px solid #DFE5E9;border-radius:11px;box-shadow:0 1px 3px rgba(24,43,57,.025)}
+.av3-orders-board__head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 18px 12px}
+.av3-orders-board__heading h2{margin:0;font-size:16px;font-weight:600;line-height:1.35;color:#182B39}
+.av3-orders-board__heading p{margin:3px 0 0;color:#647786;font-size:13px}
+.av3-orders-board__total{flex:none;color:#647786;font-size:12px;font-variant-numeric:tabular-nums}
+.av3-orders-quick{display:flex;gap:2px;align-items:center;padding:0 14px;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:thin;border-bottom:1px solid #DFE5E9}
+.av3-orders-quick__tab{position:relative;display:inline-flex;align-items:center;gap:7px;flex:none;padding:11px 12px;color:#516775;text-decoration:none;font-weight:500;font-size:13px;border-bottom:2px solid transparent;white-space:nowrap;transition:background .15s,color .15s}
+.av3-orders-quick__tab:hover{color:#006B6B;background:#F6FAFA}
+.av3-orders-quick__tab.is-active{color:#006B6B;font-weight:600;border-bottom-color:#006B6B}
+.av3-orders-quick__count{font-size:11px;line-height:18px;min-width:20px;text-align:center;padding:0 5px;background:#F0F4F5;color:#647786;border-radius:6px;font-variant-numeric:tabular-nums}
+.av3-orders-quick__tab.is-active .av3-orders-quick__count{background:#E1F0ED;color:#006B6B}
+.av3-orders-filters{margin:0;padding:14px 18px 12px}
+.av3-orders-toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:end}
+.av3-orders-search{flex:1 1 230px;min-width:0}
+.av3-orders-search label,.av3-orders-sort label,.av3-orders-field label{display:block;color:#405767;font-size:13px;font-weight:500;margin-bottom:5px}
+.av3-orders-search__field{display:flex;align-items:center;min-width:0;min-height:40px;border:1px solid #DFE5E9;border-radius:8px;background:#fff;padding:0 10px}
+.av3-orders-search__field:focus-within{border-color:#006B6B;box-shadow:0 0 0 2px rgba(0,107,107,.08)}
+.av3-orders-search__icon{font-size:20px;color:#647786;line-height:1;margin-right:8px}
+.av3-orders-search__field input{appearance:none;width:100%;min-width:0;border:0!important;outline:0!important;box-shadow:none!important;height:39px;padding:0!important;background:transparent;font:inherit;font-size:14px;color:#182B39}
+.av3-orders-search__field input::placeholder{color:#8597a2}
+.av3-orders-sort{flex:0 1 190px;min-width:160px}
+.av3-orders-sort select,.av3-orders-field :is(select,input){display:block;width:100%;height:40px;min-width:0;background:#fff;border:1px solid #DFE5E9;border-radius:8px;padding:0 12px;color:#182B39;font:inherit;font-size:14px}
+.av3-orders-search__submit,.av3-orders-btn{display:inline-flex;align-items:center;justify-content:center;min-height:40px;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;text-align:center;text-decoration:none;cursor:pointer;transition:background .15s;white-space:nowrap}
+.av3-orders-search__submit,.av3-orders-btn--primary{border:1px solid #006B6B;background:#006B6B;color:#fff}
+.av3-orders-search__submit:hover,.av3-orders-btn--primary:hover{background:#005657}
+.av3-orders-btn--light{border:1px solid #DFE5E9;background:#fff;color:#304858}
+.av3-orders-btn--light:hover{background:#F6F8FA;color:#006B6B}
+.av3-orders-advanced{margin-top:12px;border-top:1px solid #ECF0F2;padding-top:9px}
+.av3-orders-advanced summary{display:inline-flex;align-items:center;gap:8px;padding:7px 3px;cursor:pointer;color:#006B6B;font-size:13px;font-weight:600;list-style:none}
+.av3-orders-advanced summary::-webkit-details-marker{display:none}
+.av3-orders-advanced summary::after{content:"⌄";font-size:16px;line-height:1;margin-left:2px;transition:transform .15s}
+.av3-orders-advanced[open] summary::after{transform:rotate(180deg)}
+.av3-orders-filter-dot{display:inline-block;width:7px;height:7px;background:#006B6B;border-radius:50%}
+.av3-orders-advanced__body{padding:12px 0 4px}
+.av3-orders-advanced__grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.av3-orders-advanced__actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:14px}
+.av3-orders-applied{display:flex;flex-wrap:wrap;align-items:center;gap:7px;padding:0 18px 14px;font-size:12px;color:#647786}
+.av3-orders-applied a{display:inline-flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid #DCE8E7;border-radius:6px;text-decoration:none;color:#005B5D;background:#F5FAF9;max-width:100%;overflow-wrap:anywhere}
+.av3-orders-applied a:hover{background:#E6F4F1}
+.av3-orders-empty{padding:46px 18px;text-align:center;border-top:1px solid #E8EEF0}
+.av3-orders-empty>span{display:block;font-size:30px;color:#9DB0B8}
+.av3-orders-empty h3{font-size:16px;margin:4px 0;color:#182B39}
+.av3-orders-empty p{margin:4px 0 16px;color:#647786}
+.av3-orders-table-view{display:none;overflow-x:auto;max-width:100%;border-top:1px solid #E9EEF1}
+.av3-orders-table-view table{width:100%;border-collapse:collapse;table-layout:auto;font-size:14px}
+.av3-orders-table-view th{padding:10px 14px;background:#F7F9FA;text-align:left;color:#647786;font-size:12px;font-weight:500;white-space:nowrap;border-bottom:1px solid #E2E9ED;text-transform:uppercase;letter-spacing:.02em}
+.av3-orders-table-view td{padding:13px 14px;border-bottom:1px solid #EAF0F2;vertical-align:middle;color:#304858;line-height:1.35}
+.av3-orders-table-view tbody tr:last-child td{border-bottom:0}
+.av3-orders-table-view tbody tr:hover{background:#F9FCFC}
+.av3-orders-table-view tbody tr[data-href]{cursor:pointer}
+.av3-orders-id{font-weight:600;color:#006B6B;text-decoration:none}
+.av3-orders-id:hover{text-decoration:underline}
+.av3-orders-table-view small{display:block;margin-top:4px;color:#647786;font-size:12px;white-space:nowrap}
+.av3-orders-customer{max-width:260px;overflow-wrap:anywhere}
+.av3-orders-money{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.av3-orders-money strong{font-weight:600;color:#182B39}
+.av3-orders-row-action{width:30px;text-align:right}
+.av3-orders-row-action a{color:#647786;text-decoration:none;font-size:22px;line-height:1}
+.av3-orders-row-action a:hover{color:#006B6B}
+.av3-orders-status{display:inline-flex;max-width:100%;padding:3px 8px;border:1px solid #E2E8EB;border-radius:7px;font-size:12px;font-weight:500;line-height:1.4;white-space:normal;color:#536975;background:#F3F6F8}
+.av3-orders-status--warning{color:#8C641E;border-color:#F1E2BF;background:#FFFAEE}
+.av3-orders-status--danger{color:#A43E39;border-color:#F2D5D1;background:#FFF3F1}
+.av3-orders-status--success{color:#14654E;border-color:#CAE9DE;background:#EBF8F2}
+.av3-orders-status--info{color:#275D79;border-color:#D6E9F1;background:#F1F7FA}
+.av3-orders-status--muted{color:#647786;border-color:#E4E9EB;background:#F7F9FA}
+.av3-orders-mobile-list{display:grid;border-top:1px solid #E9EEF1}
+.av3-orders-mobile-item{display:grid;gap:9px;min-width:0;padding:15px 16px;border-bottom:1px solid #E7ECEF;color:#182B39;text-decoration:none}
+.av3-orders-mobile-item:last-child{border-bottom:0}
+.av3-orders-mobile-item:hover{background:#FAFCFC}
+.av3-orders-mobile-item__top,.av3-orders-mobile-item__middle,.av3-orders-mobile-item__bottom{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0}
+.av3-orders-mobile-item__top strong{font-weight:600}
+.av3-orders-mobile-item__middle{font-size:13px;color:#405969}
+.av3-orders-mobile-item__middle>span{min-width:0;overflow-wrap:anywhere}
+.av3-orders-mobile-item__middle time{flex:none;color:#647786;font-size:12px;white-space:nowrap}
+.av3-orders-mobile-item__bottom{justify-content:flex-start;flex-wrap:wrap;gap:7px}
+.av3-orders-mobile-item__payment{font-size:12px;color:#647786}
+.av3-orders-mobile-item__arrow{margin-left:auto;color:#8DA1AB;font-size:20px;line-height:1}
+.av3-orders-pagination{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-top:1px solid #DFE5E9;color:#647786;font-size:13px}
+.av3-orders-pagination p{margin:0;font-variant-numeric:tabular-nums}
+.av3-orders-pagination nav{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.av3-orders-pagination nav :is(a,span){padding:6px 8px;white-space:nowrap}
+.av3-orders-pagination nav a{color:#006B6B;text-decoration:none;border-radius:6px}
+.av3-orders-pagination nav a:hover{background:#F0F8F7}
+.av3-orders-pagination nav [aria-disabled="true"]{opacity:.45}
+/* Panel útil >= 780px: el listado pasa a tabla. No dependemos del ancho total del navegador. */
+@container (min-width:780px){
+  .av3-orders-table-view{display:block}
+  .av3-orders-mobile-list{display:none}
+  .av3-orders-advanced__grid{grid-template-columns:repeat(5,minmax(0,1fr))}
+}
+@container (min-width:780px) and (max-width:1099px){
+  .av3-orders-col-delivery{display:none}
+}
+@container (min-width:1180px){
+  .av3-orders-filters{padding:16px 20px}
+  .av3-orders-board__head{padding:18px 20px 12px}
+}
+@container (max-width:620px){
+  .av3-orders-board__head{align-items:flex-start;flex-wrap:wrap;padding:15px 14px 10px}
+  .av3-orders-board__heading p{display:none}
+  .av3-orders-quick{padding:0 8px}
+  .av3-orders-quick__tab{padding:11px 9px}
+  .av3-orders-filters{padding:12px 14px}
+  .av3-orders-search{flex-basis:100%}
+  .av3-orders-sort{flex:1 1 140px}
+  .av3-orders-search__submit{flex:0 0 auto}
+  .av3-orders-applied{padding:0 14px 12px}
+  .av3-orders-pagination{justify-content:center;text-align:center;padding:13px 10px}
+  .av3-orders-mobile-item{padding:14px}
+}
+@container (max-width:370px){
+  .av3-orders-advanced__grid{grid-template-columns:1fr}
+  .av3-orders-board__total{font-size:11px}
+}
+@media(prefers-reduced-motion:reduce){
+  .av3-orders-index *{transition:none!important}
+}
+/* Detalle: preservar radio anterior sin dejar estilos legacy exclusivos del listado. */
+body[data-page="admin-orders-show"] #order-root{border-radius:16px}

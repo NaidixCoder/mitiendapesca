@@ -1,0 +1,51 @@
+/* Source before consolidation: css/v2/pages/admin/catalog-redesign.css */
+/* Catálogo admin — rediseño, aislado del sidebar y de la tienda pública */
+body[data-page^="admin"] .admin-v3-products {display:grid;gap:20px}
+body[data-page^="admin"] .catalog-head {display:flex;align-items:end;justify-content:space-between;gap:20px;flex-wrap:wrap}
+body[data-page^="admin"] .catalog-eyebrow {font-size:11px;letter-spacing:.12em;color:#667d90;font-weight:800;margin:0 0 8px}
+body[data-page^="admin"] .catalog-head h1 {font-size:32px;font-weight:750;letter-spacing:-.035em;line-height:1.13;margin:0;color:#10283d}
+body[data-page^="admin"] .catalog-head__copy>p:last-child {margin:9px 0 0;color:#607488;font-size:14px}
+body[data-page^="admin"] .catalog-head__actions {display:flex;gap:10px;flex-wrap:wrap}
+body[data-page^="admin"] .catalog-button {display:inline-flex;justify-content:center;align-items:center;gap:9px;min-height:42px;padding:0 16px;border:1px solid transparent;border-radius:10px;text-decoration:none;font-size:13px;font-weight:700;white-space:nowrap;cursor:pointer;transition:background .15s,border-color .15s}
+body[data-page^="admin"] .catalog-button--primary {background:#006c6b;color:#fff;box-shadow:0 5px 14px #006c6b22}
+body[data-page^="admin"] .catalog-button--primary:hover {background:#005957;color:#fff}
+body[data-page^="admin"] .catalog-button--outline {background:#fff;color:#1a3448;border-color:#dbe4eb}
+body[data-page^="admin"] .catalog-button--outline:hover {background:#f0f7f7;border-color:#9fc6c4}
+body[data-page^="admin"] .catalog-button--small {min-height:34px;padding:0 12px}
+body[data-page^="admin"] .catalog-summary {background:linear-gradient(110deg,#063d48,#075b60);border-radius:15px;padding:20px 24px;color:#fff;display:flex;align-items:center;gap:15px;box-shadow:0 12px 24px #064e5322}
+body[data-page^="admin"] .catalog-summary__icon {width:46px;height:46px;border-radius:12px;background:#ffffff18;display:grid;place-items:center;font-size:25px}
+body[data-page^="admin"] .catalog-summary__label {display:block;letter-spacing:.07em;font-size:10px;font-weight:800;color:#b7dedc}
+body[data-page^="admin"] .catalog-summary strong {display:block;font-size:29px;line-height:1.1;margin-top:4px}
+body[data-page^="admin"] .catalog-summary__hint {margin-left:auto;color:#c0dfde;font-size:13px}
+body[data-page^="admin"] .catalog-panel,body[data-page^="admin"] .admin-v3-products .products-index-list {border:1px solid #dee7ee;border-radius:14px;background:#fff;box-shadow:0 3px 10px #253e5008;overflow:hidden}
+body[data-page^="admin"] .catalog-search {padding:19px 23px}
+body[data-page^="admin"] .catalog-search__form {display:flex;gap:12px;align-items:end;flex-wrap:wrap}
+body[data-page^="admin"] .catalog-search__form>label {flex:1 1 330px;max-width:570px}
+body[data-page^="admin"] .catalog-search__form>label>span:first-child {display:block;font-weight:750;margin-bottom:9px;font-size:12px;color:#3e5569}
+body[data-page^="admin"] .catalog-search__field {display:flex;align-items:center;gap:9px;border:1px solid #dbe5ec;border-radius:10px;height:43px;padding:0 13px;color:#60798a}
+body[data-page^="admin"] .catalog-search__field input {width:100%;border:0!important;box-shadow:none!important;outline:none!important;background:transparent;min-width:0}
+body[data-page^="admin"] .products-index-list>.av3-card-header {padding:20px 23px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #e4ebf0;background:#fff}
+body[data-page^="admin"] .products-index-list .av3-card-title {font-size:19px;font-weight:750;line-height:1.2;color:#102a40;margin:0}
+body[data-page^="admin"] .catalog-list-count {font-size:12px;color:#6b7e8b;background:#f2f6f8;padding:7px 11px;border-radius:20px}
+body[data-page^="admin"] .catalog-table-scroll {overflow-x:auto;width:100%}
+body[data-page^="admin"] .catalog-table {border-collapse:collapse;width:100%;min-width:860px;font-size:13px}
+body[data-page^="admin"] .catalog-table thead th {padding:13px 18px;color:#678094;font-size:10px;letter-spacing:.07em;font-weight:800;background:#f7fafb;text-align:left;white-space:nowrap;border-bottom:1px solid #e3ebef}
+body[data-page^="admin"] .catalog-table tbody td {padding:14px 18px;border-bottom:1px solid #e8eef2;vertical-align:middle}
+body[data-page^="admin"] .catalog-table tbody tr:last-child td {border-bottom:0}
+body[data-page^="admin"] .catalog-table tbody tr:hover {background:#f7fbfb}
+body[data-page^="admin"] .catalog-product-cell {display:flex;align-items:center;gap:13px}
+body[data-page^="admin"] .catalog-product-avatar {width:41px;height:41px;flex:0 0 41px;background:#e7f4f2;color:#007e7a;border-radius:10px;display:grid;place-items:center;font-size:21px}
+body[data-page^="admin"] .catalog-product-description {display:grid;gap:4px;min-width:0}
+body[data-page^="admin"] .catalog-product-description strong {font-size:13px;color:#173145;font-weight:750}
+body[data-page^="admin"] .catalog-product-description small {font-size:11px;color:#73889a}
+body[data-page^="admin"] .catalog-price {font-weight:750;color:#142e42;white-space:nowrap}
+body[data-page^="admin"] .catalog-muted {color:#778c9d;font-size:12px}
+body[data-page^="admin"] .catalog-count {display:inline-flex;align-items:center;gap:8px;padding:6px 9px;border:1px solid #dae6ed;border-radius:8px;color:#20546a;text-decoration:none;font-weight:700}
+body[data-page^="admin"] .catalog-count span {color:#718998;font-size:11px;font-weight:500}
+body[data-page^="admin"] .catalog-status {display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:6px 11px;font-size:11px;font-weight:750;background:#eef1f4;color:#576978;border:1px solid #e0e6eb}
+body[data-page^="admin"] .catalog-status.badge-ok {background:#e7f7ee;color:#08784e;border-color:#c8ead6}
+body[data-page^="admin"] .catalog-status__dot {width:6px;height:6px;border-radius:50%;background:currentColor}
+body[data-page^="admin"] .catalog-table__action {text-align:right}
+body[data-page^="admin"] .catalog-no-results {padding:38px!important;text-align:center}
+body[data-page^="admin"] .catalog-no-results>* {display:block;margin:5px;color:#4d6576}
+@media(max-width:700px){body[data-page^="admin"] .catalog-summary__hint{display:none}body[data-page^="admin"] .catalog-head h1{font-size:26px}body[data-page^="admin"] .catalog-head__actions{width:100%}}

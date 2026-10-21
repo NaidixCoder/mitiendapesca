@@ -39,7 +39,7 @@ function try_autologin_from_cookie(): void {
   [$selector, $validator] = explode(':', $_COOKIE[REMEMBER_COOKIE], 2) + [null, null];
   if (!$selector || !$validator) { clear_remember_me(); return; }
 
-  $row = db()->prepare("SELECT ut.user_id, ut.token_hash, ut.expires_at, u.name, u.role, u.email, u.avatar_url
+  $row = db()->prepare("SELECT ut.user_id, ut.token_hash, ut.expires_at, u.name, u.role, u.email, u.avatar_url, u.session_version
                         FROM user_tokens ut JOIN users u ON u.id=ut.user_id WHERE ut.selector=? LIMIT 1");
   $row->execute([$selector]);
   $tok = $row->fetch(PDO::FETCH_ASSOC);
@@ -55,6 +55,8 @@ function try_autologin_from_cookie(): void {
     $_SESSION['email']   = $tok['email'] ?? '';
     $_SESSION['urole']   = $tok['role'] ?? 'customer';
     $_SESSION['uavatar'] = $tok['avatar_url'] ?? '';
+    // ✅ Versionado de sesión (revocación global portable)
+    $_SESSION['sv'] = (int)($tok['session_version'] ?? 1);
     $_SESSION['_last_activity'] = time();
 
     // rotación de token: borrar viejo y emitir uno nuevo

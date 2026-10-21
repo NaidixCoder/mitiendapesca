@@ -1,0 +1,13 @@
+.ui-icon {
+  display: block;
+  flex: none;
+  fill: currentColor;
+}
+
+.ui-icon--primary {
+  color: var(--v2-color-primary);
+}
+
+.ui-icon--soft-primary {
+  color: color-mix(in srgb, var(--v2-color-primary) 76%, white);
+}

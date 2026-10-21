@@ -7,6 +7,14 @@ namespace App\Controllers\Admin;
  */
 abstract class BaseController
 {
+    public function __construct()
+    {
+        if (function_exists('require_admin')) {
+            require_admin();
+        }
+    }
+
+
     /** Renderiza una vista */
     protected function view(string $name, array $data = []): void
     {

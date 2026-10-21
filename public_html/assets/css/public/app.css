@@ -1,0 +1,72 @@
+@import url('../shared/tokens.css');
+@import url('../shared/base.css');
+@import url('../shared/utilities.css');
+@import url('./components/account.css');
+
+/* Paleta de marca */
+:root{
+  --mainColor: var(--v2-color-primary);      /* alias legacy -> v2 */
+  --secondaryColor: var(--v2-color-accent);  /* alias legacy -> v2 */
+  --lightColor: var(--v2-color-bg);          /* alias legacy -> v2 */
+  --darkColor: var(--v2-color-text);         /* alias legacy -> v2 */
+  --mutedColor: var(--v2-color-text-muted);  /* alias legacy -> v2 */
+}
+
+.bg-brand{ background-color: var(--mainColor); }
+.text-brand{ color: var(--mainColor); }
+.border-brand{ border-color: var(--mainColor); }
+.bg-accent{ background-color: var(--secondaryColor); }
+.text-accent{ color: var(--secondaryColor); }
+.bg-light{ background-color: var(--lightColor); }
+
+.btn:hover{ background:#f9fafb; }
+.btn:active{ transform: translateY(1px); }
+.btn-outline{ background:#fff; border-color:#e5e7eb; }
+.btn-outline:hover{ border-color: color-mix(in srgb, var(--mainColor) 25%, #e5e7eb); }
+
+.btn-brand{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:.5rem;
+  padding:.625rem 1rem;
+  border-radius:12px;
+  background: var(--mainColor);
+  color:#fff;
+  box-shadow: 0 8px 24px rgba(0,0,0,.18);
+  transition: transform 180ms cubic-bezier(.2,.8,.2,1), box-shadow 180ms cubic-bezier(.2,.8,.2,1), background 180ms cubic-bezier(.2,.8,.2,1);
+}
+.btn-brand:hover{
+  background: color-mix(in srgb, var(--mainColor) 88%, #000 12%);
+  transform: translateY(-1px);
+}
+.btn-brand:active{
+  transform: translateY(0);
+}
+
+.input-error{
+  border-color: rgb(239 68 68) !important;
+  box-shadow: 0 0 0 3px rgba(239,68,68,.20) !important;
+}
+
+
+/* Evita que el theme agregue íconos duplicados a los botones de cantidad */
+.qty-btn::before,
+.qty-btn::after {
+  content: none !important;
+}
+.qty-btn {
+  font-variant-ligatures: none;
+  line-height: 1;
+}
+
+/* Oculta spinners nativos de inputs number */
+.no-spin::-webkit-outer-spin-button,
+.no-spin::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.no-spin {
+  -moz-appearance: textfield; /* Firefox */
+  appearance: textfield;      /* Estándar */
+}

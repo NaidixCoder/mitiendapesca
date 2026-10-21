@@ -1,1 +1,1 @@
-<p class="text-sm text-[color:var(--muted)]">Próximamente: productos relacionados, upsell/cross-sell.</p>
+<p class="av3-type-body av3-text-var-fg">Próximamente: productos relacionados, upsell/cross-sell.</p>

@@ -1,0 +1,12 @@
+/* Admin V3 tokens — isolated to admin only. */
+body[data-page^="admin"] {
+  --av3-color-text: #182B39;
+  --av3-color-muted: #647786;
+  --av3-color-border: #DFE5E9;
+  --av3-color-primary: #006B6B;
+  --av3-color-surface: #FFFFFF;
+  --av3-color-background: #F6F8FA;
+  --av3-radius-card: 11px;
+  --av3-space-panel: 18px;
+  --av3-control-height: 40px;
+}

@@ -1,15 +1,14 @@
 <?php
-// --- CSRF helpers ---
-if (!function_exists('csrf_field')) {
-  function csrf_field(): string {
-    if (empty($_SESSION['csrf'])) {
-      $_SESSION['csrf'] = bin2hex(random_bytes(16));
-    }
-    return '<input type="hidden" name="csrf" value="'.e($_SESSION['csrf']).'">';
-  }
+// CSRF bootstrap (simple y compatible con helpers.php)
+if (session_status() !== PHP_SESSION_ACTIVE) { @session_start(); }
+
+// Generar UNA VEZ por sesión (no regenerar en cada request)
+if (empty($_SESSION['_csrf_token'])) {
+    $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
 }
-if (!function_exists('csrf_verify')) {
-  function csrf_verify(string $token): bool {
-    return hash_equals($_SESSION['csrf'] ?? '', $token);
-  }
-}
+
+// Mantener compat con código legacy que usa $_SESSION['csrf']
+$_SESSION['csrf'] = $_SESSION['_csrf_token'];
+
+// Nota: NO hacer validación acá. La validación se hace explícitamente
+// con verify_csrf_or_abort() desde los controladores en los POST.

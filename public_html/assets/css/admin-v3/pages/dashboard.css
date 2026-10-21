@@ -1,0 +1,333 @@
+/* MiTiendaPesca / Dashboard 2026 — contrato visual definitivo.
+   Un solo CSS del módulo. Mobile-first y container queries según ancho útil.
+   No modifica aside, Page Header ni layout maestro. */
+body[data-page^="admin"] .av3-dashboard {
+  --dash-ink:var(--av3-color-text,#182B39);
+  --dash-muted:var(--av3-color-muted,#647786);
+  --dash-border:var(--av3-color-border,#DFE5E9);
+  --dash-teal:var(--av3-color-primary,#006B6B);
+  display:grid;
+  gap:20px;
+  width:100%;
+  min-width:0;
+  max-width:none;
+  container-type:inline-size;
+  color:var(--dash-ink);
+  font-family:Inter,"Segoe UI",Arial,sans-serif;
+  font-size:14px;
+  line-height:1.5;
+}
+body[data-page^="admin"] .av3-dashboard,
+body[data-page^="admin"] .av3-dashboard * {box-sizing:border-box}
+body[data-page^="admin"] .av3-dashboard :is(.av3-summary,.av3-dashboard__columns,.av3-dashboard__column,.av3-rankings,.av3-card,.av3-performance,.av3-ranking) {min-width:0}
+body[data-page^="admin"] .av3-dashboard a:focus-visible,
+body[data-page^="admin"] .av3-dashboard select:focus-visible {
+  outline:2px solid var(--dash-teal);outline-offset:2px
+}
+/* 01. Indicadores principales */
+body[data-page^="admin"] .av3-dashboard .av3-summary {
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px
+}
+body[data-page^="admin"] .av3-dashboard .av3-summary__metric {
+  min-width:0;min-height:96px;padding:14px;
+  display:flex;flex-direction:column;justify-content:center;gap:5px;
+  background:#fff;border:1px solid var(--dash-border);border-radius:11px;
+  color:var(--dash-ink);text-decoration:none;
+  transition:border-color .15s,background .15s
+}
+body[data-page^="admin"] .av3-dashboard a.av3-summary__metric:hover {
+  border-color:#83B4AF;background:#FBFDFD
+}
+body[data-page^="admin"] .av3-dashboard .av3-summary__label {
+  font-size:13px;line-height:1.35;font-weight:500;color:var(--dash-muted);
+  overflow-wrap:break-word;text-transform:none
+}
+body[data-page^="admin"] .av3-dashboard .av3-summary__value {
+  font-size:28px;line-height:1.18;font-weight:600;
+  font-variant-numeric:tabular-nums;letter-spacing:-.025em
+}
+/* 02. Columnas independientes: filas móviles se ordenan por prioridad. */
+body[data-page^="admin"] .av3-dashboard :is(.av3-dashboard__columns,.av3-rankings){
+  display:grid;grid-template-columns:minmax(0,1fr);gap:16px;min-width:0
+}
+body[data-page^="admin"] .av3-dashboard .av3-dashboard__column{display:contents}
+body[data-page^="admin"] .av3-dashboard .av3-alerts{order:0}
+body[data-page^="admin"] .av3-dashboard .av3-orders{order:1}
+body[data-page^="admin"] .av3-dashboard .av3-stock{order:2}
+body[data-page^="admin"] .av3-dashboard .av3-events{order:3}
+body[data-page^="admin"] .av3-dashboard :is(.av3-orders,.av3-stock){container-type:inline-size}
+body[data-page^="admin"] .av3-dashboard .av3-card {
+  min-width:0;max-width:100%;padding:0;background:#fff;
+  border:1px solid var(--dash-border);border-radius:11px;
+  box-shadow:0 1px 2px rgba(24,43,57,.025);overflow:hidden
+}
+body[data-page^="admin"] .av3-dashboard .av3-card__head {
+  min-height:52px;padding:15px 18px;display:flex;
+  align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;
+  border-bottom:1px solid #E9EFF1
+}
+body[data-page^="admin"] .av3-dashboard :is(.av3-card__head h2,.av3-ranking h2,.av3-ranking h3) {
+  margin:0;font-size:14px;line-height:1.4;font-weight:600;color:var(--dash-ink)
+}
+body[data-page^="admin"] .av3-dashboard :is(.av3-card__head a,.av3-section-head a,.av3-ranking .av3-action-link) {
+  color:var(--dash-teal);font-size:13px;font-weight:500;text-decoration:none;white-space:nowrap
+}
+body[data-page^="admin"] .av3-dashboard :is(.av3-card__head a,.av3-section-head a,.av3-ranking .av3-action-link):hover {text-decoration:underline}
+/* Tabla escritorio — móvil usa filas propias. */
+body[data-page^="admin"] .av3-dashboard .av3-table-wrap {
+  display:none;width:100%;min-width:0;overflow-x:auto
+}
+body[data-page^="admin"] .av3-dashboard .av3-table {
+  width:100%;border-collapse:collapse;text-align:left;font-size:14px
+}
+body[data-page^="admin"] .av3-dashboard .av3-table th {
+  padding:10px 14px;background:#F7F9FA;border-bottom:1px solid #E7EDF0;
+  color:var(--dash-muted);font-size:12px;font-weight:500;
+  text-transform:uppercase;letter-spacing:.02em;white-space:nowrap
+}
+body[data-page^="admin"] .av3-dashboard .av3-table td {
+  padding:12px 14px;line-height:1.45;border-bottom:1px solid #EAF0F2;
+  color:#304958;vertical-align:middle
+}
+body[data-page^="admin"] .av3-dashboard .av3-table tbody tr:last-child td {border-bottom:0}
+body[data-page^="admin"] .av3-dashboard .av3-table tbody tr[data-admin-row-link] {cursor:pointer}
+body[data-page^="admin"] .av3-dashboard .av3-table tbody tr:hover {background:#FAFCFC}
+body[data-page^="admin"] .av3-dashboard .av3-table small {
+  display:block;color:var(--dash-muted);font-size:12px;margin-top:3px
+}
+body[data-page^="admin"] .av3-dashboard .av3-number {
+  text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums
+}
+body[data-page^="admin"] .av3-dashboard .av3-order-link {
+  color:#175960;font-weight:600;text-decoration:none
+}
+body[data-page^="admin"] .av3-dashboard .av3-order-link:hover {text-decoration:underline}
+body[data-page^="admin"] .av3-dashboard .av3-state {
+  display:inline-flex;align-items:center;max-width:100%;
+  padding:3px 8px;margin:2px 4px 2px 0;border-radius:6px;
+  border:1px solid #DCE9ED;background:#F1F7F9;
+  color:#376075;font-size:12px;font-weight:500;line-height:1.35
+}
+body[data-page^="admin"] .av3-dashboard .av3-state--urgent {
+  background:#FFF3F0;border-color:#F5DBD4;color:#A34A3C
+}
+/* Filas compactas para mobile: sin scroll horizontal ni tabla duplicada visible. */
+body[data-page^="admin"] .av3-dashboard :is(.av3-order-mobile,.av3-stock-mobile) {display:grid}
+body[data-page^="admin"] .av3-dashboard :is(.av3-order-mobile__item,.av3-stock-mobile__item) {
+  min-width:0;padding:14px 16px;display:grid;gap:7px;
+  border-bottom:1px solid #E9EEF0;color:#304958;text-decoration:none
+}
+body[data-page^="admin"] .av3-dashboard :is(.av3-order-mobile__item,.av3-stock-mobile__item):last-child {border-bottom:0}
+body[data-page^="admin"] .av3-dashboard :is(.av3-order-mobile__item,.av3-stock-mobile__item):hover {background:#FAFCFC}
+body[data-page^="admin"] .av3-dashboard .av3-order-mobile__top {
+  display:flex;align-items:center;justify-content:space-between;gap:12px;color:var(--dash-ink)
+}
+body[data-page^="admin"] .av3-dashboard .av3-order-mobile__top strong {font-weight:600}
+body[data-page^="admin"] .av3-dashboard .av3-order-mobile__customer {
+  color:#405866;font-size:14px;overflow-wrap:anywhere
+}
+body[data-page^="admin"] .av3-dashboard .av3-order-mobile__middle{
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:4px 12px;min-width:0
+}
+body[data-page^="admin"] .av3-dashboard .av3-order-mobile__date{
+  flex:none;color:var(--dash-muted);font-size:12px;
+  font-variant-numeric:tabular-nums;white-space:nowrap
+}
+body[data-page^="admin"] .av3-dashboard .av3-order-mobile__bottom{
+  display:flex;align-items:center;gap:4px;flex-wrap:wrap
+}
+body[data-page^="admin"] .av3-dashboard .av3-order-mobile__bottom .av3-state{
+  margin:0 4px 0 0
+}
+/* 03. Avisos — color semántico contenido y enlaces reales. */
+body[data-page^="admin"] .av3-dashboard .av3-alert-list {
+  list-style:none;margin:0;padding:4px 18px
+}
+body[data-page^="admin"] .av3-dashboard .av3-alert-list li + li {border-top:1px solid #EDF1F2}
+body[data-page^="admin"] .av3-dashboard .av3-alert-list li > :is(a,span) {
+  display:flex;align-items:flex-start;gap:11px;padding:11px 0;
+  color:#354F5C;line-height:1.45;text-decoration:none;font-size:14px
+}
+body[data-page^="admin"] .av3-dashboard .av3-alert-list li > a:hover {color:var(--dash-teal)}
+body[data-page^="admin"] .av3-dashboard .av3-alert-dot {
+  flex:0 0 7px;width:7px;height:7px;margin-top:7px;border-radius:50%;
+  background:#C68B35
+}
+body[data-page^="admin"] .av3-dashboard .av3-alert-dot--urgent {background:#D05552}
+/* 04. Stock */
+body[data-page^="admin"] .av3-dashboard .av3-stock .av3-table strong {
+  display:block;font-weight:600;color:#263E4C;overflow-wrap:anywhere
+}
+body[data-page^="admin"] .av3-dashboard .av3-stock-count {
+  display:inline-flex;align-items:center;padding:3px 8px;border-radius:6px;
+  font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;
+  border:1px solid #EEDBBA;background:#FFFAED;color:#8D5B16
+}
+body[data-page^="admin"] .av3-dashboard .av3-stock-count--zero {
+  background:#FFF2F0;color:#A53D39;border-color:#F3D5CF
+}
+body[data-page^="admin"] .av3-dashboard .av3-stock-mobile__item {
+  grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px
+}
+body[data-page^="admin"] .av3-dashboard .av3-stock-mobile__item strong {
+  display:block;font-weight:600;color:#263E4C;overflow-wrap:anywhere
+}
+body[data-page^="admin"] .av3-dashboard .av3-stock-mobile__item small {
+  display:block;font-size:12px;margin-top:3px;color:var(--dash-muted)
+}
+body[data-page^="admin"] .av3-dashboard .av3-stock-mobile__counts {
+  display:grid;justify-items:end;gap:5px;text-align:right;
+  color:var(--dash-muted);font-size:12px
+}
+body[data-page^="admin"] .av3-dashboard .av3-stock-mobile__counts > span:not(.av3-stock-count) strong {
+  display:inline;color:var(--dash-ink);font-variant-numeric:tabular-nums
+}
+/* 05. Actividad */
+body[data-page^="admin"] .av3-dashboard .av3-event-list {
+  margin:0;padding:2px 18px;list-style:none
+}
+body[data-page^="admin"] .av3-dashboard .av3-event-list li {
+  display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid #EEF1F2
+}
+body[data-page^="admin"] .av3-dashboard .av3-event-list li:last-child {border-bottom:0}
+body[data-page^="admin"] .av3-dashboard .av3-event-dot {
+  flex:0 0 7px;width:7px;height:7px;margin-top:7px;
+  border-radius:50%;background:#9DC5C0
+}
+body[data-page^="admin"] .av3-dashboard .av3-event-dot--error {background:#D05552}
+body[data-page^="admin"] .av3-dashboard .av3-event-list li div {min-width:0}
+body[data-page^="admin"] .av3-dashboard .av3-event-list li :is(a,span:not(.av3-event-dot)) {
+  display:block;font-size:14px;color:#304958;text-decoration:none;overflow-wrap:anywhere
+}
+body[data-page^="admin"] .av3-dashboard .av3-event-list li a:hover {
+  color:var(--dash-teal);text-decoration:underline
+}
+body[data-page^="admin"] .av3-dashboard .av3-event-list small {
+  display:block;font-size:12px;color:var(--dash-muted);margin-top:3px
+}
+/* 06. Rendimiento — solo el SVG con datos ocupa altura de gráfico. */
+body[data-page^="admin"] .av3-dashboard .av3-performance {display:grid;gap:12px;min-width:0}
+body[data-page^="admin"] .av3-dashboard .av3-section-head {
+  display:flex;align-items:center;justify-content:space-between;gap:12px
+}
+body[data-page^="admin"] .av3-dashboard .av3-section-head h2 {
+  font-size:16px;font-weight:600;line-height:1.3;margin:0
+}
+body[data-page^="admin"] .av3-dashboard .av3-performance__body {padding:0 18px 16px}
+body[data-page^="admin"] .av3-dashboard .av3-performance__body > section {
+  padding:0;margin:0;border:0;box-shadow:none;background:transparent
+}
+body[data-page^="admin"] .av3-dashboard .av3-performance__body > section > header {
+  display:none
+}
+body[data-page^="admin"] .av3-dashboard .av3-performance__body h3 {
+  font-size:14px;font-weight:600;margin:0;color:var(--dash-ink)
+}
+body[data-page^="admin"] .av3-dashboard .av3-performance__body #trend-title-metric {
+  font-size:12px;color:var(--dash-muted)
+}
+body[data-page^="admin"] .av3-dashboard #trend-root {min-width:0}
+body[data-page^="admin"] .av3-dashboard #trend-root > div:first-child {
+  display:flex;flex-wrap:wrap;align-items:center;gap:10px;
+  padding:12px 0;margin:0
+}
+body[data-page^="admin"] .av3-dashboard #trend-root label {
+  font-size:13px;color:var(--dash-muted)
+}
+body[data-page^="admin"] .av3-dashboard #trend-root select {
+  flex:1 1 140px;min-width:0;max-width:100%;height:40px;
+  padding:8px 10px;font:inherit;font-size:13px;
+  background:#fff;border:1px solid var(--dash-border);
+  border-radius:8px;color:var(--dash-ink)
+}
+body[data-page^="admin"] .av3-dashboard #trend-chart-wrap {position:relative;min-width:0}
+body[data-page^="admin"] .av3-dashboard #trend-svg {
+  display:block;width:100%;max-height:220px
+}
+body[data-page^="admin"] .av3-dashboard #trend-message:not(.av3-hidden) {
+  position:absolute;inset:0;display:grid;place-items:center;
+  padding:16px;text-align:center;background:#fff;
+  font-size:13px;color:var(--dash-muted)
+}
+body[data-page^="admin"] .av3-dashboard #trend-message.is-empty-period:not(.av3-hidden) {
+  position:static;min-height:52px;padding:12px 16px;
+  border:1px dashed #DCE6E9;border-radius:8px;background:#FAFCFC
+}
+body[data-page^="admin"] .av3-dashboard .av3-hidden {display:none!important}
+body[data-page^="admin"] .av3-dashboard #trend-svg .tframe {fill:#fff}
+body[data-page^="admin"] .av3-dashboard #trend-svg .tgrid {stroke:#E8EEF0;stroke-width:1}
+body[data-page^="admin"] .av3-dashboard #trend-svg .tlabel {fill:var(--dash-muted);font-size:12px}
+body[data-page^="admin"] .av3-dashboard #trend-svg .tdot {fill:#fff;stroke:var(--dash-teal);stroke-width:2}
+body[data-page^="admin"] .av3-dashboard #trend-svg .tline {fill:none;stroke:var(--dash-teal);stroke-width:2.5}
+body[data-page^="admin"] .av3-dashboard #trend-svg .tarea {fill:#D8EEEA;opacity:.6}
+/* 07. Rankings y estados vacíos */
+body[data-page^="admin"] .av3-dashboard .av3-empty {
+  color:var(--dash-muted);padding:18px 16px;text-align:center;font-size:13px;margin:0
+}
+body[data-page^="admin"] .av3-dashboard .av3-ranking {
+  padding:0;background:#fff;border:1px solid var(--dash-border);
+  border-radius:11px;overflow:hidden
+}
+body[data-page^="admin"] .av3-dashboard .av3-ranking__body {
+  display:flex;justify-content:space-between;gap:12px;align-items:center;
+  padding:16px 18px;border-bottom:1px solid #E9EFF1
+}
+body[data-page^="admin"] .av3-dashboard .av3-ranking__body .av3-empty {
+  padding:3px 0 0;text-align:left
+}
+body[data-page^="admin"] .av3-dashboard .av3-ranking__scroll {width:100%;overflow-x:auto}
+body[data-page^="admin"] .av3-dashboard .av3-ranking__table {
+  border-collapse:collapse;width:100%;font-size:14px;text-align:left
+}
+body[data-page^="admin"] .av3-dashboard .av3-ranking__table th {
+  padding:10px 14px;background:#F7F9FA;
+  color:var(--dash-muted);font-size:12px;font-weight:500;
+  border-bottom:1px solid #E8EDF0;white-space:nowrap
+}
+body[data-page^="admin"] .av3-dashboard .av3-ranking__table td {
+  padding:12px 14px;border-bottom:1px solid #EFF2F4;color:#304958
+}
+body[data-page^="admin"] .av3-dashboard .av3-ranking__table tbody tr:last-child td {border-bottom:0}
+/* Responsive: fallbacks usan viewport; container queries usan ancho real de panel.
+   No se añade !important ni se depende de una sola tecnología de layout. */
+@media(min-width:900px){
+  body[data-page^="admin"] .av3-dashboard .av3-summary{
+    grid-template-columns:repeat(4,minmax(0,1fr));gap:16px
+  }
+  body[data-page^="admin"] .av3-dashboard .av3-summary__metric{
+    min-height:104px;padding:18px
+  }
+}
+/* Para tablas en pantallas medianas con los paneles apilados, usar todo el ancho. */
+@media(min-width:900px) and (max-width:1199px){
+  body[data-page^="admin"] .av3-dashboard .av3-orders .av3-table-wrap,
+  body[data-page^="admin"] .av3-dashboard .av3-stock .av3-table-wrap{display:block}
+  body[data-page^="admin"] .av3-dashboard .av3-order-mobile,
+  body[data-page^="admin"] .av3-dashboard .av3-stock-mobile{display:none}
+}
+@media(min-width:1200px){
+  body[data-page^="admin"] .av3-dashboard .av3-dashboard__columns{
+    grid-template-columns:minmax(0,7fr) minmax(0,5fr);align-items:start
+  }
+  body[data-page^="admin"] .av3-dashboard .av3-dashboard__column{
+    display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-content:start
+  }
+  body[data-page^="admin"] .av3-dashboard .av3-dashboard__column > *{order:initial}
+  body[data-page^="admin"] .av3-dashboard .av3-rankings{
+    grid-template-columns:repeat(2,minmax(0,1fr))
+  }
+}
+/* Cada panel mide su propio ancho: evita tablas comprimidas junto al aside. */
+@container (min-width:620px){
+  body[data-page^="admin"] .av3-dashboard .av3-orders .av3-table-wrap,
+  body[data-page^="admin"] .av3-dashboard .av3-stock .av3-table-wrap{display:block}
+  body[data-page^="admin"] .av3-dashboard .av3-orders .av3-order-mobile,
+  body[data-page^="admin"] .av3-dashboard .av3-stock .av3-stock-mobile{display:none}
+}
+@media(min-width:1300px){
+  body[data-page^="admin"] .av3-dashboard .av3-orders .av3-table-wrap,
+  body[data-page^="admin"] .av3-dashboard .av3-stock .av3-table-wrap{display:block}
+  body[data-page^="admin"] .av3-dashboard .av3-order-mobile,
+  body[data-page^="admin"] .av3-dashboard .av3-stock-mobile{display:none}
+}

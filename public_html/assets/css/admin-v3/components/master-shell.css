@@ -1,0 +1,35 @@
+
+/* Admin master shell: owns outer positioning and visual separation. */
+body[data-page^="admin"] .av3-master-shell{min-height:100vh;min-height:100dvh}
+body[data-page^="admin"] .av3-master-workspace{margin-left:var(--v2-sidebar-offset);min-height:100vh;min-width:0;background:#f6f8fa}
+body[data-page^="admin"] .av3-master-header{background:#fff;border-bottom:1px solid #dfe6e9;padding:12px var(--v2-content-gutter) 12px}
+body[data-page^="admin"] .av3-master-header .av3-page-header{margin:0;width:100%;max-width:none}
+body[data-page^="admin"] .av3-master-content{min-width:0;padding:24px var(--v2-content-gutter) 32px}
+body[data-page^="admin"] .av3-master-content > .admin-surface,
+body[data-page^="admin"] .av3-master-content > .av3-max-w-6xl.av3-mx-auto,
+body[data-page^="admin"] .av3-master-content > .av3-width-max-4xl.av3-mx-auto,
+body[data-page^="admin"] .av3-master-content > .av3-container.av3-max-w-6xl.av3-mx-auto{margin-left:0;padding:0;width:100%;max-width:none}
+body[data-page^="admin"] .av3-master-content > .admin-surface > .dashboard-v2{width:100%;max-width:none}
+body[data-page^="admin"] .av3-master-content > .admin-surface > .av3-wrap{max-width:none;width:100%}
+@media(max-width:1200px){body[data-page^="admin"] .av3-master-content{padding-top:16px}}
+
+/* Navegación móvil overlay: no consume ancho ni desplaza el contenido. */
+body[data-page^="admin"] .av3-mobile-menu-toggle,
+body[data-page^="admin"] .av3-mobile-backdrop{display:none}
+@media(max-width:767px){
+  body[data-page^="admin"],body[data-page^="admin"].av3-expanded,body[data-page^="admin"].av3-collapsed{--v2-sidebar-offset:0px;--v2-content-gutter:16px}
+  body[data-page^="admin"] .av3-master-workspace{margin-left:0!important;width:100%;min-width:0}
+  body[data-page^="admin"] .av3-master-header{display:flex;align-items:center;gap:12px;padding:11px 16px}
+  body[data-page^="admin"] .av3-master-header .av3-page-header{flex:1;min-width:0}
+  body[data-page^="admin"] .av3-master-content{padding:16px;min-width:0}
+  body[data-page^="admin"] .av3-mobile-menu-toggle{display:inline-flex;flex:none;align-items:center;justify-content:center;width:40px;height:40px;border:1px solid #dfe5e9;background:#fff;border-radius:8px;color:#006b6b;cursor:pointer;font-size:21px}
+  body[data-page^="admin"] .av3-mobile-menu-toggle:focus-visible{outline:2px solid #006b6b;outline-offset:2px}
+  body[data-page^="admin"] .av3-sidebar,body[data-page^="admin"].av3-collapsed .av3-sidebar,body[data-page^="admin"].av3-expanded .av3-sidebar{position:fixed;inset:0 auto 0 0;width:min(290px,85vw)!important;max-width:85vw;height:100dvh;transform:translateX(-105%);transition:transform .22s ease;z-index:120;padding:12px}
+  body[data-page^="admin"].av3-mobile-nav-open .av3-sidebar{transform:translateX(0)}
+  body[data-page^="admin"] .av3-sidebar .av3-brand,body[data-page^="admin"] .av3-sidebar .av3-group-title,body[data-page^="admin"] .av3-sidebar .av3-sidebar-label{display:initial!important}
+  body[data-page^="admin"] .av3-sidebar .av3-sidebar-link{justify-content:flex-start!important;padding:8px 10px!important;gap:10px!important}
+  body[data-page^="admin"] .av3-sidebar #av3-toggle{display:none}
+  body[data-page^="admin"] .av3-mobile-backdrop:not([hidden]){display:block;position:fixed;inset:0;width:100%;height:100dvh;z-index:110;border:0;background:rgba(10,23,32,.5);cursor:pointer}
+  body[data-page^="admin"].av3-mobile-nav-open{overflow:hidden}
+}
+@media(prefers-reduced-motion:reduce){body[data-page^="admin"] .av3-sidebar{transition:none}}

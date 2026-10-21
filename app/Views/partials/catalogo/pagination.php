@@ -1,33 +1,117 @@
 <?php
-$totalPages = max(1, (int)ceil($total / $perPage));
-$cur = $page; $window = 2;
-$start = max(1, $cur - $window);
-$end   = min($totalPages, $cur + $window);
-$preserve = function(array $extra=[]){
-  $q = array_merge($_GET, $extra);
-  return '?' . http_build_query(array_filter($q, fn($v)=>$v!==null && $v!==''));
+if (isset($pager) && is_array($pager)) {
+  $total = (int)($pager['total'] ?? 0);
+  $perPage = (int)($pager['per_page'] ?? 12);
+  $page = (int)($pager['page'] ?? 1);
+} else {
+  $total = (int)($total ?? 0);
+  $perPage = (int)($perPage ?? 12);
+  $page = (int)($page ?? 1);
+}
+
+$basePath = (string)($basePath ?? '/productos');
+$pages = max(1, (int)ceil($total / max(1, $perPage)));
+$page = max(1, min($page, $pages));
+
+$qs = function (array $extra = []): string {
+  $q = array_merge($_GET ?? [], $extra);
+  foreach ($q as $k => $v) {
+    if ($v === null || $v === '') {
+      unset($q[$k]);
+    }
+  }
+  return $q ? ('?' . http_build_query($q)) : '';
 };
+
+$from = ($total > 0) ? (($page - 1) * $perPage + 1) : 0;
+$to = ($total > 0) ? min($total, $page * $perPage) : 0;
+$window = 2;
+$candidates = array_merge([1, $pages], range(max(1, $page - $window), min($pages, $page + $window)));
+$candidates = array_values(array_unique($candidates));
+sort($candidates);
+
+$firstHref = url($basePath) . $qs(['page' => 1]);
+$prevHref = url($basePath) . $qs(['page' => max(1, $page - 1)]);
+$nextHref = url($basePath) . $qs(['page' => min($pages, $page + 1)]);
+$lastHref = url($basePath) . $qs(['page' => $pages]);
 ?>
-<div class="container mx-auto px-3 sm:px-4 lg:px-6">
-  <nav class="flex items-center justify-between py-6" aria-label="Paginación">
-    <p class="text-sm text-gray-500">Página <strong><?= $cur ?></strong> de <strong><?= $totalPages ?></strong> — <?= $perPage ?> por página</p>
-    <ul class="flex items-center gap-1">
-      <li><a class="px-3 py-2 rounded-lg border border-gray-200 <?= $cur<=1?'pointer-events-none opacity-40':'' ?>"
-             href="<?= e($preserve(['page'=>max(1,$cur-1)])) ?>">Prev</a></li>
-      <?php if ($start > 1): ?>
-        <li><a class="px-3 py-2 rounded-lg border border-gray-200" href="<?= e($preserve(['page'=>1])) ?>">1</a></li>
-        <?php if ($start > 2): ?><li class="px-2 text-gray-400">…</li><?php endif; ?>
+
+<nav class="catalog-pagination" aria-label="Paginacion">
+  <div class="catalog-pagination__summary">
+    <div class="catalog-pagination__meta">
+      <?php if ($total > 0): ?>
+        Mostrando
+        <span class="catalog-pagination__meta-strong"><?= $from ?></span>
+        <span class="catalog-pagination__meta-divider">-</span>
+        <span class="catalog-pagination__meta-strong"><?= $to ?></span>
+        <span class="catalog-pagination__meta-divider">de</span>
+        <span class="catalog-pagination__meta-strong"><?= $total ?></span>
+      <?php else: ?>
+        <span class="catalog-pagination__meta-strong">0</span>
       <?php endif; ?>
-      <?php for($i=$start;$i<=$end;$i++): ?>
-        <li><a class="px-3 py-2 rounded-lg border <?= $i===$cur?'bg-gray-900 text-white border-gray-900':'border-gray-200 hover:border-gray-300' ?>"
-               href="<?= e($preserve(['page'=>$i])) ?>"><?= $i ?></a></li>
-      <?php endfor; ?>
-      <?php if ($end < $totalPages): ?>
-        <?php if ($end < $totalPages-1): ?><li class="px-2 text-gray-400">…</li><?php endif; ?>
-        <li><a class="px-3 py-2 rounded-lg border border-gray-200" href="<?= e($preserve(['page'=>$totalPages])) ?>"><?= $totalPages ?></a></li>
+    </div>
+
+    <div class="catalog-pagination__controls">
+      <?php if ($page > 1): ?>
+        <a href="<?= e($firstHref) ?>" class="catalog-pagination__icon-btn" aria-label="Primera pagina">
+          <?= ui_icon('chevrons-left') ?>
+        </a>
+      <?php else: ?>
+        <span class="catalog-pagination__icon-btn is-disabled" aria-hidden="true">
+          <?= ui_icon('chevrons-left') ?>
+        </span>
       <?php endif; ?>
-      <li><a class="px-3 py-2 rounded-lg border border-gray-200 <?= $cur>=$totalPages?'pointer-events-none opacity-40':'' ?>"
-             href="<?= e($preserve(['page'=>min($totalPages,$cur+1)])) ?>">Next</a></li>
-    </ul>
-  </nav>
-</div>
+
+      <?php if ($page > 1): ?>
+        <a rel="prev" href="<?= e($prevHref) ?>" class="catalog-pagination__icon-btn" aria-label="Pagina anterior">
+          <?= ui_icon('chevron-left-solid') ?>
+        </a>
+      <?php else: ?>
+        <span class="catalog-pagination__icon-btn is-disabled" aria-hidden="true">
+          <?= ui_icon('chevron-left-solid') ?>
+        </span>
+      <?php endif; ?>
+
+      <div class="catalog-pagination__pages">
+        <?php
+        $prevShown = 0;
+        foreach ($candidates as $pno):
+          if ($prevShown && $pno > $prevShown + 1):
+            echo '<span class="catalog-pagination__ellipsis">…</span>';
+          endif;
+          $isCurrent = ($pno === $page);
+          $href = url($basePath) . $qs(['page' => $pno]);
+        ?>
+          <?php if ($isCurrent): ?>
+            <span aria-current="page" class="catalog-pagination__page is-current"><?= $pno ?></span>
+          <?php else: ?>
+            <a href="<?= e($href) ?>" class="catalog-pagination__page"><?= $pno ?></a>
+          <?php endif; ?>
+        <?php
+          $prevShown = $pno;
+        endforeach;
+        ?>
+      </div>
+
+      <?php if ($page < $pages): ?>
+        <a rel="next" href="<?= e($nextHref) ?>" class="catalog-pagination__icon-btn" aria-label="Pagina siguiente">
+          <?= ui_icon('chevron-right-solid') ?>
+        </a>
+      <?php else: ?>
+        <span class="catalog-pagination__icon-btn is-disabled" aria-hidden="true">
+          <?= ui_icon('chevron-right-solid') ?>
+        </span>
+      <?php endif; ?>
+
+      <?php if ($page < $pages): ?>
+        <a href="<?= e($lastHref) ?>" class="catalog-pagination__icon-btn" aria-label="Ultima pagina">
+          <?= ui_icon('chevrons-right') ?>
+        </a>
+      <?php else: ?>
+        <span class="catalog-pagination__icon-btn is-disabled" aria-hidden="true">
+          <?= ui_icon('chevrons-right') ?>
+        </span>
+      <?php endif; ?>
+    </div>
+  </div>
+</nav>

@@ -1,0 +1,4 @@
+bg-green-100 2
+border-red-500 10
+bg-emerald-100 2
+bg-rose-100 1

@@ -1,197 +1,185 @@
 <?php
-$pageTitle = 'Mi cuenta — Tienda Pesca';
-$pageDesc  = 'Resumen de tu cuenta, pedidos y datos.';
+$pageTitle = 'Mi cuenta - Tienda Pesca';
+$pageDesc = 'Resumen de tu cuenta, pedidos y datos.';
 
-// Gate mínimo
-if (empty($_SESSION['uid'])) {
-  $_SESSION['back_to'] = '/cuenta';
-  flash('ok', 'Iniciá sesión para ver tu cuenta.');
-  redirect('/login');
-}
-
-$uid       = (int)($_SESSION['uid'] ?? 0);
-$uname     = $_SESSION['uname'] ?? 'Usuario';
-$email     = $_SESSION['email'] ?? '';
+$uname = $_SESSION['uname'] ?? 'Usuario';
+$email = $_SESSION['email'] ?? '';
 $avatarUrl = $_SESSION['uavatar'] ?? '';
-$role      = $_SESSION['urole'] ?? 'customer';
 
-// Normalizar avatar Google (por si llega sin tamaño)
-if ($avatarUrl && (parse_url($avatarUrl, PHP_URL_HOST) ?? '') === 'lh3.googleusercontent.com' && !preg_match('/=s\d+-c$/', $avatarUrl)) {
-  $avatarUrl .= '=s96-c';
+if ($avatarUrl && (parse_url($avatarUrl, PHP_URL_HOST) ?? '') === 'lh3.googleusercontent.com'
+    && !preg_match('/=s\d+-c$/', $avatarUrl)) {
+    $avatarUrl .= '=s96-c';
 }
 
-// Cargar metadata fresca del usuario (verificado/fechas)
-$emailVerified = 1;
-$createdAt     = null;
-$lastLoginAt   = null;
-try {
-  $stmt = db()->prepare('SELECT email_verified, created_at, last_login_at, avatar_url FROM users WHERE id=? LIMIT 1');
-  $stmt->execute([$uid]);
-  if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-    $emailVerified = (int)($row['email_verified'] ?? 1);
-    $createdAt     = $row['created_at'] ?? null;
-    $lastLoginAt   = $row['last_login_at'] ?? null;
-    if (!$avatarUrl && !empty($row['avatar_url'])) $avatarUrl = $row['avatar_url'];
-  }
-} catch (Throwable $e) {
-  // silencioso en UI
+$userMeta = is_array($userMeta ?? null) ? $userMeta : [];
+if (!$avatarUrl && !empty($userMeta['avatar_url'])) {
+    $avatarUrl = (string)$userMeta['avatar_url'];
 }
 
-// Helpers visuales
-function fmt_dt($dt) {
-  if (!$dt) return '—';
-  $ts = strtotime($dt);
-  if (!$ts) return '—';
-  return date('d/m/Y H:i', $ts);
+$cta = is_array($cta ?? null) ? $cta : null;
+$accountMissing = is_array($accountMissing ?? null) ? $accountMissing : [];
+$accountMissingCount = (int)($accountMissingCount ?? count($accountMissing));
+$isAdmin = function_exists('is_admin') && is_admin();
+
+$whatsUrl = trim((string)app_setting('social_whatsapp_url', env('CONTACT_WHATSAPP_URL', '')));
+
+$bannerStatus = 'Todo listo para comprar';
+if ($accountMissingCount > 0) {
+    $firstMissing = (string)($accountMissing[0] ?? 'Completar perfil');
+    if (str_starts_with($firstMissing, 'Agregar ')) {
+        $firstMissing = substr($firstMissing, 8);
+    } elseif (str_starts_with($firstMissing, 'Verificar ')) {
+        $firstMissing = 'verificar ' . substr($firstMissing, 10);
+    }
+    $bannerStatus = 'Falta ' . $firstMissing;
 }
-$verifiedBadge = $emailVerified ? '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-emerald-500/15 text-emerald-300 border border-emerald-400/30">Verificado</span>'
-                               : '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-amber-500/15 text-amber-300 border border-amber-400/30">No verificado</span>';
-$isAdmin = (function_exists('is_admin') && is_admin());
+
+$hintHref = ($accountMissingCount > 0 && $cta && !empty($cta['href']))
+    ? (string)$cta['href']
+    : (string)url('/productos');
+$hintShowSuccess = $accountMissingCount <= 0;
+$showVerifyBanner = !empty($_SESSION['uid']) && empty($_SESSION['email_verified']);
+
+$latestOrderId = (int)($latestOrder['id'] ?? 0);
+$latestOrderStatus = trim((string)($latestOrder['status_label'] ?? ''));
+$latestOrderStatus = $latestOrderStatus !== '' ? $latestOrderStatus : 'Sin datos';
+$addressHeadline = $addressCount === 1 ? '1 dirección guardada' : ((int)$addressCount . ' direcciones guardadas');
+$favoritesHeadline = $favoritesCount === 1 ? '1 producto guardado' : ((int)$favoritesCount . ' productos guardados');
+$dashSentinels = ['—', '-', ''];
+$profileBirthDesktop = in_array(trim((string)$profileBirthFmt), $dashSentinels, true) ? 'Sin cargar' : (string)$profileBirthFmt;
+$loyaltyPoints = (int)($loyalty['points'] ?? 0);
+$loyaltyNextTier = (string)($loyalty['next_tier'] ?? 'Plata');
+$loyaltyProgressPct = max(0, min(100, (int)($loyalty['progress_pct'] ?? 0)));
+$loyaltyToNext = (int)($loyalty['to_next_tier'] ?? 0);
+$securityEmailOk = !empty($_SESSION['email_verified']);
 ?>
-<section class="min-h-[70vh] py-10">
-  <div class="max-w-7xl mx-auto px-4 md:px-8">
 
-    <!-- Encabezado de Perfil -->
-    <div class="card p-6 md:p-8 mb-6">
-      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-        <div class="flex items-center gap-4">
-          <?php if ($avatarUrl): ?>
-            <img src="<?= e($avatarUrl) ?>" alt="Avatar" width="72" height="72" referrerpolicy="no-referrer"
-                 class="w-16 h-16 md:w-18 md:h-18 rounded-full object-cover"
-                 style="background: var(--surface-weak); border: 1px solid var(--border);" />
-          <?php else: ?>
-            <div class="w-16 h-16 md:w-18 md:h-18 rounded-full grid place-items-center text-xl font-semibold"
-                 style="background: var(--surface-weak); border: 1px solid var(--border);">
-              <?= e(mb_strtoupper(mb_substr($uname, 0, 1, 'UTF-8'))) ?>
-            </div>
-          <?php endif; ?>
-          <div>
-            <div class="flex items-center gap-2">
-              <h1 class="text-2xl md:text-3xl font-semibold leading-tight"><?= e($uname) ?></h1>
-              <?php if ($isAdmin): ?>
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-indigo-500/15 text-indigo-200 border border-indigo-400/30">Admin</span>
-              <?php endif; ?>
-            </div>
-            <div class="flex items-center gap-2 mt-1 text-sm text-[color:var(--muted)]">
-              <span><?= e($email) ?></span>
-              <span>•</span>
-              <?= $verifiedBadge ?>
-            </div>
-            <div class="mt-1 text-xs text-[color:var(--muted)]/80">
-              <span>Miembro desde <?= fmt_dt($createdAt) ?></span>
-              <span class="mx-1">·</span>
-              <span>Último acceso <?= fmt_dt($lastLoginAt) ?></span>
-            </div>
-          </div>
+<section class="acct-page">
+  <div class="acct-page__inner">
+    <div class="acct-page__stack">
+      <?php
+      section('cuenta/hero', [
+          'uname' => $uname,
+          'email' => $email,
+          'avatarUrl' => $avatarUrl,
+          'isAdmin' => $isAdmin,
+          'desc' => 'Gestioná tu cuenta y seguí tus compras.',
+          'showHint' => true,
+          'hintHref' => $hintHref,
+          'hintShowSuccess' => $hintShowSuccess,
+          'bannerStatus' => $bannerStatus,
+          'showVerifyBanner' => $showVerifyBanner,
+          'showQuick' => true,
+          'quickItems' => [
+              [
+                  'href' => url('/cuenta/pedidos'),
+                  'icon' => 'box',
+                  'label' => 'Mis pedidos',
+                  'copy' => 'Seguí tus compras y repetí pedidos fácilmente.',
+                  'cta' => 'Ver pedidos',
+                  'desktop_meta' => [
+                      'type' => 'pair',
+                      'left_label' => 'Último pedido',
+                      'left_value' => $latestOrderId > 0 ? ('#' . $latestOrderId) : 'Sin pedidos',
+                      'right_label' => 'Estado',
+                      'right_value' => $latestOrderStatus,
+                      'right_badge' => true,
+                  ],
+              ],
+              [
+                  'href' => url('/cuenta/direcciones'),
+                  'icon' => 'house',
+                  'label' => 'Direcciones',
+                  'copy' => 'Gestioná tus direcciones para comprar más rápido.',
+                  'cta' => 'Administrar',
+                  'desktop_meta' => [
+                      'type' => 'summary',
+                      'title' => $addressHeadline,
+                      'text' => in_array(trim((string)$addressSummary), $dashSentinels, true) ? 'Sin dirección principal' : (string)$addressSummary,
+                  ],
+              ],
+              [
+                  'href' => url('/cuenta/favoritos'),
+                  'icon' => 'heart',
+                  'label' => 'Favoritos',
+                  'copy' => 'Guarda productos para encontrarlos al instante.',
+                  'cta' => 'Ver lista',
+                  'desktop_meta' => [
+                      'type' => 'summary',
+                      'title' => $favoritesHeadline,
+                      'text' => 'Accedé rápido a los productos que guardaste.',
+                  ],
+              ],
+              [
+                  'href' => url('/cuenta/perfil'),
+                  'icon' => 'user',
+                  'label' => 'Datos personales',
+                  'copy' => 'Mantené tu perfil actualizado para una experiencia más ágil.',
+                  'cta' => 'Editar',
+                  'desktop_meta' => [
+                      'type' => 'pair',
+                      'left_label' => 'Teléfono',
+                      'left_value' => in_array(trim((string)$profilePhone), $dashSentinels, true) ? 'Sin cargar' : (string)$profilePhone,
+                      'right_label' => 'Nacimiento',
+                      'right_value' => $profileBirthDesktop,
+                      'right_badge' => $profileBirthDesktop === 'Sin cargar',
+                  ],
+              ],
+              [
+                  'href' => url('/cuenta/lealtad'),
+                  'icon' => 'star-solid',
+                  'label' => 'Programa lealtad',
+                  'copy' => 'Suma puntos y desbloquea beneficios.',
+                  'cta' => 'Ver programa',
+                  'desktop_meta' => [
+                      'type' => 'progress',
+                      'points' => $loyaltyPoints,
+                      'next_tier' => $loyaltyNextTier,
+                      'progress_pct' => $loyaltyProgressPct,
+                      'to_next_tier' => $loyaltyToNext,
+                  ],
+              ],
+              [
+                  'href' => url('/cuenta/seguridad'),
+                  'icon' => 'shield-solid',
+                  'label' => 'Seguridad',
+                  'copy' => 'Cambiá tu contraseña y reforzá el acceso a tu cuenta.',
+                  'cta' => 'Configurar',
+                  'desktop_meta' => [
+                      'type' => 'pair',
+                      'left_label' => 'Email',
+                      'left_value' => $securityEmailOk ? 'Email verificado' : 'Email pendiente',
+                      'left_badge' => true,
+                      'left_badge_tone' => $securityEmailOk ? 'ok' : 'warn',
+                      'right_label' => '',
+                      'right_value' => '',
+                      'right_badge' => false,
+                  ],
+              ],
+          ],
+      ]);
+      ?>
+
+      <article class="acct-support">
+        <div class="acct-support__icon"><?= ui_icon('phone') ?></div>
+        <div class="acct-support__copy">
+          <h2 class="acct-support__title">¿Necesitás ayuda?</h2>
+          <p class="acct-support__text">Nuestro equipo está para ayudarte.</p>
         </div>
-
-        <!-- Acciones rápidas -->
-        <div class="flex flex-wrap gap-2">
-          <?php if ($isAdmin): ?>
-            <a href="<?= url('/admin') ?>" class="btn-secondary">Ir al panel Admin</a>
-          <?php endif; ?>
-          <a href="<?= url('/productos') ?>" class="btn-secondary">Seguir comprando</a>
-          <form method="post" action="<?= url('/logout') ?>">
-            <?= csrf_field() ?>
-            <button class="btn-danger">Cerrar sesión</button>
-          </form>
-        </div>
-      </div>
-
-      <?php if (!$emailVerified): ?>
-        <div class="mt-6 rounded-[var(--radius-sm)] border border-amber-400/30 bg-amber-500/10 p-4 text-sm">
-          <strong class="block mb-1">Verificá tu email</strong>
-          <p class="opacity-80">Tu correo aún no está verificado. Pronto podrás reenviar el email de verificación desde acá.</p>
-        </div>
-      <?php endif; ?>
-    </div>
-
-    <!-- Contenido en tarjetas -->
-    <div class="grid lg:grid-cols-3 gap-6">
-
-      <!-- Columna 1: Pedidos -->
-      <div class="card p-6 space-y-4">
-        <h2 class="font-semibold text-lg">Mis pedidos</h2>
-        <ul class="divide-y divide-[color:var(--border)]/50 text-sm">
-          <li class="py-3 flex items-center justify-between">
-            <span class="opacity-80">Último pedido</span><span class="font-medium">pronto</span>
-          </li>
-          <li class="py-3 flex items-center justify-between">
-            <span class="opacity-80">Pedidos totales</span><span class="font-medium">pronto</span>
-          </li>
-          <li class="py-3 flex items-center justify-between">
-            <span class="opacity-80">En curso</span><span class="font-medium">pronto</span>
-          </li>
-        </ul>
-        <a href="<?= url('/pedidos') ?>" class="underline text-sm opacity-90 hover:opacity-100">Ver historial (pronto)</a>
-      </div>
-
-      <!-- Columna 2: Lealtad + Direcciones -->
-      <div class="space-y-6">
-        <div class="card p-6">
-          <h2 class="font-semibold text-lg">Programa de lealtad</h2>
-          <div class="mt-2 text-sm">
-            <div class="flex items-center justify-between">
-              <span class="opacity-80">Nivel actual</span>
-              <span class="font-medium">Bronze</span>
-            </div>
-            <div class="mt-3 h-2 rounded-full bg-white/10 overflow-hidden">
-              <div class="h-full" style="width: 25%; background: linear-gradient(90deg, var(--brand), #ffffff66)"></div>
-            </div>
-            <p class="mt-2 text-xs text-[color:var(--muted)]">Faltan <strong>pronto</strong> puntos para Silver.</p>
-          </div>
-        </div>
-
-        <div class="card p-6">
-          <h2 class="font-semibold text-lg">Direcciones</h2>
-          <p class="text-sm opacity-80">Aún no tenés direcciones cargadas.</p>
-          <div class="mt-3">
-            <button class="btn-secondary opacity-80 pointer-events-none">Agregar dirección (pronto)</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Columna 3: Seguridad -->
-      <div class="card p-6 space-y-4">
-        <h2 class="font-semibold text-lg">Seguridad</h2>
-        <div class="space-y-3 text-sm">
-          <div class="flex items-center justify-between">
-            <span class="opacity-80">Método de acceso</span>
-            <span class="font-medium">
-              <?php
-              // Heurística suave: si avatar Google, probablemente OAuth; sino, email/clave
-              echo (strpos($avatarUrl, 'lh3.googleusercontent.com') !== false) ? 'Google' : 'Email y clave';
-              ?>
-            </span>
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="opacity-80">Verificación de email</span>
-            <span class="font-medium"><?= $emailVerified ? 'Sí' : 'No' ?></span>
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="opacity-80">Sesiones activas</span>
-            <span class="font-medium">pronto</span>
-          </div>
-        </div>
-        <div class="pt-2 grid gap-2">
-          <button class="btn-secondary w-full opacity-80 pointer-events-none">Cambiar clave (pronto)</button>
-          <form method="post" action="<?= url('/cuenta/sessions/clear') ?>" class="mt-2">
-            <?= csrf_field() ?>
-            <button class="btn-secondary w-full">Cerrar todas las sesiones</button>
-          </form>
-
-        </div>
-      </div>
+        <a
+          href="<?= e($whatsUrl !== '' ? $whatsUrl : url('/ayuda')) ?>"
+          class="acct-support__cta"
+          <?= $whatsUrl !== '' ? 'target="_blank" rel="noopener noreferrer"' : '' ?>
+        >
+          <span class="acct-support__cta-icon" aria-hidden="true"><?= ui_icon('whatsapp-brand') ?></span>
+          <span>Contactar soporte</span>
+        </a>
+      </article>
 
     </div>
-
-    <!-- Actividad reciente -->
-    <div class="card p-6 mt-6">
-      <h2 class="font-semibold text-lg">Actividad reciente</h2>
-      <div class="mt-3 text-sm text-[color:var(--muted)]">
-        <p>Verás acá tus últimos movimientos (ingresos, cambios de datos, pedidos). <em>Pronto</em>.</p>
-      </div>
-    </div>
-
   </div>
 </section>
+
+
+
+

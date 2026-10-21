@@ -1,29 +1,42 @@
 <?php /** @var array $events */ ?>
-<div class="rounded-2xl border border-slate-700/60 bg-slate-900/60 p-4">
-  <div class="flex items-center justify-between">
-    <h2 class="text-slate-100 font-semibold">Actividad reciente</h2>
-    <a class="text-sky-300 text-sm hover:underline" href="<?= url('/admin/settings') ?>">Ver todo</a>
-  </div>
-  <ul class="mt-3 space-y-2 text-sm">
-    <?php if (!empty($events)): foreach ($events as $ev):
-      $meta = []; if (!empty($ev['metadata'])) { $decoded = json_decode($ev['metadata'], true); if (is_array($decoded)) $meta = $decoded; }
-      $subtitle = '';
-      if (isset($meta['new_role']))             $subtitle = 'nuevo rol: '.$meta['new_role'];
-      elseif (isset($meta['is_active']))        $subtitle = 'is_active: '.((int)$meta['is_active']);
-      elseif (isset($meta['from'],$meta['to'])) $subtitle = "de {$meta['from']} a {$meta['to']}";
-      elseif (isset($meta['fields']))           $subtitle = 'campos: '.implode(', ', array_keys($meta['fields']));
-    ?>
-      <li class="border-b border-slate-800 pb-2">
-        <div class="text-slate-300">
-          <?= e($ev['action']) ?>
-          <?php if (!empty($ev['entity_type'])): ?> · <?= e($ev['entity_type']) ?>#<?= (int)$ev['entity_id'] ?><?php endif; ?>
-        </div>
-        <div class="text-slate-500 text-xs">
-          <?= e($ev['created_at']) ?><?= $subtitle ? ' · '.e($subtitle) : '' ?>
-        </div>
-      </li>
-    <?php endforeach; else: ?>
-      <li class="text-slate-400">Sin eventos</li>
-    <?php endif; ?>
-  </ul>
-</div>
+<section >
+  <header >
+    <h3 >Actividad reciente</h3>
+    <a  href="<?= url('/admin/audit') ?>">Ver todo</a>
+  </header>
+
+  <?php if (empty($events)): ?>
+    <p >Sin eventos.</p>
+  <?php else: ?>
+    <div ><ul >
+      <?php foreach ($events as $e): ?>
+        <li >
+          <span  aria-hidden="true"><?= e((string)($e['icon'] ?? '??')) ?></span>
+
+          <div >
+            <div >
+              <?php if (!empty($e['url'])): ?>
+                <a  href="<?= e((string)$e['url']) ?>"><?= e((string)($e['text'] ?? 'Accion')) ?></a>
+              <?php else: ?>
+                <span ><?= e((string)($e['text'] ?? 'Accion')) ?></span>
+              <?php endif; ?>
+
+              <?php if (!empty($e['count_label'])): ?>
+                <span ><?= e((string)$e['count_label']) ?></span>
+              <?php endif; ?>
+            </div>
+
+            <div >
+              <span>por <strong><?= e((string)($e['actor'] ?? 'Sistema')) ?></strong></span>
+              <?php if (!empty($e['when'])): ?>
+                <span >·</span>
+                <time title="<?= e((string)($e['created_at'] ?? '')) ?>"><?= e((string)$e['when']) ?></time>
+              <?php endif; ?>
+            </div>
+          </div>
+        </li>
+      <?php endforeach; ?>
+    </ul></div>
+  <?php endif; ?>
+</section>
+

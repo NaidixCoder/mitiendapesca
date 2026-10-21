@@ -1,0 +1,60 @@
+{
+  "legacy-bridge.css": {
+    "rules": 70,
+    "classes": 72,
+    "referenced_in_source": 60,
+    "unreferenced_candidates": [
+      "admin-border",
+      "admin-danger",
+      "admin-divider",
+      "admin-empty__text",
+      "admin-empty__title",
+      "admin-filter-row",
+      "admin-link",
+      "admin-muted",
+      "alert-danger",
+      "alert-warn",
+      "alert-warning",
+      "badge-warn"
+    ]
+  },
+  "ui-admin-compat.css": {
+    "rules": 54,
+    "classes": 26,
+    "referenced_in_source": 9,
+    "unreferenced_candidates": [
+      "admin-data-cell-nowrap",
+      "admin-data-cell-right",
+      "admin-data-table",
+      "admin-data-th-right",
+      "admin-data-wrap",
+      "admin-panel-head",
+      "admin-panel-link",
+      "admin-panel-subtitle",
+      "admin-panel-title",
+      "admin-pill",
+      "admin-pill-dot",
+      "admin-scroll-x",
+      "admin-scroll-y",
+      "av3-table-action",
+      "av3-table-empty",
+      "av3-table-muted",
+      "av3-table-scroll"
+    ]
+  },
+  "foundations.css": {
+    "rules": 28,
+    "classes": 46,
+    "referenced_in_source": 38,
+    "unreferenced_candidates": [
+      "admin-data-table",
+      "admin-data-wrap",
+      "admin-filter-row",
+      "admin-modal",
+      "admin-panel",
+      "admin-panel-head",
+      "admin-panel-title",
+      "admin-pill"
+    ]
+  }
+}

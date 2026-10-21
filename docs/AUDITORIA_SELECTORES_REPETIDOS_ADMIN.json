@@ -1,0 +1,41 @@
+{
+  "public_html/assets/css/admin-v3/layout.css": {
+    "body[data-page^=\"admin\"]": 6,
+    "body[data-page^=\"admin\"] > .admin-surface": 3,
+    "body[data-page^=\"admin\"] > .admin-wrap": 2
+  },
+  "public_html/assets/css/admin-v3/components/admin-components.css": {
+    ".admin-page-head": 2,
+    ".admin-page-actions": 2,
+    "body[data-page^=\"admin\"]": 2,
+    "body[data-page^=\"admin\"] .admin-card": 2,
+    "body[data-page^=\"admin\"] .kv": 2,
+    "body[data-page^=\"admin\"] :is(.admin-header, .admin-head, .admin-page-head)": 2,
+    "body[data-page^=\"admin\"] :is(.admin-card, .admin-panel)": 2
+  },
+  "public_html/assets/css/admin-v3/components/common.css": {
+    "body[data-page^=\"admin\"] .av3-form-columns": 2
+  },
+  "public_html/assets/css/admin-v3/pages/billing.css": {
+    ".fisc-grid-main": 2
+  },
+  "public_html/assets/css/admin-v3/pages/catalog.css": {
+    "body[data-page^=\"admin\"] .catalog-head h1": 2,
+    "body[data-page^=\"admin\"] .catalog-head__actions": 2,
+    "body[data-page^=\"admin\"] .catalog-summary__hint": 2
+  },
+  "public_html/assets/css/admin-v3/pages/dashboard.css": {
+    "body[data-page^=\"admin\"] .av3-dashboard__heading h1": 2,
+    "body[data-page^=\"admin\"] .av3-dashboard__context": 2,
+    "body[data-page^=\"admin\"] .av3-summary__metric": 2,
+    "body[data-page^=\"admin\"] .av3-summary__value": 2,
+    "body[data-page^=\"admin\"] .av3-table": 2
+  },
+  "public_html/assets/css/admin-v3/pages/product-editor.css": {
+    "body[data-page^=\"admin\"] .product-editor-head__intro .admin-title": 2,
+    "body[data-page^=\"admin\"] .product-editor-head__tools": 2
+  },
+  "public_html/assets/css/admin-v3/pages/products.css": {
+    "body[data-page=\"admin-products\"] .products-index-filters .admin-filter-row > :first-child": 2
+  }
+}

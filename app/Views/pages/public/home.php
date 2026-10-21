@@ -1,30 +1,38 @@
 <?php
-// SEO por página
-$pageTitle = 'Mi Pesca & Aventura — Equipos, cañas, reels y más';
-$pageDesc  = 'Catálogo profesional de pesca deportiva. Envíos a todo el país. Ofertas, novedades y marcas líderes.';
+$pageTitle = (string)($pageTitle ?? 'Mi Pesca & Aventura - Equipos, canas, reels y mas');
+$pageDesc = (string)($pageDesc ?? 'Catalogo profesional de pesca deportiva. Envios a todo el pais. Ofertas, novedades y marcas lideres.');
+$heroSlides = is_array($heroSlides ?? null) ? $heroSlides : [];
+$heroTitle = (string)($heroTitle ?? 'Equipá tu próxima pesca con productos de calidad');
+$heroDescription = (string)($heroDescription ?? home_hero_description_default());
+$homeBrands = is_array($homeBrands ?? null) ? $homeBrands : [];
+$homeCategories = is_array($homeCategories ?? null) ? $homeCategories : [];
+$renderableSections = is_array($renderableSections ?? null) ? $renderableSections : [];
+$youtube = is_array($youtube ?? null) ? $youtube : [];
 
-// Mock de datos (luego vendrán del modelo/DB)
-$featured = [
-    ['title'=>'Reel Shimano Nexave 2500','price'=>'$ 185.000','img'=>'img/products/reel-shimano-nexave.jpg','slug'=>'reel-shimano-nexave-2500'],
-    ['title'=>'Caña Okuma 2.10m Carbon','price'=>'$ 142.500','img'=>'img/products/cana-okuma-carbon.jpg','slug'=>'cana-okuma-210-carbon'],
-    ['title'=>'Señuelos Rapala Pack x5','price'=>'$ 58.900','img'=>'img/products/rapala-pack.jpg','slug'=>'senuelos-rapala-pack-5'],
-    ['title'=>'Línea Surfcasting Pro',  'price'=>'$ 22.300','img'=>'img/products/linea-surf-pro.jpg',   'slug'=>'linea-surfcasting-pro'],
-];
+section('/partials/home/hero_v2', [
+    'heroSlides' => $heroSlides,
+    'heroTitle' => $heroTitle,
+    'heroDescription' => $heroDescription,
+    'homeCategories' => $homeCategories,
+]);
+section('/partials/home/pejerrey-promo');
+// section('/partials/home/highlights');
+// section('/partials/home/payments');
+section('/partials/home/trust-bar', ['homeBrands' => $homeBrands]);
+// section('/partials/home/categorias-destacadas', ['homeCategories' => $homeCategories]);
 
-$newArrivals = [
-    ['title'=>'Reel Abu Garcia Max', 'price'=>'$ 210.000','img'=>'img/products/reel-abu-max.jpg','slug'=>'reel-abu-garcia-max'],
-    ['title'=>'Caña Shimano FX 1.98','price'=>'$ 119.900','img'=>'img/products/cana-shimano-fx.jpg','slug'=>'cana-shimano-fx-198'],
-    ['title'=>'Multifilamento 300m', 'price'=>'$ 34.700','img'=>'img/products/multifilamento-300.jpg','slug'=>'multifilamento-300m'],
-    ['title'=>'Caja Tackle 2 Niveles','price'=>'$ 27.600','img'=>'img/products/caja-tackle-2lvl.jpg','slug'=>'caja-tackle-2-niveles'],
-];
+if ($renderableSections !== []) {
+    foreach ($renderableSections as $index => $sectionData) {
+        section('/partials/home/featured-grid', [
+            'items' => (array)($sectionData['items'] ?? []),
+            'title' => (string)($sectionData['title'] ?? 'Seccion'),
+            'subtitle' => (string)($sectionData['subtitle'] ?? 'Seleccionados para vos'),
+            'badge' => (string)($sectionData['badge'] ?? 'En stock'),
+        ]);
+    }
+}
 
-// Orquestación de secciones
-section('/partials/home/hero');
-section('/partials/home/trust-bar');
-section('/partials/home/categorias-destacadas');
-section('/partials/home/featured-grid',    ['items'=>$featured,    'title'=>'Destacados',     'badge'=>'En stock']);
-section('/partials/home/cta-banner');
-section('/partials/home/new-arrivals-grid',['items'=>$newArrivals,'title'=>'Nuevos ingresos','badge'=>'Nuevo']);
-section('/partials/home/testimonials');
-section('/partials/home/newsletter');
 section('/partials/home/seo-info');
+section('/partials/home/youtube-channel', ['youtube' => $youtube]);
+section('/partials/home/newsletter');
+section('/partials/home/testimonials');

@@ -1,0 +1,43 @@
+{
+  "migrated": [
+    "app\\Views\\pages\\admin\\attributes\\form.php",
+    "app\\Views\\pages\\admin\\brands\\form.php",
+    "app\\Views\\pages\\admin\\categories\\index.php",
+    "app\\Views\\pages\\admin\\facturacion\\libro_iva.php",
+    "app\\Views\\pages\\admin\\facturacion\\libro_iva_compras.php",
+    "app\\Views\\pages\\admin\\inventario\\index.php",
+    "app\\Views\\pages\\admin\\marketing_campaigns\\form.php",
+    "app\\Views\\pages\\admin\\marketing_email\\automations.php",
+    "app\\Views\\pages\\admin\\marketing_email\\campaigns.php",
+    "app\\Views\\pages\\admin\\marketing_email\\campaign_show.php",
+    "app\\Views\\pages\\admin\\marketing_email\\index.php",
+    "app\\Views\\pages\\admin\\marketing_email\\queue.php",
+    "app\\Views\\pages\\admin\\marketing_email\\subscribers.php",
+    "app\\Views\\pages\\admin\\marketing_email\\templates_index.php",
+    "app\\Views\\pages\\admin\\proveedores\\form.php",
+    "app\\Views\\pages\\admin\\proveedores\\index.php",
+    "app\\Views\\pages\\admin\\facturacion\\alertas\\index.php",
+    "app\\Views\\pages\\admin\\facturacion\\cierres_mensuales\\show.php",
+    "app\\Views\\pages\\admin\\facturacion\\compras\\index.php",
+    "app\\Views\\pages\\admin\\facturacion\\comprobantes\\index.php",
+    "app\\Views\\pages\\admin\\facturacion\\comprobantes\\show.php",
+    "app\\Views\\pages\\admin\\facturacion\\reportes\\comprobantes_pendientes.php",
+    "app\\Views\\pages\\admin\\facturacion\\reportes\\duplicados_exactos.php",
+    "app\\Views\\pages\\admin\\facturacion\\reportes\\home.php",
+    "app\\Views\\pages\\admin\\facturacion\\reportes\\mensual.php",
+    "app\\Views\\pages\\admin\\facturacion\\reportes\\pedidos_no_facturables.php",
+    "app\\Views\\pages\\admin\\facturacion\\reportes\\pedidos_sin_factura.php",
+    "app\\Views\\partials\\admin\\users\\index\\header.php",
+    "app\\Views\\partials\\admin\\products\\variants\\header.php",
+    "app\\Views\\partials\\admin\\facturacion\\reportes\\desvios\\header.php",
+    "app\\Views\\partials\\admin\\facturacion\\compras\\form\\header.php",
+    "app\\Views\\partials\\admin\\facturacion\\cierres_mensuales\\index\\header.php"
+  ],
+  "skipped": {
+    "app\\Views\\partials\\admin\\settings\\mayoristas\\header.php": "no matching header wrapper",
+    "app\\Views\\partials\\admin\\products\\form\\header.php": "no matching header wrapper",
+    "app\\Views\\partials\\admin\\marketing_email\\templates_show\\header.php": "non UTF8",
+    "app\\Views\\partials\\admin\\audit\\logins\\header.php": "no matching header wrapper"
+  },
+  "backup": "C:\\xampp\\mi-pesca-backups\\header_full_batch_20261019_233355"
+}

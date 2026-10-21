@@ -6,7 +6,7 @@ if (!empty($trail)) {
     $item = [
       '@type'    => 'ListItem',
       'position' => $i + 1,
-      'name'     => $t['label'],
+      'name'     => ($t['label'] ?? ($t['title'] ?? '')),
     ];
     // solo agregamos 'item' si hay URL
     if (!empty($t['url'])) {

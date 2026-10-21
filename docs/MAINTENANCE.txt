@@ -1,0 +1,21 @@
+Mantenimiento (producción)
+=========================
+
+Limpieza de auth_login_events (retención)
+----------------------------------------
+
+La tabla auth_login_events registra logins exitosos, fallidos y logout.
+Para evitar crecimiento ilimitado, se recomienda ejecutar una limpieza periódica.
+
+Script:
+  php tools/cleanup-auth-login-events.php --dry-run
+  php tools/cleanup-auth-login-events.php
+
+Configuración (en .env):
+  AUTH_LOGIN_RETENTION_SUCCESS_DAYS=365
+  AUTH_LOGIN_RETENTION_FAILED_DAYS=180
+  AUTH_LOGIN_RETENTION_LOGOUT_DAYS=90
+
+Cron sugerido (1 vez por semana o por mes):
+  - semanal: reduce el crecimiento y mantiene consultas rápidas
+  - mensual: suficiente para tiendas medianas

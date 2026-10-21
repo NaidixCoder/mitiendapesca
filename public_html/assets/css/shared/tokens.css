@@ -1,0 +1,59 @@
+:root {
+  --v2-color-primary: #016d6e;
+  --v2-color-primary-700: #01585a;
+  --v2-color-accent: #ffc300;
+  --v2-color-bg: #f7fafc;
+  --v2-color-bg-gray: #5a5a5a;
+  --v2-color-surface: #ffffff;
+  --v2-color-text: #0f172a;
+  --v2-color-text-muted: #64748b;
+  --v2-color-border: #e2e8f0;
+  --v2-color-success: #16a34a;
+  --v2-color-warning: #f59e0b;
+  --v2-color-danger: #dc2626;
+  --v2-color-info: #0284c7;
+  --v2-color-white: #ffffff;
+  --v2-color-white-soft: #f4fffe;
+  --v2-color-danger-soft: #ff4646;
+  --v2-bg-gradient:
+    radial-gradient(900px 420px at 20% 0%, color-mix(in srgb, var(--v2-color-accent) 28%, transparent), transparent 60%),
+    radial-gradient(900px 420px at 70% 40%, color-mix(in srgb, var(--v2-color-primary) 38%, transparent), transparent 60%),
+    radial-gradient(900px 420px at 100% 0%, color-mix(in srgb, var(--v2-color-info) 28%, transparent), transparent 55%),
+    linear-gradient(180deg, var(--v2-color-primary-700), var(--v2-color-primary));
+    
+  --v2-font-sans: "Inter", "Segoe UI", "Roboto", system-ui, -apple-system, sans-serif;
+  --v2-font-display: "Poppins", "Inter", "Segoe UI", sans-serif;
+
+  --v2-text-xs: 12px;
+  --v2-text-sm: 14px;
+  --v2-text-md: 16px;
+  --v2-text-lg: 20px;
+  --v2-text-xl: 25px;
+  --v2-text-2xl: 32px;
+  --v2-text-3xl: 42px;
+
+  --v2-space-1: 4px;
+  --v2-space-2: 8px;
+  --v2-space-3: 12px;
+  --v2-space-4: 16px;
+  --v2-space-5: 20px;
+  --v2-space-6: 24px;
+  --v2-space-7: 28px;
+  --v2-space-8: 36px;
+  --v2-space-10: 40px;
+  --v2-space-12: 48px;
+
+  --v2-radius-sm: 10px;
+  --v2-radius-md: 14px;
+  --v2-radius-lg: 18px;
+
+  --v2-shadow-sm: 0 4px 12px rgba(2, 6, 23, 0.06);
+  --v2-shadow-md: 0 12px 28px rgba(2, 6, 23, 0.10);
+
+  --v2-sidebar-border-color: color-mix(in srgb, var(--v2-color-primary-700) 55%, var(--v2-color-white) 45%);
+  --v2-sidebar-white-28: color-mix(in srgb, var(--v2-color-white) 28%, transparent);
+  --v2-sidebar-white-14: color-mix(in srgb, var(--v2-color-white) 14%, transparent);
+  --v2-sidebar-white-12: color-mix(in srgb, var(--v2-color-white) 12%, transparent);
+  --v2-sidebar-white-20: color-mix(in srgb, var(--v2-color-white) 20%, transparent);
+  --v2-sidebar-danger-hover: color-mix(in srgb, var(--v2-color-danger) 26%, transparent);
+}

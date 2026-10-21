@@ -14,8 +14,10 @@ foreach ([
   'config/boot/08-db.php',
   'config/boot/09-auth.php',
   'config/boot/10-rate_limit.php',
+  'config/boot/15-auth_metrics.php',
   'config/boot/11-remember_me.php',
   'config/boot/12-csrf.php',
+  'config/boot/14-antibot.php',
 ] as $f) require_once BASE_PATH.'/'.$f;
 
 // helpers de vistas DESPUÉS de URL helpers

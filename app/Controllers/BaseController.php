@@ -2,10 +2,20 @@
 namespace App\Controllers;
 
 /**
- * Bridge/alias para que los controllers públicos (Catalog\*) puedan
- * extender App\Controllers\BaseController, reutilizando la base de Admin.
+ * BaseController para controladores PÚBLICOS.
+ * No aplica ningún guard/admin.
  */
-abstract class BaseController extends \App\Controllers\Admin\BaseController
+abstract class BaseController
 {
-    // Si querés agregar helpers comunes al público, podés hacerlo acá.
+    /** Método HTTP en uso */
+    protected function method(): string
+    {
+        return strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+    }
+
+    /** Atajo para saber si es POST */
+    protected function isPost(): bool
+    {
+        return $this->method() === 'POST';
+    }
 }

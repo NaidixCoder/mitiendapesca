@@ -12,3 +12,26 @@
 *.log
 *.bak
 *.tmp
+
+# Excluir respaldos, datos locales y archivos temporales del repositorio
+*.zip
+*.rar
+*.7z
+*.sqlite
+*.sqlite3
+*.db
+*.db-wal
+*.db-shm
+*.pem
+*.p12
+*.pfx
+*.key
+*.orig
+*.rej
+/public_html/uploads/
+/public_html/tmp_session_dump.php
+/tmp_make_*.php
+/MERCADO PAGO RESPUESTAS.txt
+/account-addresses-backup.css
+/_order_block.css
+/public_html/assets/img/branding/*.jpeg
