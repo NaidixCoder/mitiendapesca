@@ -78,3 +78,10 @@
 - **Reserva exclusiva para chat Categorías, Ventana 2:** `app/Controllers/Admin/CategoriesController.php` **solo save/toggle**, los tres servicios de estado/jerarquía previamente reservados, `app/Views/pages/admin/categories/form.php` y `app/Views/partials/admin/categories/toggle_action.php` **solo si se necesitan mensajes funcionales**, contratos/pruebas focales y `docs/modulos/categorias.md`.
 - No autorizados: `quick()`, archivos de Productos, servicios SEO compartidos, catálogo público, CSS, layouts, rutas, migraciones, otros módulos o Git. `scripts/build/gate.php` puede ejecutarse, **no editarse**.
 - El formulario debe respetar la política única, validar antes de confirmar y evitar escrituras parciales de categoría/visibilidad; la atomicidad completa con SEO/archivos sigue como deuda de Ventana 4. Terminado el E2E HTTP sobre MySQL aislado, liberar reserva y esperar siguiente autorización.
+
+### Actualización — Ventana 3 Categorías autorizada (2026-10-21)
+
+- Ventana 2 cerrada con pruebas HTTP aisladas y gate documentados en `docs/modulos/categorias.md` §14.
+- **Reserva EXCLUSIVA temporal para Categorías (Ventana 3):** `app/Controllers/Admin/CategoriesController.php` **solo quick()**; `public_html/assets/js/admin/product_form/index.js` **solo initCategoryQuickCreate()**; `app/Views/partials/admin/products/tab_basicos.php` **solo modal quick Categorías**; contratos/pruebas focales y `docs/modulos/categorias.md`.
+- La reserva de los **dos archivos Productos** es una excepción focal autorizada por principal. No abrir edición simultánea desde otro chat, y confirmar disponibilidad antes de escribir. Sin permiso para el resto del formulario de Productos ni el modal de Marcas.
+- Contrato y pruebas exactas en `docs/DECISIONES_CATEGORIAS_FASE3.md` (adenda V3). **No cambiar SEO, público, CSS, layout, otros servicios compartidos ni Git**. V4 y V5 siguen sin autorización.

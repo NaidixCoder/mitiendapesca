@@ -110,3 +110,33 @@ Auditoría pública solo lectura ahora; edición pública únicamente tras acuer
 **Criterio de aceptación de Ventana 2:** pruebas **HTTP autenticadas reales sobre MySQL descartable** con `SELECT DATABASE()` y CSRF para desactivar por save/toggle (estados equivalentes), reactivar nodo solo, guardar otro campo sin cascada, rechazar ancestro inactivo/reparentado/ciclo, rollback ante fallo SQL, auditoría/feedback apropiados y regresión de alta/edición/SEO. Verificar no hubo escrituras en BD habitual. Ejecutar contrato focal y build gate, navegador headless con teardown si aplica. Documentar claramente cualquier limitación de atomicidad SEO/archivos. **Detenerse y solicitar aprobación de Ventana 3 tras cerrar y documentar Ventana 2.**
 
 **Ventanas 3 (quick + dos archivos Productos), 4 (SEO/portadas) y 5 (público): siguen NO ABIERTAS.** No se autoriza editar sus archivos con este permiso.
+
+## Actualización 2026-10-21 — Ventana 2 validada; Ventana 3 AUTORIZADA
+
+**Verificación del principal:** `docs/modulos/categorias.md` §14 registra HTTP autenticado sobre MySQL aislado, cascada consistente save/toggle, rollback de categoría+visibilidad, contrato focal **20/20** y gate **828 PHP/120 JS OK**. Se comprobó en código que `save()` utiliza el servicio común. El SEO continúa postcommit y se reserva para V4.
+
+**Ventana 2 cerrada. Ventana 3: contrato quick + consumidor Productos (D4) autorizada para UN SOLO RESPONSABLE: chat de Categorías.** Antes de editar, confirmar que ningún otro chat tenga abierto el JS o parcial de Productos. Los dos archivos Productos se conceden como **excepción temporal específica**, no como propiedad general del módulo.
+
+**Reserva de edición exacta (y partes autorizadas):**
+1. `app/Controllers/Admin/CategoriesController.php`: **solamente `quick()` y imports estrictamente necesarios**, sin rehacer `save()`/`toggle()`.
+2. `public_html/assets/js/admin/product_form/index.js`: **solamente** `initCategoryQuickCreate()` y su inicialización indispensable; conservar tabs, marcas, variantes y resto del formulario.
+3. `app/Views/partials/admin/products/tab_basicos.php`: **solamente** semántica/mensajes del modal quick de Categorías y selector de padre; sin reforma visual ni CSS.
+4. `scripts/build/categories_admin_contract.php`, scripts focales propios en `scripts/dev/`, y `docs/modulos/categorias.md`.
+5. Lectura autorizada de `CategoryHierarchyGuard` y `CategoryVisibilityPolicyService` para reaprovechar reglas; **no editar esos servicios** sin justificar por escrito una necesidad nueva y obtener autorización.
+
+**Contrato D4 que debe implementarse de forma conjunta (backend + modal):**
+- `parent_id` siempre enviado desde el selector; vacío, `0` y ausente equivalen a raíz (`null`) por compatibilidad.
+- Nombre/slug válidos y padre existente **y activo en toda su cadena de ancestros**; si no, rechazo HTTP 422 sin escritura. Nunca crear un nodo activo debajo de uno inactivo.
+- Slug libre: insertar bajo padre solicitado, HTTP **200** (compatibilidad), JSON `ok:true,created:true,id,name,slug,parent_id`.
+- Slug ya existente y **mismo padre exacto** (incluida raíz), si está activo: HTTP **200**, JSON `ok:true,created:false,id,name,slug,parent_id`. Reutilización explícita; no insertar duplicado.
+- Slug existente en **otro padre**: HTTP **409**, `code:category_slug_parent_conflict`, sin reasignar ID ni modificar categoría.
+- Slug existente pero **categoría inactiva**: conflicto explícito, sin reutilizar automáticamente.
+- Carrera concurrente de slug: mantener UNIQUE como última defensa y convertir fallo duplicado a 200/409/422 según estado/padre actual, nunca 500 genérico.
+- Ante 409/422/error: el modal conserva nombre y padre, sigue abierto, mantiene seleccionado el producto original sin cambiar otros campos; mostrar error legible y accesible. Ante éxito seleccionar la categoría y cerrar.
+- Preservar CSRF, rate limits, hooks existentes, rutas, compatibilidad de JSON actual y operación de creación rápida de **Marcas**.
+
+**Seguridad y atomicidad:** usar validación y locks/transacción compatibles con la política de visibilidad para no introducir categorías activas bajo padres desactivados concurrentemente. Si el guard existente o el contrato de otros escritores exigen modificar un servicio compartido, detenerse y solicitar nueva reserva. No ampliar esta ventana a SEO/slug histórico/transacción editorial de V4.
+
+**Pruebas de salida:** Q01–Q06 de `docs/modulos/categorias.md` §12.6 con HTTP autenticado en **MySQL descartable**, CSRF y `SELECT DATABASE()`; navegador headless para modal de Productos probando conservar datos ante error y seleccionar al crear/reutilizar; colisión concurrente, padre inactivo/ancestro inactivo, interacción con marca quick y regresión de Productos. Contrato, smoke focal, build gate; teardown de todos los procesos/perfiles propios según protocolo. No escribir BD habitual.
+
+**Cierre:** informar archivos tocados, resultados reales y limitaciones en `docs/modulos/categorias.md`, detenerse y pedir autorización para Ventana 4. **No hay permiso de CSS/layout, SEO compartido, catálogo público, migraciones, rutas, gate global, Git o datos comerciales.**
