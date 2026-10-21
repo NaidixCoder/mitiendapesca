@@ -8,7 +8,7 @@
 - Carpeta de desarrollo y XAMPP: `C:\xampp\htdocs\mi-pesca`.
 - Repositorio remoto: `https://github.com/NaidixCoder/mitiendapesca.git`.
 - Rama de integración: `main`. La copia local se inicializó y conectó a `origin` el 20/10/2026, conservando el historial remoto.
-- **Fuente de verdad para esta migración:** los archivos locales. La publicación inicial requiere revisar exclusiones de seguridad y confirmar el push; no asumir que ya está publicada si no hay verificación.
+- **Fuente de verdad para esta migración:** los archivos locales. La sincronización inicial se publicó y verificó en GitHub el 20/10/2026 (commit `f9a290c1dd44ed7ee2b40d8b09a74b06413bc423`); los cambios siguientes requieren sus propios commits y push.
 - Cada chat debe leer primero `docs/README.md`, `docs/COORDINACION.md` y `docs/ESTADO_DESARROLLO.md`.
 
 ## 2. Trabajo habitual: una carpeta, cambios inmediatos

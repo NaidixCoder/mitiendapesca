@@ -74,3 +74,13 @@
 - La nota única sobre favoritos de Mi cuenta se preservó en `docs/planes/PENDIENTES_POR_REVISAR.md`.
 - El respaldo completo, con huellas de archivos originales, quedó fuera del proyecto en `C:\xampp\mi-pesca-backups\md_reorg_20261020`.
 - Contrato visual, plan CSS, arquitectura V3, Manifest y código Marketing no se modificaron durante el ordenamiento.
+
+## GitHub — sincronización inicial verificada (2026-10-20)
+
+- La carpeta local `C:\xampp\htdocs\mi-pesca` se vinculó con GitHub en la rama `main`, preservando el historial remoto. El usuario definió el código local como fuente de verdad.
+- Primer commit publicado: `f9a290c1dd44ed7ee2b40d8b09a74b06413bc423`; remoto `origin/main` verificado con `git ls-remote`. No se utilizó push forzado.
+- Build gate completo ejecutado antes del push: **OK**, 812 archivos PHP, 118 archivos JS, contratos y regresiones.
+- `.gitignore` ampliado para evitar incluir `.env`, ZIP, `uploads/`, respaldos, sesiones y materiales temporales. `.env.example` usa un marcador no funcional para la credencial de prueba.
+- Decisión vigente: **un único directorio de XAMPP y rama `main`**, edición por módulos coordinada; worktrees no necesarios actualmente. El chat principal gestiona commits/push, los especializados no cambian de rama unilateralmente.
+- Nota: `git diff --cached --check` detectó advertencias heredadas de espacios al final de línea o líneas vacías; no se reformatearon masivamente para no afectar código de otro chat.
+- Como el otro chat puede seguir editando Marketing, comprobar `git status` antes de cualquier futuro commit; el hecho de que este baseline esté publicado no significa que modificaciones posteriores estén subidas.
