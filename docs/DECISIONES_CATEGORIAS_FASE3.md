@@ -226,3 +226,32 @@ Auditoría pública solo lectura ahora; edición pública únicamente tras acuer
 **Pruebas obligatorias de V6A:** HTTP GET reales contra clon MySQL descartable (y selector de BD seguro) para raíz/hija/nieta, nodos inactivos, ancestros inactivos, ciclo/huérfano en fixture no comercial, reactivación solo del nodo, categorías vacías y featured/home/facetas sin huérfanos promovidos; count y performance sin N+1; regresiones de `CategoryRepository` usadas por Importaciones (sin hacer import real), búsqueda/producto **solo observación** para registrar limitaciones de V6A. Contrato focal, lint, gate fuera de ventanas de prueba de otros chats y teardown según protocolo. Sin escribir BD habitual.
 
 **Cierre y aviso:** V6A **NO se considera corrección integral del catálogo público**: productos, menú móvil, breadcrumbs de producto, sugerencias, sitemap, redirects y 404/head siguen pendientes de ventanas de integración posteriores. No hacer commit/push; documentar evidencia, archivos y discrepancias en `docs/modulos/categorias.md`, detener edición. No aprobar publicación pública integral hasta resolver B1/B2 y consumidores/SEO.
+
+## Actualización 2026-10-21 — Ventana 6A validada; Ventana 6B-1 AUTORIZADA: sitemap de categorías y chips móviles
+
+**Evidencia:** `docs/modulos/categorias.md` §18 documenta V6A con 18/18 contratos públicos, 28/28 Admin, 7 GET 200 y 11 GET 404 para estados jerárquicos, 2.200 niveles, performance/teardown, gate general 834 PHP/120 JS. El chat principal leyó `CategoryPublicVisibilityService.php` y `CategoryRepository.php`, y **reejecutó ambos contratos: 18/18 y 28/28 OK**. No reejecutó GET/benchmark completos: evidencia del especialista. **V6A cerrada técnicamente, NO lista para integración pública final**.
+
+**Inconsistencia confirmada por lectura:** `MetaController::sitemapCategories()` selecciona `categories WHERE is_active=1` sin ancestros; `app/Views/partials/header/_mobile_search_sheet.php` aplica igual filtro. Pueden anunciar/enlazar categorías que `CategoryRepository::findActiveBySlug()` ahora oculta con HTTP 404. Estos dos consumidores se corrigen **sin ninguna decisión sobre venta de productos**.
+
+### Ventana 6B-1 — permisos exclusivos para chat Categorías
+
+**Archivos exactos autorizados:**
+1. `app/Controllers/System/MetaController.php` **solo método `sitemapCategories()` y los `use` estrictamente necesarios**, sin tocar sitemapProducts, sitemapBrands, pages, index, robots u otros métodos.
+2. `app/Views/partials/header/_mobile_search_sheet.php` **solo consulta PHP de categorías sugeridas**, sin alterar markup, controles, scripts o estilos del buscador, ni selección de productos.
+3. `app/Repositories/Catalog/CategoryRepository.php` **solo nuevo método de lectura pública reutilizable si hace falta** para el listado móvil/sitemap, y `app/Services/Catalog/CategoryPublicVisibilityService.php` **solo corrección de compatibilidad estrictamente comprobada**. No alterar los métodos históricos `create/resolveId*/idBy*` usados en importadores.
+4. `scripts/build/categories_public_visibility_contract.php`, scripts `scripts/dev/categories_public_*.php` del módulo y `docs/modulos/categorias.md`.
+
+**Contrato:**
+- `/sitemap_categories.xml` solo debe enumerar categorías jerárquicamente elegibles que respondan como landing pública. Filtrar **antes** del límite/orden si corresponde; respetar XML escaping y feed vigente. No listar categorías con ancestros inactivos/ciclo/huérfano.
+- Los chips iniciales del buscador móvil deben mostrar **hasta ocho** categorías elegibles, conservando orden y completando ocho con las siguientes elegibles si las primeras son ocultas; sin enlace a 404.
+- Reutilizar única política `CategoryPublicVisibilityService`, no replicar condición `c.is_active` recursiva en dos consumidores; evitar N+1, preservar comportamiento actual de categorías comerciales válidas.
+- Conservar el alcance solo categorías. NO cambiar bandera `catalog_hide_inactive_category_products`, `products.is_active`, relaciones, carrito, filtros/listados/fichas/sugerencias de productos, links manuales ni precios/stock.
+- Sitemap todavía requiere una **revisión SEO final** para `seo_settings.robots_index/noindex` y canonical en ventana de SEO global. Si está al alcance solo por APIs públicas existentes, documentar el hallazgo, **no ampliar cambios a otros servicios sin permiso**. No presumir cobertura SEO integral.
+
+**Pruebas requeridas:** GET reales en clon MySQL descartable con 1/2/3+ niveles, padre/nieta inactivo, ciclos/huérfanos en fixture, sitemap XML válido y conjunto de slugs igual al de categorías elegibles; chips móviles sin enlaces a landing 404, límite 8, orden y relleno; home y facetas regresión; `categories_public_visibility_contract.php`, `categories_admin_contract.php`, gate en turno exclusivo, SQL EXPLAIN o benchmark razonable, sin DB habitual. Documentar pruebas realizadas y no realizadas. Teardown propios.
+
+**NO AUTORIZADOS:** resto de `MetaController.php`, `public_html/index.php`, `SeoFrontService.php`, `SeoSlugHistoryRepository.php`, head/404 y redirects, `ProductRepository/ProductsController/ProductController`, Recommendations/Home/Settings, CSS/JS/html rediseñado, importaciones, migraciones, rutas ni Git.
+
+**Pendiente comercial V5-D2:** el propietario **todavía no ratificó B1/B2**. La recomendación es B1: setting OFF mantiene productos activos vendibles de categoría oculta (valor comercial actual 0), ON los oculta coherentemente en todos los consumidores, sin cambiar flags de DB. No implementar B1/B2 sin respuesta y ventana exclusiva posterior (6B-2). Los flujos SEO/redirecciones/head requieren otra reserva (6C). No publicar corrección incompleta como final.
+
+**Salida:** cerrar V6B-1 tras pruebas y documentación en `docs/modulos/categorias.md`; detener trabajo y solicitar aprobación para consumidores/SEO. La aprobación visual del Admin de categorías también continúa pendiente.
