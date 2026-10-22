@@ -42,7 +42,14 @@ final class CheckoutOrderService
         $cartReadSvc = new CartReadService($this->db);
         $cartWriteSvc = new CartWriteService($this->db);
         $selectionSvc = new CartSelectionService();
-        $cart = $selectionSvc->apply($cartReadSvc->getCartView());
+        $raw = $cartReadSvc->getCartView();
+        foreach ((array)($raw['items'] ?? []) as $item) {
+            if (is_array($item) && array_key_exists('is_publicly_available',$item)
+                && empty($item['is_publicly_available'])) {
+                return [false,CheckoutProductEligibilityGuard::ERROR,0];
+            }
+        }
+        $cart = $selectionSvc->apply($raw);
         $pricing = new CommercialPriceService(new AppSettingsRepository($this->db));
         $effectiveCart = $pricing->buildCheckoutCart($cart, (string)($paymentMethod ?? 'transferencia'));
 
@@ -129,6 +136,12 @@ final class CheckoutOrderService
 
         try {
             $this->db->beginTransaction();
+            [$eligible,$reason] = (new CheckoutProductEligibilityGuard($this->db))
+                ->checkItems((array)$effectiveCart['items'],true);
+            if (!$eligible) {
+                $this->db->rollBack();
+                return [false,$reason,0];
+            }
 
             // 1) Validar y lockear stock por cada ítem
             $adjustQtys = []; // key => qty (para ajustar carrito si falta stock)

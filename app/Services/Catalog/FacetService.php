@@ -8,9 +8,16 @@ use Throwable;
 
 final class FacetService
 {
+    private ?ProductPublicVisibilityService $productVisibility = null;
+
     public function __construct(
         private CategoryRepository $categories
     ) {}
+
+    private function productVisibility(): ProductPublicVisibilityService
+    {
+        return $this->productVisibility ??= new ProductPublicVisibilityService($this->db());
+    }
 
     /**
      * @return array{
@@ -31,10 +38,12 @@ final class FacetService
             $rows = [];
         }
 
+        $eligible = $this->categories->visibleCategoryIds();
         $catsById = [];
         $parents = [];
         foreach ($rows as $row) {
             $id = (int)($row['id'] ?? 0);
+            if (!isset($eligible[$id])) continue;
             $parentId = isset($row['parent_id']) ? (int)$row['parent_id'] : null;
             $catsById[$id] = [
                 'id' => $id,
@@ -48,8 +57,11 @@ final class FacetService
 
         foreach ($catsById as $id => $category) {
             $parentId = $category['parent_id'];
-            if ($parentId && isset($catsById[$parentId])) {
-                $catsById[$parentId]['children'][] = $id;
+            if ($parentId !== null) {
+                if (isset($catsById[$parentId])) {
+                    $catsById[$parentId]['children'][] = $id;
+                }
+                // Nunca convertir huérfanos en raíces visibles.
                 continue;
             }
             $parents[] = $id;
@@ -77,18 +89,49 @@ final class FacetService
             $qtyById = [];
         }
 
-        $memo = [];
-        $sumCategory = function (int $id) use (&$sumCategory, &$memo, $catsById, $qtyById): int {
-            if (isset($memo[$id])) {
-                return $memo[$id];
+        // OFF: productos activos de descendientes ocultos siguen disponibles.
+        // Atribuir su cantidad al ancestro VISIBLE más próximo, sin promover
+        // la categoría oculta en la faceta ni alterar sus propios flags.
+        if (!$this->productVisibility()->hidesHiddenCategoryProducts()) {
+            $pRows = $db->query('SELECT id,parent_id FROM categories')->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            $parentsById = [];
+            foreach ($pRows as $pRow) {
+                $parentsById[(int)$pRow['id']] = $pRow['parent_id'] === null ? null : (int)$pRow['parent_id'];
             }
-            $sum = (int)($qtyById[$id] ?? 0);
-            foreach ($catsById[$id]['children'] as $childId) {
-                $sum += $sumCategory($childId);
+            foreach (array_keys($qtyById) as $sourceId) {
+                if (isset($catsById[$sourceId])) continue;
+                $at = $sourceId;
+                $seenAncestors = [];
+                while ($at > 0 && isset($parentsById[$at]) && !isset($seenAncestors[$at])) {
+                    $seenAncestors[$at] = true;
+                    $at = (int)($parentsById[$at] ?? 0);
+                    if (isset($catsById[$at])) {
+                        $qtyById[$at] = ($qtyById[$at] ?? 0) + $qtyById[$sourceId];
+                        break;
+                    }
+                }
             }
-            $memo[$id] = $sum;
-            return $sum;
-        };
+        }
+
+        // Acumulación iterativa de descendientes para evitar profundidad de pila
+        // y visitas repetidas: O(categorías elegibles), sin consultas N+1.
+        $order = [];
+        $stack = array_reverse($parents);
+        while ($stack !== []) {
+            $nodeId = array_pop($stack);
+            $order[] = $nodeId;
+            foreach (array_reverse($catsById[$nodeId]['children']) as $childId) {
+                $stack[] = $childId;
+            }
+        }
+        $sums = [];
+        foreach (array_reverse($order) as $nodeId) {
+            $total = (int)($qtyById[$nodeId] ?? 0);
+            foreach ($catsById[$nodeId]['children'] as $childId) {
+                $total += $sums[$childId] ?? 0;
+            }
+            $sums[$nodeId] = $total;
+        }
 
         $facetsCategories = [];
         foreach ($parents as $parentId) {
@@ -105,7 +148,7 @@ final class FacetService
             $facetsCategories[] = [
                 'slug' => $parent['slug'],
                 'name' => $parent['name'],
-                'count' => $sumCategory($parentId),
+                'count' => $sums[$parentId] ?? 0,
                 'cover_image' => (string)($parent['cover_image'] ?? ''),
                 'children' => $children,
             ];
@@ -129,8 +172,10 @@ final class FacetService
         $byBrandSlug = [];
 
         try {
+            $eligible = $this->categories->visibleCategoryIds();
             $st = $db->query("SELECT id, slug, name FROM categories WHERE is_active = 1");
             foreach ($st ? $st->fetchAll(PDO::FETCH_ASSOC) : [] as $row) {
+                if (!isset($eligible[(int)$row['id']])) continue;
                 $label = CategoryLabel::sanitize((string)($row['name'] ?? ''), (string)($row['slug'] ?? ''));
                 $bySlug[(string)$row['slug']] = $label;
                 $byId[(int)$row['id']] = $label;
@@ -224,7 +269,7 @@ final class FacetService
     /** @return array{0:list<string>,1:array<string,mixed>} */
     private function buildProductFilters(array $filters, bool $includeCategory, bool $includeBrand): array
     {
-        $where = ['p.is_active = 1'];
+        $where = [$this->productVisibility()->predicate('p')];
         $params = [];
 
         $q = trim((string)($filters['q'] ?? ''));
@@ -250,19 +295,28 @@ final class FacetService
             $params[':q_brand_slug'] = $like;
         }
 
+        // Coincide con ProductRepository::effectivePriceSql(): variantes usan
+        // el mínimo activo, no el precio cacheado del producto.
+        $effectivePrice = "CASE WHEN p.sale_mode = 'variants' THEN COALESCE((SELECT MIN(NULLIF(v.price,0)) FROM product_variants v WHERE v.product_id=p.id AND v.is_active=1),p.price) ELSE p.price END";
         $min = trim((string)($filters['min'] ?? ''));
         if ($min !== '' && is_numeric($min)) {
-            $where[] = 'p.price >= :min_price';
+            $where[] = $effectivePrice.' >= :min_price';
             $params[':min_price'] = (int)$min;
         }
 
         $max = trim((string)($filters['max'] ?? ''));
         if ($max !== '' && is_numeric($max)) {
-            $where[] = 'p.price <= :max_price';
+            $where[] = $effectivePrice.' <= :max_price';
             $params[':max_price'] = (int)$max;
         }
 
-        if ($includeCategory) {
+        $scope = $filters['category_scope_ids'] ?? null;
+        if (is_array($scope)) {
+            $scope = array_values(array_unique(array_filter(array_map('intval',$scope),
+                static fn(int $id): bool => $id > 0)));
+            $where[] = $scope === [] ? '1=0' : 'p.category_id IN ('.implode(',', $scope).')';
+        }
+        if ($includeCategory && !is_array($scope)) {
             $categorySlug = trim((string)($filters['category_slug'] ?? ''));
             if ($categorySlug !== '') {
                 $where[] = 'c.slug = :category_slug';
@@ -296,10 +350,13 @@ final class FacetService
             }
         }
 
+        // El filtro heredado es solo una pista de compatibilidad. Nunca
+        // sustituye el setting B1 ni agrega otro predicado c.is_active.
         if ((string)($filters['enforce_active_category'] ?? '') === '1') {
-            $where[] = 'c.is_active = 1';
+            if (!$this->productVisibility()->hidesHiddenCategoryProducts() && function_exists('log_error')) {
+                log_error('FacetService: petición legacy exige categoría activa, pero B1 está OFF; se respeta Settings.');
+            }
         }
-
         $tagFilters = $this->tagSelections($filters);
         foreach ($tagFilters as $groupSlug => $tagSlugs) {
             if ($groupSlug === '' || $tagSlugs === []) {

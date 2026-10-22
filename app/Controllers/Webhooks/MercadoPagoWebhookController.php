@@ -227,6 +227,27 @@ final class MercadoPagoWebhookController
                 ]);
             }
 
+            if (!$ok && str_starts_with((string)$msg,'B1_UNAVAILABLE:')) {
+                // PaymentRepository arriba ya guardó approved+raw_json+intent:
+                // conciliar manualmente; el webhook no puede crear un pedido B1.
+                $this->logWebhookEvent('payment_approved_but_product_unavailable', [
+                    'payment_id'=>$paymentId, 'payment_row_id'=>$paymentRowId,
+                    'intent_id'=>$intentId, 'external_reference'=>$external,
+                    'status'=>$status, 'order_id'=>0,'reconciliation_required'=>true,
+                ]);
+                Audit::log('payment_approved_but_product_unavailable','payment',(int)$paymentRowId,[
+                    'provider'=>'mercadopago','payment_id'=>$paymentId,
+                    'intent_id'=>$intentId,'manual_reconciliation_required'=>true,
+                ]);
+                http_response_code(202);
+                echo json_encode(['ok'=>false,'status'=>$status,
+                    'code'=>'b1_unavailable','order_id'=>0,'payment_id'=>$paymentId,
+                    'manual_reconciliation_required'=>true,
+                    'msg'=>'Pago aprobado registrado; requiere conciliación manual. Pedido no creado.'],
+                    JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
             http_response_code($ok ? 200 : 422);
             echo json_encode(['ok' => $ok, 'msg' => $msg, 'order_id' => $orderId, 'status' => $status, 'type' => $type]);
         } catch (\Throwable $e) {

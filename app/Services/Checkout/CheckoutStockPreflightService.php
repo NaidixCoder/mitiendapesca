@@ -20,7 +20,15 @@ final class CheckoutStockPreflightService
     {
         $cartReadSvc = new CartReadService($this->db);
         $selectionSvc = new CartSelectionService();
-        $cart = $selectionSvc->apply($cartReadSvc->getCartView());
+        $raw = $cartReadSvc->getCartView();
+        foreach ((array)($raw['items'] ?? []) as $item) {
+            if (is_array($item) && array_key_exists('is_publicly_available',$item)
+                && empty($item['is_publicly_available'])) {
+                return [false,CheckoutProductEligibilityGuard::ERROR,
+                    ['code'=>'b1_unavailable','redirect_url'=>url('/carrito?checkout_cambio=1')]];
+            }
+        }
+        $cart = $selectionSvc->apply($raw);
         $pricing = new CommercialPriceService(new AppSettingsRepository($this->db));
         $effectiveCart = $pricing->buildCheckoutCart($cart, $paymentMethod);
 
@@ -38,6 +46,13 @@ final class CheckoutStockPreflightService
 
         try {
             $this->db->beginTransaction();
+            [$eligible,$reason] = (new CheckoutProductEligibilityGuard($this->db))
+                ->checkItems((array)$effectiveCart['items'],true);
+            if (!$eligible) {
+                $this->db->rollBack();
+                return [false,$reason,['code'=>'b1_unavailable',
+                    'redirect_url'=>url('/carrito?checkout_cambio=1')]];
+            }
 
             $adjustQtys = [];
             foreach ($effectiveCart['items'] as $it) {

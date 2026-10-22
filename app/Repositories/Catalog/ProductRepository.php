@@ -7,7 +7,14 @@ use Throwable;
 
 final class ProductRepository
 {
+    private ?\App\Services\Catalog\ProductPublicVisibilityService $productVisibility = null;
+
     public function __construct(private PDO $db) {}
+
+    public function publicProductVisibility(): \App\Services\Catalog\ProductPublicVisibilityService
+    {
+        return $this->productVisibility ??= new \App\Services\Catalog\ProductPublicVisibilityService($this->db);
+    }
 
     /** Cache simple de columnas existentes (por proceso). */
     private static array $colCache = [];
@@ -48,7 +55,7 @@ final class ProductRepository
 
     private function publicVisibilitySql(string $productAlias = 'p'): string
     {
-        return "{$productAlias}.is_active = 1";
+        return $this->publicProductVisibility()->predicate($productAlias);
     }
 
     private function inStockVisibilitySql(string $productAlias = 'p'): string
@@ -117,6 +124,16 @@ final class ProductRepository
             }
         }
 
+        // El alcance se calcula ANTES de LIMIT/OFFSET; soporta nietas y ramas
+        // inactivas cuando B1 está OFF sin exponer su landing pública.
+        $categoryScope = $filters['category_scope_ids'] ?? null;
+        if (is_array($categoryScope)) {
+            $categoryScope = array_values(array_unique(array_filter(array_map('intval',$categoryScope),
+                static fn(int $id): bool => $id > 0)));
+            $where[] = $categoryScope === []
+                ? '1=0'
+                : 'p.category_id IN ('.implode(',', $categoryScope).')';
+        } else {
         $categorySlug = trim((string)($filters['category_slug'] ?? ''));
         if ($categorySlug !== '') {
             $where[] = 'c.slug = :category_slug';
@@ -134,6 +151,8 @@ final class ProductRepository
                     $params[':categoria_parent_slug'] = $categoryFilter;
                 }
             }
+        }
+
         }
 
         $brandSlugs = [];
@@ -155,10 +174,8 @@ final class ProductRepository
             $where[] = 'b.slug IN (' . implode(', ', $placeholders) . ')';
         }
 
-        $enforceActiveCategory = (string)($filters['enforce_active_category'] ?? '') === '1';
-        if ($enforceActiveCategory) {
-            $where[] = 'c.is_active = 1';
-        }
+        // B1 se aplica en publicVisibilitySql(), antes de conteos y LIMIT.
+        // No fiarse del flag por-request; una única política lee Settings.
 
         $tagFilters = is_array($filters['tags'] ?? null) ? $filters['tags'] : [];
         foreach ($tagFilters as $groupSlug => $tagSlugs) {
@@ -634,6 +651,7 @@ if (!$this->hasColumn('products','price_wh2_override')) {
 
         $sql = "SELECT
                 p.id,
+                p.category_id,
                 p.slug,
                 p.name,
                 p.sale_mode,
@@ -671,7 +689,10 @@ if (!$this->hasColumn('products','price_wh2_override')) {
         $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
         $stmt->execute();
 
-        $items = $this->normalizeCategoryLabels($stmt->fetchAll(PDO::FETCH_ASSOC) ?: []);
+        $items = array_map(
+            fn(array $r): array => $this->publicProductVisibility()->sanitizeCategoryLink($r),
+            $this->normalizeCategoryLabels($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [])
+        );
         return [
             'items' => $items,
             'total' => $total,
@@ -692,6 +713,7 @@ if (!$this->hasColumn('products','price_wh2_override')) {
         $like = '%' . $q . '%';
         $sql = "SELECT
                 p.id,
+                p.category_id,
                 p.slug,
                 p.name,
                 CASE
@@ -753,7 +775,10 @@ if (!$this->hasColumn('products','price_wh2_override')) {
         $st->bindValue(':lim', $limit, PDO::PARAM_INT);
         $st->execute();
 
-        return $this->normalizeCategoryLabels($st->fetchAll(PDO::FETCH_ASSOC) ?: []);
+        return array_map(
+            fn(array $r): array => $this->publicProductVisibility()->sanitizeCategoryLink($r),
+            $this->normalizeCategoryLabels($st->fetchAll(PDO::FETCH_ASSOC) ?: [])
+        );
     }
 
     /** @return array<int,array<string,mixed>> */
@@ -767,6 +792,7 @@ if (!$this->hasColumn('products','price_wh2_override')) {
 
         $baseSelect = "SELECT
                 p.id,
+                p.category_id,
                 p.slug,
                 p.name,
                 p.sale_mode,
@@ -805,7 +831,10 @@ if (!$this->hasColumn('products','price_wh2_override')) {
             }
             $st->bindValue(':limit', $limit, PDO::PARAM_INT);
             $st->execute();
-            return $this->normalizeCategoryLabels($st->fetchAll(PDO::FETCH_ASSOC) ?: []);
+            return array_map(
+                fn(array $r): array => $this->publicProductVisibility()->sanitizeCategoryLink($r),
+                $this->normalizeCategoryLabels($st->fetchAll(PDO::FETCH_ASSOC) ?: [])
+            );
         };
 
         // 1) Prioridad: misma categoria
@@ -880,6 +909,7 @@ if (!$this->hasColumn('products','price_wh2_override')) {
 
         $baseSelect = "SELECT
                 p.id,
+                p.category_id,
                 p.slug,
                 p.name,
                 p.sale_mode,
@@ -967,7 +997,10 @@ if (!$this->hasColumn('products','price_wh2_override')) {
                     $st->bindValue($index + 1, $value, PDO::PARAM_INT);
                 }
                 $st->execute();
-                $appendRows($this->normalizeCategoryLabels($st->fetchAll(PDO::FETCH_ASSOC) ?: []));
+                $appendRows(array_map(
+                fn(array $r): array => $this->publicProductVisibility()->sanitizeCategoryLink($r),
+                $this->normalizeCategoryLabels($st->fetchAll(PDO::FETCH_ASSOC) ?: [])
+            ));
             }
 
             if (count($related) < $min && $brandIds !== []) {
@@ -985,7 +1018,10 @@ if (!$this->hasColumn('products','price_wh2_override')) {
                     $st->bindValue($index + 1, $value, PDO::PARAM_INT);
                 }
                 $st->execute();
-                $appendRows($this->normalizeCategoryLabels($st->fetchAll(PDO::FETCH_ASSOC) ?: []));
+                $appendRows(array_map(
+                fn(array $r): array => $this->publicProductVisibility()->sanitizeCategoryLink($r),
+                $this->normalizeCategoryLabels($st->fetchAll(PDO::FETCH_ASSOC) ?: [])
+            ));
             }
         }
 
@@ -1010,7 +1046,10 @@ if (!$this->hasColumn('products','price_wh2_override')) {
                 $st->bindValue(1, $remaining, PDO::PARAM_INT);
             }
             $st->execute();
-            $appendRows($this->normalizeCategoryLabels($st->fetchAll(PDO::FETCH_ASSOC) ?: []));
+            $appendRows(array_map(
+                fn(array $r): array => $this->publicProductVisibility()->sanitizeCategoryLink($r),
+                $this->normalizeCategoryLabels($st->fetchAll(PDO::FETCH_ASSOC) ?: [])
+            ));
         }
 
         return array_slice($related, 0, $max);
@@ -1040,6 +1079,7 @@ if (!$this->hasColumn('products','price_wh2_override')) {
 
         $baseSelect = "SELECT
                 p.id,
+                p.category_id,
                 p.slug,
                 p.name,
                 p.sale_mode,
@@ -1082,6 +1122,9 @@ if (!$this->hasColumn('products','price_wh2_override')) {
         $st->bindValue($paramIndex, $limit, PDO::PARAM_INT);
         $st->execute();
 
-        return $this->normalizeCategoryLabels($st->fetchAll(PDO::FETCH_ASSOC) ?: []);
+        return array_map(
+            fn(array $r): array => $this->publicProductVisibility()->sanitizeCategoryLink($r),
+            $this->normalizeCategoryLabels($st->fetchAll(PDO::FETCH_ASSOC) ?: [])
+        );
     }
 }

@@ -17,7 +17,9 @@ final class CategoriesFormViewModel
     {
         $id = (int)($row['id'] ?? 0);
         $slug = (string)($row['slug'] ?? '');
-        $name = CategoryLabel::sanitize((string)($row['name'] ?? ''), $slug);
+        $name = $id > 0
+            ? CategoryLabel::sanitize((string)($row['name'] ?? ''), $slug)
+            : trim((string)($row['name'] ?? ''));
         $row['name'] = $name;
         $parents = array_map(
             static function (array $parent): array {
@@ -34,7 +36,7 @@ final class CategoriesFormViewModel
         return [
             'categories_form_view' => [
                 'pageTitle' => $id > 0 ? 'Editar categoria' : 'Nueva categoria',
-                'crumbs' => admin_crumbs('categories.edit', ['name' => $name]),
+                'crumbs' => $id > 0 ? admin_crumbs('categories.edit', ['name' => $name]) : admin_crumbs('categories.new'),
                 'cat' => $row,
                 'id' => $id,
                 'categoryName' => $name,

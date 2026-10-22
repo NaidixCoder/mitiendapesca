@@ -78,26 +78,22 @@ final class SeoFrontService
             'twitter_image'       => $ogImage,
         ];
 
-        // JSON-LD: Product + Breadcrumbs
-        $seo['jsonld'] = $this->jsonLdProduct($product, $seo, $pricing, $trail);
-
-        // FAQ schema (si hay FAQs completas)
-        $faqLd = $this->jsonLdFaq($product);
-        if ($faqLd) {
-            $seo['jsonld'] .= "\n" . $this->wrapJsonLd(json_encode($faqLd, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
-        }
-
-
         // Overrides desde seo_settings
         $settings = $this->settingsRepo->get('product', $id);
         if ($settings) {
             $seo = $this->applySettings($seo, $settings);
 
-            // schema_override reemplaza JSON-LD si viene (string JSON)
+        }
+
+        // El Product JSON-LD debe usar el canonical FINAL (tras override).
+        $seo['jsonld'] = $this->jsonLdProduct($product, $seo, $pricing, $trail);
+        $faqLd = $this->jsonLdFaq($product);
+        if ($faqLd) {
+            $seo['jsonld'] .= "\n" . $this->wrapJsonLd(json_encode($faqLd, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+        }
+        if ($settings) {
             $override = trim((string)($settings['schema_override'] ?? ''));
-            if ($override !== '') {
-                $seo['jsonld'] = $this->wrapJsonLd($override);
-            }
+            if ($override !== '') $seo['jsonld'] = $this->wrapJsonLd($override);
         }
 
         return $seo;
@@ -191,19 +187,15 @@ public function buildCategory(array $category, array $trail = []): array
         'twitter_image'       => null,
     ];
 
-    // JSON-LD: CollectionPage + Breadcrumbs
-    $faqLd = $this->jsonLdFaq($category);
-            $seo['jsonld'] = $this->jsonLdCollectionPage($name, $seo, $trail, $faqLd);
-
     // Overrides desde seo_settings
     $settingsRow = $this->settingsRepo->get('category', $id) ?: [];
     $seo = $this->applyAdvancedSettings($seo, $settingsRow);
 
-    // schema_override reemplaza JSON-LD si viene (string JSON)
+    // Recalcular CollectionPage JSON-LD con canonical editorial definitivo.
+    $faqLd = $this->jsonLdFaq($category);
+    $seo['jsonld'] = $this->jsonLdCollectionPage($name, $seo, $trail, $faqLd);
     $override = trim((string)($settingsRow['schema_override'] ?? ''));
-    if ($override !== '') {
-        $seo['jsonld'] = $this->wrapJsonLd($override);
-    }
+    if ($override !== '') $seo['jsonld'] = $this->wrapJsonLd($override);
 
     return $seo;
 }

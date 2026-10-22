@@ -2,7 +2,9 @@
 http_response_code(404);
 $pageTitle = '404 - Página no encontrada | Mi Pesca & Aventura';
 $pageDesc  = 'La página que buscás no existe o fue movida.';
-$extraHead = '<meta name="robots" content="noindex,nofollow">';
+// head.php detecta errors/404 antes de incluir esta vista y emite
+// un único robots noindex,nofollow sin canonical ni JSON-LD de entidad.
+// No inyectar un segundo <meta name="robots"> mediante extraHead.
 ?>
 
 <main class="error-view">

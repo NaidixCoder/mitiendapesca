@@ -670,7 +670,11 @@ function initCategoryQuickCreate() {
   const select  = document.getElementById('product-category-select');
   const form    = document.getElementById('product-form');
 
-  if (!openBtn || !modal || !nameInp || !saveBtn || !select || !form) return;
+  if (!openBtn || !modal || !nameInp || !parentSel || !saveBtn || !select || !form) return;
+
+  // El formulario tiene contenedores que recortan elementos fixed en móvil.
+  // Este modal opera por fetch y puede vivir directamente bajo body sin alterar Productos.
+  document.body.appendChild(modal);
 
   const closeEls = Array.from(modal.querySelectorAll('[data-category-quick-close]'));
 
@@ -686,12 +690,14 @@ function initCategoryQuickCreate() {
     nameInp.value = '';
     parentSel.value = '';
     modal.classList.remove('av3-hidden');
+    modal.setAttribute('aria-hidden', 'false');
     setTimeout(() => nameInp.focus(), 0);
     document.addEventListener('keydown', onKeyDown);
   };
 
   const close = () => {
     modal.classList.add('av3-hidden');
+    modal.setAttribute('aria-hidden', 'true');
     document.removeEventListener('keydown', onKeyDown);
   };
 
@@ -742,6 +748,7 @@ function initCategoryQuickCreate() {
       const csrf = getCsrf();
       if (csrf) fd.append('_csrf', csrf);
       fd.append('name', name);
+      fd.append('parent_id', parentSel.value || '0');
 
       const resp = await fetch(endpoint, {
         method: 'POST',

@@ -90,6 +90,9 @@ $transferLineLabel = (string)($item['display_transfer_line_label'] ?? money((int
       </div>
     </div>
 
+    <?php if (array_key_exists('is_publicly_available', $item) && empty($item['is_publicly_available'])): ?>
+      <p role="alert">No disponible para nuevas compras. Este artículo continúa guardado hasta que decidas quitarlo.</p>
+    <?php endif; ?>
     <p class="cart-item__stock<?= $hintClass !=='' ? ' ' . e($hintClass) : '' ?>" data-cart-stock-msg><?= e($hintText) ?></p>
   </div>
 </div>

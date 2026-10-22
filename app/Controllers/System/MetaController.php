@@ -110,11 +110,32 @@ class MetaController
 
         try {
             $db = db();
-            $st = $db->query("SELECT slug, created_at FROM products WHERE is_active = 1 ORDER BY id DESC");
+            // B1 y SEO se filtran ANTES de emitir las URL. Una consulta,
+            // sin N+1 ni reutilizar selectores de administración/importaciones.
+            $visibility = new \App\Services\Catalog\ProductPublicVisibilityService($db);
+            $sql = "SELECT p.slug, p.created_at, ss.canonical_url
+                    FROM products p
+                    LEFT JOIN seo_settings ss
+                      ON ss.entity_type='product' AND ss.entity_id=p.id
+                    WHERE " . $visibility->predicate('p') . "
+                      AND (ss.id IS NULL OR ss.robots_index = 1)
+                    ORDER BY p.id DESC";
+            $st = $db->query($sql);
             $rows = $st ? $st->fetchAll(\PDO::FETCH_ASSOC) : [];
             foreach ($rows as $r) {
-                $slug = (string)($r['slug'] ?? '');
+                $slug = trim((string)($r['slug'] ?? ''));
                 if ($slug === '') continue;
+
+                // Una URL con canonical editorial distinto NO debe ser
+                // anunciada como otra página canónica del sitemap.
+                $ownCanonical = url('/producto?slug=' . urlencode($slug));
+                $editorialCanonical = trim((string)($r['canonical_url'] ?? ''));
+                if ($editorialCanonical !== '') {
+                    if (!preg_match('~^https?://~i', $editorialCanonical)) {
+                        $editorialCanonical = base_url('/' . ltrim($editorialCanonical, '/'));
+                    }
+                    if ($editorialCanonical !== $ownCanonical) continue;
+                }
 
                 $lm = null;
                 $ca = (string)($r['created_at'] ?? '');
@@ -153,12 +174,34 @@ class MetaController
         try {
             $db = db();
 
-            // Cada categoría (padre o hija) apunta a su landing SEO
-            $st = $db->query("SELECT slug, created_at FROM categories WHERE is_active=1 ORDER BY sort ASC, name ASC");
-            $rows = $st ? $st->fetchAll(\PDO::FETCH_ASSOC) : [];
+            // Misma política de visibilidad jerárquica que GET /categoria.
+            // Las URLs no elegibles nunca se anuncian a buscadores.
+            $rows = (new \App\Repositories\Catalog\CategoryRepository($db))
+                ->listPublicVisibleOrdered();
+
+            // Todas las decisiones editoriales en un SELECT batch; no
+            // repetir una consulta SEO para cada categoría de la lista.
+            $seoRows = $db->query(
+                "SELECT entity_id, robots_index, canonical_url FROM seo_settings
+                 WHERE entity_type='category'"
+            )->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+            $seoById = [];
+            foreach ($seoRows as $seoRow) $seoById[(int)$seoRow['entity_id']] = $seoRow;
+
             foreach ($rows as $r) {
-                $slug = (string)($r['slug'] ?? '');
+                $slug = trim((string)($r['slug'] ?? ''));
                 if ($slug === '') continue;
+                $settings = $seoById[(int)$r['id']] ?? null;
+                if ($settings && (int)$settings['robots_index'] === 0) continue;
+
+                $ownCanonical = url('/categoria?slug=' . urlencode($slug));
+                $editorialCanonical = trim((string)($settings['canonical_url'] ?? ''));
+                if ($editorialCanonical !== '') {
+                    if (!preg_match('~^https?://~i', $editorialCanonical)) {
+                        $editorialCanonical = base_url('/' . ltrim($editorialCanonical, '/'));
+                    }
+                    if ($editorialCanonical !== $ownCanonical) continue;
+                }
 
                 $lm = null;
                 $ca = (string)($r['created_at'] ?? '');

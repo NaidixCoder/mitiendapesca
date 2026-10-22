@@ -341,6 +341,10 @@ $this->priceService = new PriceService($settingsRepo);
             return [false, 'Producto no disponible.'];
         }
 
+        [$eligible,$reason] = (new \App\Services\Checkout\CheckoutProductEligibilityGuard($this->db))
+            ->checkItems([['product_id'=>$productId,'variant_id'=>$variantId ?? 0,'qty'=>$qty]]);
+        if (!$eligible) return [false,$reason];
+
         $variantId = (int)($variantId ?? 0);
         $variantId = max(0, $variantId);
         $variantId = ($variantId > 0) ? $variantId : null;
@@ -419,6 +423,17 @@ $this->priceService = new PriceService($settingsRepo);
             $qty = max(0, min(999, $qty));
 
             $vidNorm = ($vid > 0) ? $vid : null;
+            if ($qty === 0) {
+                $this->cartRepo->setQuantity($this->cartId, $pid, $vidNorm, 0);
+                $changed = true;
+                continue;
+            }
+            [$eligible] = (new \App\Services\Checkout\CheckoutProductEligibilityGuard($this->db))
+                ->checkItems([['product_id'=>$pid,'variant_id'=>$vid,'qty'=>$qty]]);
+            if (!$eligible) {
+                $hadUnavailable = true;
+                continue;
+            }
             $product = $this->productRepo->findForCart($pid);
             if (!$product || empty($product['is_active'])) {
                 $hadUnavailable = true;
@@ -545,6 +560,10 @@ $changed = true;
             $pmap[(int)$p['id']] = $p;
         }
 
+        // B1 no elimina líneas existentes: solo informa elegibilidad pública.
+        $b1Allowed = (new \App\Services\Checkout\CheckoutProductEligibilityGuard($this->db))
+            ->eligibleProductIds($rawItems);
+
         // Variantes (precio/sku/stock + label)
         $vmap = $this->fetchVariantsForCart($variantIds);
         $labels = $this->fetchVariantLabels($variantIds);
@@ -633,6 +652,9 @@ $changed = true;
                 'stock' => $stock,
                 'line_total' => $line,
                 'is_active' => (int)($p['is_active'] ?? 1),
+                'is_publicly_available' => isset($b1Allowed[$pid]),
+                'public_unavailable_reason' => isset($b1Allowed[$pid])
+                    ? '' : 'Producto no disponible por la configuración actual del catálogo.',
             ];
             $subtotal += $line;
             $totalQty += $qty;

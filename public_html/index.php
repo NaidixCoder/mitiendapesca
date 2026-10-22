@@ -41,6 +41,9 @@ if ($method === 'POST' && !empty($_POST['_method'])) {
     if (in_array($ov, ['PUT','PATCH','DELETE'], true)) $method = $ov;
 }
 
+// HEAD nunca entrega cuerpo, incluso si render_page genera HTML.
+if ($method === 'HEAD') ob_start(static fn(string $body): string => '');
+
 /* Normalizar path solicitado y recortar subcarpeta */
 $rawUri  = $_SERVER['REQUEST_URI'] ?? '/';
 $uriPath = parse_url($rawUri, PHP_URL_PATH) ?: '/';
@@ -64,80 +67,148 @@ if (in_array($method, ['GET','HEAD'], true)) {
 
 
 
-/* SEO: Limpieza de parámetros de tracking (canonicalización) */
+/* SEO: Limpieza de tracking validada (GET/HEAD).
+ * La atribución first-touch conserva prioridad GET, pero solo valores
+ * escalares seguros. No hacer jamás 301 previo a un destino 404.
+ */
 if (in_array($method, ['GET','HEAD'], true) && $uriQuery !== '') {
-    parse_str($uriQuery, $q);
-    if (is_array($q) && $q) {
-        $orig = $q;
+    // parse_str() pierde claves duplicadas y transforma brackets en arrays:
+    // inspeccionar el query ORIGINAL antes de asignarle significado.
+    $validQuery = strlen($uriQuery) <= 2048;
+    $seenQueryKeys = [];
+    $hasStructuredFilters = false;
+    foreach (explode('&', $uriQuery) as $part) {
+        if (!$validQuery) break;
+        if ($part === '' || !str_contains($part, '=')) {
+            $validQuery = false;
+            break;
+        }
+        [$rawKey,$rawValue] = explode('=', $part, 2);
+        $decodedKey = urldecode($rawKey);
+        $decodedValue = urldecode($rawValue);
+        // Filtros públicos legítimos: marca[]=..., tag[grupo][]=...
+        // No canonicalizar sus arrays, para no romper el listado existente.
+        $structured = preg_match('/^(?:marca\\[[0-9]*\\]|tag\\[[A-Za-z0-9_-]{1,80}\\]\\[[0-9]*\\])$/', $decodedKey) === 1
+            && in_array($uriPath, ['/productos','/categoria','/marca'], true);
+        if ($structured) $hasStructuredFilters = true;
+        $repeatable = $structured && str_ends_with($decodedKey, '[]');
+        if ($rawKey === '' || preg_match('/%(?![0-9a-f]{2})/i', $part) ||
+            (!$structured && !preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $decodedKey)) ||
+            (isset($seenQueryKeys[$decodedKey]) && !$repeatable) ||
+            strlen($decodedValue) > 512 ||
+            !preg_match('//u', $decodedValue) ||
+            preg_match('/[\x00-\x1f\x7f]/', $decodedValue) ||
+            str_contains($decodedValue, '%')) {
+            $validQuery = false;
+            break;
+        }
+        $seenQueryKeys[$decodedKey] = true;
+    }
 
-        // Analíticas: capturar UTMs (first-touch por sesión) ANTES de canonicalizar.
-        // Esto permite 301 sin perder la campaña en reportes.
-        try {
-            if (session_status() === PHP_SESSION_ACTIVE) {
-                $utmSource = trim((string)($q['utm_source'] ?? ''));
-                if ($utmSource !== '' && empty($_SESSION['analytics_utm'])) {
+    if ($validQuery) {
+        parse_str($uriQuery, $q);
+        if (is_array($q) && $q) {
+            $orig = $q;
+
+            // First-touch SOLO GET: HEAD de robots no atribuye campañas.
+            if ($method === 'GET' && session_status() === PHP_SESSION_ACTIVE) {
+                $utmSource = $q['utm_source'] ?? null;
+                if (is_string($utmSource) && trim($utmSource) !== '' &&
+                    empty($_SESSION['analytics_utm'])) {
                     $_SESSION['analytics_utm'] = [
-                        'utm_source' => $utmSource,
-                        'utm_medium' => trim((string)($q['utm_medium'] ?? '')),
-                        'utm_campaign' => trim((string)($q['utm_campaign'] ?? '')),
+                        'utm_source' => trim($utmSource),
+                        'utm_medium' => is_string($q['utm_medium'] ?? null) ?
+                            trim($q['utm_medium']) : '',
+                        'utm_campaign' => is_string($q['utm_campaign'] ?? null) ?
+                            trim($q['utm_campaign']) : '',
                         'captured_at' => time(),
                     ];
                 }
             }
-        } catch (Throwable $e) {
-            // No bloqueante
-        }
 
-        // Quitar tracking / ruido
-        $dropExact = ['fbclid','gclid','mc_cid','mc_eid','ref','ref_src','igshid','mkt_tok'];
-        foreach ($q as $k => $v) {
-            $ks = (string)$k;
-            if (str_starts_with($ks, 'utm_') || in_array($ks, $dropExact, true)) {
-                unset($q[$k]);
-                continue;
+            $dropExact = ['fbclid','gclid','mc_cid','mc_eid','ref','ref_src','igshid','mkt_tok'];
+            foreach ($q as $k => $v) {
+                if (str_starts_with((string)$k, 'utm_') || in_array((string)$k, $dropExact, true)) {
+                    unset($q[$k]);
+                } elseif (is_string($v) && trim($v) === '') {
+                    unset($q[$k]);
+                }
             }
-            // normalizar empty
-            if (is_string($v) && trim($v) === '') unset($q[$k]);
-        }
+            if (isset($q['per_page']) && !isset($q['perPage'])) {
+                $q['perPage'] = $q['per_page'];
+            }
+            unset($q['per_page']);
+            if (isset($q['page']) && is_scalar($q['page']) &&
+                ctype_digit((string)$q['page']) && (int)$q['page'] <= 1) unset($q['page']);
 
-        // Normalizar per_page -> perPage (si viene de legacy)
-        if (isset($q['per_page']) && !isset($q['perPage'])) {
-            $q['perPage'] = $q['per_page'];
+            if ($q !== $orig && !$hasStructuredFilters) {
+                $qs = http_build_query($q, '', '&', PHP_QUERY_RFC3986);
+                $cleaned = $uriPath . ($qs === '' ? '' : '?' . $qs);
+                try {
+                    $resolver = new \App\Services\Seo\PublicRedirectTargetResolver(db());
+                    $resolved = $resolver->resolveCleanedRequest($cleaned);
+                    // HEAD solo puede apuntar a recursos cuyo despacho HEAD
+                    // está garantizado sin escrituras de otros controladores.
+                    $headTargetPath = $resolved === null ? '' :
+                        (string)(parse_url($resolved['target'], PHP_URL_PATH) ?: '');
+                    $headSafe = in_array($headTargetPath,
+                        ['/', '/producto', '/categoria', '/marca', '/categorias', '/marcas',
+                         '/terminos', '/privacidad', '/productos'], true);
+                    if ($resolved !== null && ($method === 'GET' || $headSafe)) {
+                        header('Location: ' . url($resolved['target']), true, (int)$resolved['status']);
+                        if ($method === 'GET' && !empty($resolved['historical'])) {
+                            try {
+                                (new \App\Repositories\Seo\SeoRedirectRepository(db()))
+                                    ->registerHit($cleaned);
+                            } catch (\Throwable $hitError) {
+                                if (function_exists('log_error')) log_error('SEO redirect hit no registrado');
+                            }
+                        }
+                        exit;
+                    }
+                } catch (\Throwable $e) {
+                    if (function_exists('log_error')) log_error('Tracking canonical: destino no verificable');
+                }
+                // Destino inválido u oculto: nunca Location hacia un 404.
+                // La ruta original será despachada como corresponda.
+            }
         }
-        unset($q['per_page']);
-
-        // page=1 no aporta
-        if (isset($q['page']) && (int)$q['page'] <= 1) unset($q['page']);
-
-        // Si cambió, redirigimos 301 al mismo path con query limpia
-        if ($q !== $orig) {
-            $qs = http_build_query($q);
-            $target = $uriPath . ($qs !== '' ? ('?' . $qs) : '');
-            $location = function_exists('url') ? url($target) : $target;
-            header('Location: ' . $location, true, 301);
-            exit;
-        }
+    } elseif (in_array($uriPath,
+        ['/','/producto','/categoria','/marca','/productos','/categorias',
+         '/marcas','/terminos','/privacidad'], true)) {
+        http_response_code(404);
+        render_page('errors/404');
+        exit;
     }
 }
 
-/* SEO: Redirects 301/302 por historial de slugs (GET/HEAD) */
+/* SEO: Redirects históricos de GET y HEAD públicos seguros. */
 if (in_array($method, ['GET','HEAD'], true)) {
     try {
         $from = $uriPath . ($uriQuery !== '' ? ('?'.$uriQuery) : '');
-        $repo = new \App\Repositories\Seo\SeoRedirectRepository(db());
-        $row  = $repo->findTargetByFrom($from);
-        if ($row && !empty($row['to_path'])) {
-            $repo->registerHit($from);
-            $status = (int)($row['status_code'] ?? 301);
-            if ($status < 300 || $status > 399) $status = 301;
-            $target = (string)$row['to_path'];
-            // to_path se guarda como ruta app (ej: /producto?slug=nuevo)
-            $location = function_exists('url') ? url($target) : $target;
-            header('Location: '.$location, true, $status);
-            exit;
+        $resolver = new \App\Services\Seo\PublicRedirectTargetResolver(db());
+        $resolved = $resolver->resolve($from);
+        if ($resolved !== null) {
+            $destPath = (string)(parse_url($resolved['target'], PHP_URL_PATH) ?: '');
+            $headAllowed = in_array($destPath,
+                ['/', '/producto', '/categoria', '/marca', '/categorias', '/marcas',
+                 '/terminos', '/privacidad', '/productos'], true);
+            if ($method === 'GET' || $headAllowed) {
+                header('Location: ' . url($resolved['target']), true, $resolved['status']);
+                // HEAD no es una visita, no contar un hit comercial/SEO.
+                if ($method === 'GET') {
+                    try {
+                        (new \App\Repositories\Seo\SeoRedirectRepository(db()))
+                            ->registerHit($from);
+                    } catch (\Throwable $e) {
+                        if (function_exists('log_error')) log_error('SEO redirect hit no registrado');
+                    }
+                }
+                exit;
+            }
         }
-    } catch (Throwable $e) {
-        // No bloqueante: si falla DB, continuamos normal.
+    } catch (\Throwable $e) {
+        // No bloqueo del dispatcher ni redirect si falla la resolución.
     }
 }
 
@@ -146,7 +217,12 @@ $routesFile = base_path('config/routes.php');
 $routes = is_file($routesFile) ? (require $routesFile) : [];
 if (!is_array($routes)) $routes = [];
 
-$key = $method . ' ' . $uriPath;
+// HEAD se despacha como GET SOLO para rutas públicas SEO de la whitelist.
+ // Los registros ProductController::show y ProductsController::index son GET-only.
+$headReadOnlyPaths = ['/', '/producto', '/categoria', '/marca', '/categorias', '/marcas',
+                      '/terminos', '/privacidad', '/productos'];
+$headReadOnly = $method === 'HEAD' && in_array($uriPath, $headReadOnlyPaths, true);
+$key = ($headReadOnly ? 'GET' : $method) . ' ' . $uriPath;
 $handler = $routes[$key] ?? null;
 
 // Nota: validaciones específicas (ej. /registro) viven en sus Controllers.
@@ -176,7 +252,7 @@ try {
 
 /* Analíticas: page_view (GET/HEAD, no-AJAX) */
 try {
-    if ($method === 'GET' || $method === 'HEAD') {
+    if ($method === 'GET') {
         $xhr = strtolower((string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest';
         $accept = (string)($_SERVER['HTTP_ACCEPT'] ?? '');
         $wantsJson = (stripos($accept, 'application/json') !== false) || (stripos($accept, 'text/event-stream') !== false);

@@ -202,6 +202,14 @@ final class PaymentController
                 unset($payload['payer']['identification']);
             }
 
+            // Último control antes de la solicitud externa de cobro.
+            [$b1Ok,$b1Msg] = (new \App\Services\Checkout\CheckoutProductEligibilityGuard(db()))
+                ->checkItems((array)($intent['items'] ?? []));
+            if (!$b1Ok) {
+                json(['ok'=>false,'code'=>'b1_unavailable','error'=>$b1Msg],409);
+                return;
+            }
+
             $idemKey = hash('sha256', (string)$uid . '|' . $intentToken . '|' . $token . '|' . $amount);
             $mp = new MercadoPagoService();
             if (function_exists('log_error')) {
@@ -251,6 +259,25 @@ final class PaymentController
                 if ($okOrder && $orderId > 0 && $paymentRowId > 0) {
                     $payRepo->attachOrderIfEmpty($paymentRowId, $orderId);
                 }
+            }
+
+            if ($orderId <= 0 && str_starts_with((string)($_msgOrder ?? ''), 'B1_UNAVAILABLE:')) {
+                // El pago puede estar aprobado. PaymentRepository ya conservó el
+                // registro del proveedor y sus datos; nunca informar pedido creado.
+                Audit::log('payment_approved_but_product_unavailable', 'checkout', null, [
+                    'payment_id'=>$paymentId, 'payment_row_id'=>$paymentRowId,
+                    'intent_id'=>(int)($intent['id']??0), 'status'=>$status,
+                    'needs_manual_reconciliation'=>($status==='approved'),
+                ]);
+                json([
+                    'ok'=>false,'code'=>'b1_unavailable','status'=>$status,
+                    'payment_id'=>$paymentId,'order_id'=>0,
+                    'manual_reconciliation_required'=>($status==='approved'),
+                    'error'=>$status==='approved'
+                        ? 'El pago fue aprobado, pero el producto ya no está disponible. Nuestro equipo debe conciliar el cobro; no realices otro pago.'
+                        : \App\Services\Checkout\CheckoutProductEligibilityGuard::ERROR,
+                ],$status==='approved' ? 202 : 409);
+                return;
             }
 
             $ui = $mapper->map($payment, [

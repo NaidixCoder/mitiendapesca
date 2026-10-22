@@ -102,6 +102,15 @@ final class OrderFromIntentService
             $addrSnap = json_decode($addressJson, true);
             if (!is_array($addrSnap)) $addrSnap = [];
 
+            // B1 definitiva ANTES de stock/pedido, bajo la MISMA transacción.
+            // Idempotencia de pedidos ya existentes está resuelta arriba.
+            [$eligible,$reason] = (new \App\Services\Checkout\CheckoutProductEligibilityGuard($this->db))
+                ->checkItems($items,true);
+            if (!$eligible) {
+                $this->db->rollBack();
+                return [false,$reason,0]; // conservar intent y pago para conciliación
+            }
+
             // 1) Validar y lockear stock por cada ítem
             foreach ($items as $it) {
                 $pid = (int)($it['id'] ?? $it['product_id'] ?? 0);

@@ -43,6 +43,12 @@ final class HomePageViewService
         $ids = array_values(array_unique(array_filter(array_map('intval', $ids), static fn(int $v): bool => $v > 0)));
         if ($ids === []) return [];
 
+        // Lector exclusivo de Home: NO alterar ProductReadRepository de Cart.
+        $visibility = new \App\Services\Catalog\ProductPublicVisibilityService(db());
+        $allowed = $visibility->eligibleIdsAmong($ids);
+        $ids = array_values(array_filter($ids, static fn(int $id): bool => isset($allowed[$id])));
+        if ($ids === []) return [];
+
         $statsByProduct = $this->variantPriceStatsByProduct($ids);
 
         $repo = new ProductReadRepository(db());

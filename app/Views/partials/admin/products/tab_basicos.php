@@ -94,12 +94,12 @@ $productTagIds = array_map('intval', is_array($productTagIds ?? null) ? $product
     <p class="av3-space-top-1 av3-type-caption av3-text-gray-500">Puedes asignar un proveedor ahora o dejarlo vacio y completarlo luego.</p>
   </label>
 
-  <div id="category-quick-modal" class="av3-fixed inset-0 av3-z--70 av3-hidden" aria-hidden="true">
+  <div id="category-quick-modal" class="av3-fixed inset-0 av3-z--70 av3-hidden" role="dialog" aria-modal="true" aria-labelledby="category-quick-title" aria-hidden="true">
     <div class="av3-absolute inset-0 av3-bg-black-40" data-category-quick-close></div>
     <div class="av3-relative av3-mx-auto av3-mt-24 av3-w--92vw av3-width-max-lg av3-radius-xl av3-surface-white av3-shadow-xl">
       <div class="av3-pad-5 av3-border-bottom">
         <div class="av3-flex av3-items-center av3-justify-between">
-          <h3 class="av3-type-lg av3-weight-strong">Crear categoria</h3>
+          <h3 id="category-quick-title" class="av3-type-lg av3-weight-strong">Crear categoría</h3>
           <button type="button" class="btn btn-ghost" data-category-quick-close>x</button>
         </div>
         <p class="av3-space-top-1 av3-type-body av3-text-slate-600">Elige si quieres crearla como categoria raiz o asignarle una categoria padre. Luego podras editarla desde Categorias.</p>
@@ -120,7 +120,7 @@ $productTagIds = array_map('intval', is_array($productTagIds ?? null) ? $product
           </select>
           <p class="av3-space-top-1 av3-type-caption av3-text-slate-500">Opcional. Puedes crearla como raiz o colgarla de una categoria existente.</p>
         </label>
-        <p id="category-quick-error" class="av3-type-body av3-text-var-danger av3-hidden"></p>
+        <p id="category-quick-error" class="av3-type-body av3-text-var-danger av3-hidden" role="alert" aria-live="polite"></p>
       </div>
 
       <div class="av3-pad-5 av3-border-top av3-flex av3-items-center av3-justify-end av3-gap-2">

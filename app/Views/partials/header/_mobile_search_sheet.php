@@ -1,15 +1,9 @@
 <?php
 $mobileSearchCategories = [];
 try {
-    $st = db()->prepare(
-        "SELECT slug, name
-         FROM categories
-         WHERE is_active = 1
-         ORDER BY sort ASC, name ASC
-         LIMIT 8"
-    );
-    $st->execute();
-    $mobileSearchCategories = $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    // El límite se aplica tras validar todos los ancestros, evitando huecos.
+    $mobileSearchCategories = (new \App\Repositories\Catalog\CategoryRepository(db()))
+        ->listPublicVisibleOrdered(8);
 } catch (Throwable) {
     $mobileSearchCategories = [];
 }

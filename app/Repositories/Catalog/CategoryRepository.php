@@ -2,14 +2,64 @@
 namespace App\Repositories\Catalog;
 
 use PDO;
+use App\Services\Catalog\CategoryPublicVisibilityService;
 
 final class CategoryRepository
 {
+    private ?CategoryPublicVisibilityService $publicVisibility = null;
+
     public function __construct(private PDO $db) {}
+
+    public function publicVisibility(): CategoryPublicVisibilityService
+    {
+        return $this->publicVisibility ??= new CategoryPublicVisibilityService($this->db);
+    }
+
+    /** @return array<int,bool> */
+    public function visibleCategoryIds(): array
+    {
+        return $this->publicVisibility()->visibleIdSet();
+    }
 
     public function db(): PDO
     {
         return $this->db;
+    }
+
+    /**
+     * Categorías públicas ordenadas para sitemap y navegación.
+     * Una carga de jerarquía compartida por instancia y una consulta ordenada;
+     * límite aplicado DESPUÉS del filtro para completar las plazas visibles.
+     *
+     * @return array<int,array{id:int,slug:string,name:string,created_at:?string}>
+     */
+    public function listPublicVisibleOrdered(?int $limit = null): array
+    {
+        $eligible = $this->visibleCategoryIds();
+        if ($eligible === []) return [];
+
+        $st = $this->db->query(
+            "SELECT id, slug, name, created_at
+             FROM categories
+             WHERE is_active = 1
+             ORDER BY sort ASC, name ASC"
+        );
+        $rows = [];
+        foreach ($st->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+            $id = (int)$row['id'];
+            if (!isset($eligible[$id])) continue;
+            $slug = trim((string)$row['slug']);
+            $name = trim((string)$row['name']);
+            if ($slug === '' || $name === '') continue;
+            $rows[] = [
+                'id' => $id,
+                'slug' => $slug,
+                'name' => $name,
+                'created_at' => $row['created_at'] === null ? null : (string)$row['created_at'],
+            ];
+            if ($limit !== null && count($rows) >= max(1, $limit)) break;
+        }
+        return $rows;
     }
 
     public function idBySlug(string $slug): ?int
@@ -37,7 +87,7 @@ final class CategoryRepository
         );
         $st->execute([$slug]);
         $row = $st->fetch(PDO::FETCH_ASSOC);
-        return $row ?: null;
+        return $row && $this->publicVisibility()->isVisibleId((int)$row['id']) ? $row : null;
     }
 
     public function idByName(string $name): ?int
@@ -71,8 +121,7 @@ final class CategoryRepository
                 "SELECT id, name, slug, sort, COALESCE(cover_image, '') AS cover_image
                  FROM categories
                  WHERE is_active = 1
-                 ORDER BY sort ASC, name ASC
-                 LIMIT $limit"
+                 ORDER BY sort ASC, name ASC"
             );
             $st->execute();
         } catch (\Throwable $e) {
@@ -81,13 +130,17 @@ final class CategoryRepository
                 "SELECT id, name, slug, sort, '' AS cover_image
                  FROM categories
                  WHERE is_active = 1
-                 ORDER BY sort ASC, name ASC
-                 LIMIT $limit"
+                 ORDER BY sort ASC, name ASC"
             );
             $st->execute();
         }
 
-        $rows = $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $eligible = $this->visibleCategoryIds();
+        $rows = array_values(array_filter(
+            $st->fetchAll(PDO::FETCH_ASSOC) ?: [],
+            static fn(array $row): bool => isset($eligible[(int)$row['id']])
+        ));
+        $rows = array_slice($rows, 0, $limit);
         foreach ($rows as &$r) {
             $r['id'] = (int)($r['id'] ?? 0);
             $r['sort'] = (int)($r['sort'] ?? 0);

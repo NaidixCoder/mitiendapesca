@@ -57,6 +57,16 @@ final class CheckoutController
         }
 
         $rawCart = $cartReadSvc->getCartView();
+        // No borrar ítems ocultos: conservarlos, pero forzar revisión del carrito
+        // antes de continuar. La validación definitiva ocurre al crear el pedido.
+        foreach ((array)($rawCart['items'] ?? []) as $rawItem) {
+            if (is_array($rawItem) && array_key_exists('is_publicly_available',$rawItem)
+                && empty($rawItem['is_publicly_available'])) {
+                flash('warn', 'Hay artículos no disponibles. Quitalos del carrito antes de continuar con la compra.');
+                redirect('/carrito?checkout_cambio=1');
+                return;
+            }
+        }
 
         // Guardrail: validar cambios de stock sobre el carrito crudo (no solo seleccionados).
         // Si alguna linea quedo fuera de stock o con qty mayor al stock, ajustamos y forzamos

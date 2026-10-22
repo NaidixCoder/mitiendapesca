@@ -2,6 +2,14 @@
 $selectedCart = is_array($selectedCart ?? null) ? $selectedCart : [];
 $selectedSummary = is_array($selectedSummary ?? null) ? $selectedSummary : [];
 $selectedQty = (int)($selectedCart['total_qty'] ?? 0);
+$hasB1Unavailable = false;
+foreach ((array)($cart['items'] ?? []) as $cartItem) {
+    if (is_array($cartItem) && array_key_exists('is_publicly_available',$cartItem)
+        && empty($cartItem['is_publicly_available'])) {
+        $hasB1Unavailable = true;
+        break;
+    }
+}
 $financedSubtotal = (int)($selectedSummary['financed_subtotal'] ?? 0);
 $transferSubtotal = (int)($selectedSummary['transfer_subtotal'] ?? 0);
 $transferSavings = (int)($selectedSummary['transfer_savings'] ?? 0);
@@ -10,6 +18,9 @@ $showFreeShipping = !empty($selectedSummary['show_free_shipping']);
 $freeShippingLabel = (string)($selectedSummary['free_shipping_label'] ?? 'Gratis');
 ?>
 <aside class="cart-summary">
+  <?php if ($hasB1Unavailable): ?>
+    <p role="alert">Tenés productos no disponibles. Se conservan en el carrito, pero debés quitarlos antes de continuar.</p>
+  <?php endif; ?>
   <div class="cart-summary__rows<?= $selectedQty <= 0 ?' cart-summary__rows--hidden' : '' ?>" data-cart-summary-rows>
     <div class="cart-summary__row cart-summary__row--products">
       <span>Productos (<span data-cart-selected-qty><?= $selectedQty ?></span>)</span>
@@ -41,9 +52,9 @@ $freeShippingLabel = (string)($selectedSummary['free_shipping_label'] ?? 'Gratis
   <div class="cart-summary__actions">
     <a
       href="<?= url('/checkout') ?>"
-      class="cart-summary__btn cart-summary__btn--primary<?= $selectedQty <= 0 ?' cart-summary__btn--disabled' : '' ?>"
+      class="cart-summary__btn cart-summary__btn--primary<?= ($selectedQty <= 0 || $hasB1Unavailable) ?' cart-summary__btn--disabled' : '' ?>"
       data-cart-checkout-btn
-      aria-disabled="<?= $selectedQty <= 0 ? 'true' : 'false' ?>"
+      aria-disabled="<?= ($selectedQty <= 0 || $hasB1Unavailable) ? 'true' : 'false' ?>"
     >Continuar compra</a>
     <a href="<?= url('/productos') ?>" class="cart-summary__btn cart-summary__btn--secondary">Seguir comprando</a>
   </div>

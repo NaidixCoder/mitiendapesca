@@ -67,7 +67,13 @@ final class CartViewModelService
         $item['display_transfer_unit_label'] = money($transfer);
         $item['display_financed_line_label'] = money($financedLine);
         $item['display_transfer_line_label'] = money($transferLine);
-        $item['is_selectable'] = ($isActive && $stock > 0);
+        // Compatibilidad: callers legacy pueden aportar items sin esta clave.
+        // getCartView() B1 siempre la informa expresamente.
+        $b1Available = !array_key_exists('is_publicly_available', $item)
+            || !empty($item['is_publicly_available']);
+        $item['is_selectable'] = ($isActive && $stock > 0 && $b1Available);
+        $item['public_unavailable_reason'] = $b1Available
+            ? '' : (string)($item['public_unavailable_reason'] ?? 'Producto no disponible para compra.');
 
         return $item;
     }

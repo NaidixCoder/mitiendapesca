@@ -64,40 +64,70 @@ final class ProductsController extends BaseController
     public function index(): void
     {
         try {
-            // 0) LEGACY redirect (compatibilidad): /productos?categoria=... o /productos?marca=...
-            // Decisión UX/SEO: las landings correctas son /categoria?slug=... y /marca?slug=...
+            // 0) LEGACY redirect (solo cuando la landing pública de destino
+            // existe y está habilitada; no generar 301 -> 404).
             $get = $_GET ?? [];
-            $legacyCat   = trim((string)($get['categoria'] ?? ''));
-            $legacyBrand = is_array($get['marca'] ?? null) ? '' : trim((string)($get['marca'] ?? ''));
-            if ($legacyCat !== '' || $legacyBrand !== '') {
-                $isCat = ($legacyCat !== '');
-                $base  = $isCat ? \url('/categoria') : \url('/marca');
-                $params = [
-                    'slug' => $isCat ? $legacyCat : $legacyBrand,
-                ];
-                if ($isCat && !empty($get['sub'])) {
-                    $params['sub'] = trim((string)$get['sub']);
-                }
-                // Preservar filtros útiles (sin mantener categoria/marca legacy)
-                foreach (['q','min','max','orden','page','perPage','per_page'] as $k) {
-                    if (isset($get[$k]) && $get[$k] !== '') {
-                        $params[$k] = $get[$k];
+            $legacyCatRaw = $get['categoria'] ?? null;
+            $legacyBrandRaw = $get['marca'] ?? null;
+            if ($legacyCatRaw !== null || $legacyBrandRaw !== null) {
+                // Rechazar arrays y claves manipuladas, sin normalizarlas a string.
+                // marca[]=slug es un filtro múltiple del catálogo, NO un
+                // slug legacy para 301. Conservarlo sin reinterpretarlo.
+                $brandFilter = is_array($legacyBrandRaw);
+                if ($brandFilter) {
+                    if (!array_is_list($legacyBrandRaw)) {
+                        http_response_code(404);
+                        render_page('errors/404');
+                        return;
+                    }
+                    foreach ($legacyBrandRaw as $filterBrand) {
+                        if (!is_string($filterBrand) ||
+                            !preg_match('/^[\\pL\\pN][\\pL\\pN._-]{0,159}$/u', $filterBrand)) {
+                            http_response_code(404);
+                            render_page('errors/404');
+                            return;
+                        }
                     }
                 }
-                $qs = http_build_query($params);
-                $to = $base . ($qs ? ('?' . $qs) : '');
-                header('Location: ' . $to, true, 301);
-                exit;
+                if ($legacyCatRaw !== null && !is_string($legacyCatRaw)) {
+                    http_response_code(404);
+                    render_page('errors/404');
+                    return;
+                }
+                $legacyCat = $brandFilter ? '' : trim((string)($legacyCatRaw ?? ''));
+                $legacyBrand = $brandFilter ? '' : trim((string)($legacyBrandRaw ?? ''));
+                if ($legacyCat !== '' || $legacyBrand !== '') {
+                    $isCat = $legacyCat !== '';
+                    $params = ['slug' => $isCat ? $legacyCat : $legacyBrand];
+                    if ($isCat && isset($get['sub'])) $params['sub'] = $get['sub'];
+
+                    // Solo filtros de catálogo conocidos; no transportar
+                    // arbitrariamente URLs ni parámetros de redirección.
+                    foreach (['q','min','max','orden','page','perPage','per_page'] as $k) {
+                        if (isset($get[$k]) && $get[$k] !== '') $params[$k] = $get[$k];
+                    }
+                    $to = ($isCat ? '/categoria' : '/marca') .
+                        '?' . http_build_query($params, '', '&', PHP_QUERY_RFC3986);
+                    $resolver = new \App\Services\Seo\PublicRedirectTargetResolver(db());
+                    $safeTarget = $resolver->resolveDirect($to);
+                    if ($safeTarget === null) {
+                        http_response_code(404);
+                        render_page('errors/404');
+                        return;
+                    }
+                    header('Location: ' . \url($safeTarget), true, 301);
+                    exit;
+                }
             }
 
             // 1) Filtros normalizados
             $filterSvc = new FilterService();
             $filters   = $filterSvc->fromRequest($_GET ?? []);
 
-            // Ajuste (modo híbrido): si está ON, ocultar en el sitio los productos cuya categoría esté inactiva.
-            $settingsRepo = new AppSettingsRepository(db());
-            $hideInactiveCat = ($settingsRepo->get('catalog_hide_inactive_category_products', '0') === '1');
-            $filters['enforce_active_category'] = $hideInactiveCat ? '1' : '0';
+            // B1 se impone siempre desde ProductRepository en SQL para todos los
+            // consumidores públicos; el filtro legacy se conserva solo como contexto.
+            $filters['enforce_active_category'] = (new \App\Services\Catalog\ProductPublicVisibilityService(db()))
+                ->hidesHiddenCategoryProducts() ? '1' : '0';
 
             // 2) Paginación
             $productRepo = new ProductRepository(db());
@@ -122,7 +152,8 @@ final class ProductsController extends BaseController
                 $canLog = false;
             }
 
-            if ($uidTrack > 0 && $qTrack !== '' && mb_strlen($qTrack, 'UTF-8') >= 2 && $canLog) {
+            if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' &&
+                $uidTrack > 0 && $qTrack !== '' && mb_strlen($qTrack, 'UTF-8') >= 2 && $canLog) {
                 Audit::log('catalog_search', 'user', $uidTrack, [
                     'q'         => $qTrack,
                     'categoria' => (string)($filters['categoria'] ?? ''),

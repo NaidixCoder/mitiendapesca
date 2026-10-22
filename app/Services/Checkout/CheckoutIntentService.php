@@ -20,12 +20,27 @@ final class CheckoutIntentService
     {
         $cartSvc = new CartReadService($this->db);
         $selectionSvc = new CartSelectionService();
-        $cart = $selectionSvc->apply($cartSvc->getCartView());
+        $raw = $cartSvc->getCartView();
+        foreach ((array)($raw['items'] ?? []) as $item) {
+            if (is_array($item) && array_key_exists('is_publicly_available',$item)
+                && empty($item['is_publicly_available'])) {
+                return [false,CheckoutProductEligibilityGuard::ERROR,
+                    ['code'=>'b1_unavailable']];
+            }
+        }
+        $cart = $selectionSvc->apply($raw);
         $pricing = new CommercialPriceService(new AppSettingsRepository($this->db));
         $effectiveCart = $pricing->buildCheckoutCart($cart, $paymentMethod);
 
         if (empty($effectiveCart['items'])) {
             return [false, 'Tu carrito está vacío.', []];
+        }
+        try {
+            [$eligible, $reason] = (new CheckoutProductEligibilityGuard($this->db))
+                ->checkItems((array)$effectiveCart['items']);
+            if (!$eligible) return [false,$reason,['code'=>'b1_unavailable']];
+        } catch (\Throwable $e) {
+            return [false,'No pudimos verificar la disponibilidad de tus productos.',['code'=>'b1_validation_error']];
         }
 
         $addrRepo = new AddressRepository($this->db);

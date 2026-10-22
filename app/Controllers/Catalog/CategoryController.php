@@ -30,6 +30,8 @@ final class CategoryController extends BaseController
             $categoryRepo = new CategoryRepository($db);
             $category = $categoryRepo->findActiveBySlug($slug);
             if (!$category) {
+                // Incluye ancestros inactivos, ciclos y referencias inexistentes.
+                http_response_code(404);
                 render_page('errors/404');
                 return;
             }
@@ -49,6 +51,19 @@ final class CategoryController extends BaseController
                 unset($filters['category_slug']);
             }
             $filters['slug'] = $slug;
+            // Subárbol de profundidad arbitraria, sin ocultar productos con B1 OFF.
+            // B1 ON filtra cada producto en SQL antes de paginar.
+            $productVisibility = new \App\Services\Catalog\ProductPublicVisibilityService($db);
+            $scope = $productVisibility->descendantCategoryIds((int)$category['id']);
+            $selectedSub = trim((string)($filters['sub'] ?? ''));
+            if (!$isChildCategory && $selectedSub !== '') {
+                $subId = $categoryRepo->idBySlug($selectedSub);
+                $scope = $subId !== null && in_array($subId, $scope, true)
+                    ? $productVisibility->descendantCategoryIds($subId)
+                    : [];
+            }
+            $filters['category_scope_ids'] = $scope;
+            $filters['enforce_active_category'] = $productVisibility->hidesHiddenCategoryProducts() ? '1' : '0';
 
             $productRepo = new ProductRepository($db);
             $productSvc = new ProductService($productRepo);

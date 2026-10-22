@@ -162,6 +162,9 @@ final class CartSelectionService
      */
     private function isItemSelectable(array $item): bool
     {
+        if (array_key_exists('is_publicly_available', $item) && empty($item['is_publicly_available'])) {
+            return false;
+        }
         if (array_key_exists('is_selectable', $item)) {
             return !empty($item['is_selectable']);
         }

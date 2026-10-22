@@ -49,11 +49,9 @@ final class ProductController
             return;
         }
 
-        // Ajuste (modo híbrido): si está ON, ocultar productos cuya categoría esté inactiva.
-        // (Productos sin categoría siguen visibles.)
-        $settingsTmp = new AppSettingsRepository($db);
-        $enforceActiveCategory = ($settingsTmp->get('catalog_hide_inactive_category_products', '0') === '1');
-        if ($enforceActiveCategory && !empty($product['category_id']) && (int)($product['category_is_active'] ?? 1) === 0) {
+        $visibility = new \App\Services\Catalog\ProductPublicVisibilityService($db);
+        if (!$visibility->permitsProduct((int)($product['category_id'] ?? 0), true)) {
+            http_response_code(404);
             render_page('errors/404', ['message' => 'Producto no encontrado']);
             return;
         }
@@ -280,8 +278,12 @@ final class ProductController
             ['name' => 'Inicio', 'url' => url('/')],
             ['name' => 'Productos', 'url' => url('/productos')],
         ];
-        if (!empty($product['category_name'])) {
+        if (!empty($product['category_name']) && $visibility->isCategoryPubliclyVisible((int)($product['category_id'] ?? 0))) {
             $trail[] = ['name' => (string)$product['category_name'], 'url' => url('/categoria').'?slug='.urlencode((string)($product['category_slug'] ?? ''))];
+        } else {
+            // B1 OFF permite producto activo aunque su categoría dé HTTP 404.
+            $product['category_name'] = '';
+            $product['category_slug'] = '';
         }
         $trail[] = ['name' => (string)($product['name'] ?? 'Producto'), 'url' => url('/producto').'?slug='.urlencode($slug)];
 
@@ -299,7 +301,8 @@ final class ProductController
 
         // Analíticas: visita a ficha de producto
         try {
-            if (class_exists(\App\Services\Analytics\AnalyticsService::class)) {
+            if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' &&
+                class_exists(\App\Services\Analytics\AnalyticsService::class)) {
                 (new \App\Services\Analytics\AnalyticsService($db))->trackProductView((int)$id);
             }
         } catch (\Throwable $e) { /* no bloqueante */ }

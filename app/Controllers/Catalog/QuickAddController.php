@@ -28,7 +28,9 @@ final class QuickAddController
 
         $product = (new ProductRepository($db))->findQuickAdd($productId);
 
-        if (!$product || empty($product['is_active'])) {
+        $allowed = $product ? (new \App\Services\Catalog\ProductPublicVisibilityService($db))
+            ->eligibleIdsAmong([$productId]) : [];
+        if (!$product || !isset($allowed[$productId])) {
             http_response_code(404);
             echo 'Producto no encontrado.';
             return;

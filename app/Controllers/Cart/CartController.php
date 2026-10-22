@@ -55,6 +55,12 @@ final class CartController
         $readSvc = new CartReadService($db);
         $rawCart = $readSvc->getCartView();
         $cart = (new CartViewModelService($db))->build($rawCart);
+        foreach ((array)($cart['items'] ?? []) as $item) {
+            if (is_array($item) && empty($item['is_publicly_available'])) {
+                flash('warn', 'Hay productos que dejaron de estar disponibles. Permanecen en tu carrito para que puedas revisarlos o quitarlos.');
+                break;
+            }
+        }
         $selectionSvc = new CartSelectionService();
         $selectedKeys = $selectionSvc->selectedKeys($cart);
         $selectedCart = $selectionSvc->apply($cart);
@@ -427,6 +433,10 @@ public function mergeDiscard(): void
      */
     private function itemHint(array $item): array
     {
+        if (array_key_exists('is_publicly_available', $item) && empty($item['is_publicly_available'])) {
+            return ['Este producto está oculto para nuevas compras. Se conserva en tu carrito; podés quitarlo.',
+                'cart-item__stock--error'];
+        }
         $isActive = !empty($item['is_active']);
         if (!$isActive) {
             return ['Este producto ya no está disponible para comprar. Lo mantenemos en tu carrito, pero no se sumará al pedido.', 'cart-item__stock--error'];

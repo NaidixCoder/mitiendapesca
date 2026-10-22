@@ -8,8 +8,21 @@
   // ---------- Variables de página (fallbacks/dinámicos) ----------
   $siteName = 'Mi Pesca & Aventura';
 
-  // SEO array opcional inyectado desde el controller
-  $seo = $seo ?? [];
+  // render_page incluye el head ANTES de la vista 404. Sus metadatos
+  // deben decidirse acá, sin esperar al cuerpo ni heredar SEO del producto.
+  $isNotFoundPage = ($name ?? '') === 'errors/404';
+  if ($isNotFoundPage) {
+    http_response_code(404);
+    $seo = [
+      'type' => 'website',
+      'title' => '404 - Página no encontrada | Mi Pesca & Aventura',
+      'description' => 'La página que buscás no existe o fue movida.',
+      'robots' => 'noindex,nofollow',
+    ];
+    $extraHead = '';
+  } else {
+    $seo = $seo ?? [];
+  }
 
   // Título / descripción con precedencia: $seo > $page* locales > defaults
   $pageTitle = $seo['title']        ?? ($pageTitle ?? $siteName);
@@ -20,7 +33,7 @@
   $defaultCanonical = (isset($uri) && $uri === '/')
                       ? base_url('/')
                       : base_url(ltrim($uri ?? '/', '/'));
-  $canonical = $seo['canonical'] ?? ($canonical ?? $defaultCanonical);
+  $canonical = $isNotFoundPage ? null : ($seo['canonical'] ?? ($canonical ?? $defaultCanonical));
 
   // Robots: por defecto index,follow. Para listados filtrados, el controller puede enviar noindex.
   $robots = $seo['robots'] ?? ($robots ?? 'index,follow');
@@ -46,7 +59,9 @@
 
   <title><?= e($pageTitle) ?></title>
   <meta name="description" content="<?= e($pageDesc) ?>">
+  <?php if ($canonical !== null && trim((string)$canonical) !== ''): ?>
   <link rel="canonical" href="<?= e($canonical) ?>">
+  <?php endif; ?>
   <meta name="robots" content="<?= e($robots) ?>">
   <meta name="theme-color" content="#016d6e">
 
@@ -56,7 +71,9 @@
   <meta property="og:locale" content="es_AR">
   <meta property="og:title" content="<?= e($ogTitle) ?>">
   <meta property="og:description" content="<?= e($ogDesc) ?>">
+  <?php if (!$isNotFoundPage && $ogUrl !== null): ?>
   <meta property="og:url" content="<?= e($ogUrl) ?>">
+  <?php endif; ?>
   <meta property="og:image" content="<?= e($ogImage) ?>">
 
   <!-- Twitter -->
@@ -221,7 +238,7 @@
 
 <?php
 // JSON-LD específico por página (producto/categoría/marca, etc.)
-$seoJsonLd = $seo['jsonld'] ?? null;
+$seoJsonLd = $isNotFoundPage ? null : ($seo['jsonld'] ?? null);
 if (is_string($seoJsonLd) && trim($seoJsonLd) !== '') {
   echo $seoJsonLd;
 } elseif (is_array($seoJsonLd) && !empty($seoJsonLd)) {
@@ -237,7 +254,7 @@ if (is_string($seoJsonLd) && trim($seoJsonLd) !== '') {
 }
 ?>
 
-<?= $extraHead ?>
+<?php if (!$isNotFoundPage) echo $extraHead; ?>
 
 </head>
 <body<?= $resolvedPageId !== '' ? ' data-page="' . e($resolvedPageId) . '"' : '' ?>>
