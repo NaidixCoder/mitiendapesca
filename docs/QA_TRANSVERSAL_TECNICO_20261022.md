@@ -38,3 +38,7 @@ Se creó un MariaDB **descartable** en `127.0.0.1:18989`, base exclusiva `mi_tra
 - Finalizar con gate global **cuando estén integrados los módulos restantes** y se disponga del E2E SQL/HTTP autorizado. No repetir gates pesados durante edición concurrente de especialistas.
 
 **Conclusión del avance:** no se observó regresión en los contratos ejecutados. QA transversal completo y producción permanecen sin aprobar. Sin cambios en archivos de los especialistas.
+
+## Actualización — Integración de módulos (2026-10-22)
+
+Atributos cerró e integró sus protecciones P0 de asociaciones/plantillas (commit local `c893a12`) y Marcas cerró e integró persistencia atómica Marca+SEO/imágenes (commit local `00a176b`). Su QA SQL/HTTP completo sigue respaldado por los informes del especialista; el principal reejecutó contratos y 18 casos SQLite Atributos. Se resolvió también el caso de imágenes remotas de Marcas en el catálogo público, con **8/8** aserciones ejecutables sintéticas. El E2E transaccional real de `ImportService` junto a Atributos sigue pendiente (el fixture SQL del principal fue escrito pero su ejecución remota se bloqueó), junto a la política de UNIQUE físico, el posible evento histórico de login fallido del primer ensayo y homologación MP. No producción.

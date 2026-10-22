@@ -9,11 +9,12 @@ foreach ((array)$brands as $brand) {
         continue;
     }
 
+    $coverImage = (string)($brand['cover_image'] ?? '');
     $items[] = [
         'name' => $name,
         'count' => (int)($brand['product_count'] ?? 0),
         'href' => url('/marca') . '?slug=' . urlencode($slug),
-        'image_url' => public_url((string)($brand['cover_image'] ?? '')),
+        'image_url' => preg_match('#^https?://#i', $coverImage) ? $coverImage : public_url($coverImage),
     ];
 }
 

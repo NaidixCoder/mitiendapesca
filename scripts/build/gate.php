@@ -69,6 +69,9 @@ $command([PHP_BINARY, 'scripts/build/checkout_intent_reuse_contract.php'], 'Chec
 $command([PHP_BINARY, 'scripts/build/checkout_payment_orphan_contract.php'], 'Pago aprobado sin pedido: respuesta y conciliación');
 $command([PHP_BINARY, 'scripts/build/checkout_payment_integrity_contract.php'], 'Checkout MP integridad');
 $command([PHP_BINARY, 'scripts/build/checkout_payment_frontend_contract.php'], 'Checkout MP respuesta al cliente');
+$command([PHP_BINARY, 'scripts/build/attributes_admin_contract.php'], 'Atributos Admin: integridad y UI');
+$command([PHP_BINARY, 'scripts/build/brands_admin_contract.php'], 'Marcas Admin: SEO, portada y UI');
+$command([PHP_BINARY, 'scripts/build/brands_public_cover_contract.php'], 'Marcas catálogo: portadas HTTP(S) y locales');
 foreach (glob('scripts/build/imports_*_contract.php') ?: [] as $importContract) {
     $command([PHP_BINARY, $importContract], 'Importaciones: '.basename($importContract));
 }
