@@ -64,8 +64,7 @@ ORDER BY created_at, id;
 
 **Operación:** el responsable debe cotejar la referencia del intent con el historial oficial de Mercado Pago, `payments`, `orders` y auditoría antes de permitir nuevos cobros. Si falta evidencia de resultado no se debe limpiar manualmente el marcador ni solicitar otro pago. Desbloquear únicamente mediante un procedimiento administrativo con aprobación y log de auditoría, todavía **no desarrollado ni autorizado para producción**. No hay devolución, creación de pedido ni movimiento contable automáticos.
 
-**Estado técnico al 22/10/2026:** el código del marcador está implementado localmente y sintácticamente válido, pero su E2E aislado específico está pendiente porque la herramienta bloqueó su ejecución. El marcador no constituye por sí solo conciliación financiera aprobada.
-
+**Estado técnico al 22/10/2026:** el marcador duradero fue verificado en 10/10 ensayos MariaDB privados y la concurrencia de pedido/stock en 6/6 aserciones, con dos procesos PHP simultáneos en base sintética. El uso de payment_in_flight sigue sujeto al procedimiento de conciliación humana. Esto NO prueba homologación externa de Mercado Pago ni habilita producción.
 ## Evidencia integral del cierre tÃ©cnico V2 (22/10/2026)
 
 - MariaDB temporal y descartable 127.0.0.1:18959, base mi_checkout_integral_v2_test, con guardias DATABASE() y @@port y datos sintÃ©ticos.

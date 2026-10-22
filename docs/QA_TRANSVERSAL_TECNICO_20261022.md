@@ -61,3 +61,9 @@ HAVING COUNT(*) > 1;
 - Próximo bloqueo externo: habilitar/autorizar ejecución E2E MariaDB privada para `ImportService` ↔ atributos, stock, B1 y reversión I05; ejecutar HTTP sintético completo con login aislado antes de aprobación transversal. MP continúa pendiente de homologación real y operador financiero para conciliación, sin reembolsos automáticos.
 
 - **Gate general tras integrar el nuevo contrato cruzado:** `scripts/build/gate.php` **PASS**: 888 archivos PHP, 120 JavaScript, contratos de Categorías, Importaciones, Checkout/MP, Atributos, Marcas y 27 casos cruzados; salida `[gate] OK`, exit 0. Este gate no convierte el E2E MariaDB bloqueado en prueba pasada.
+
+## Dictamen consolidado de cierre (22/10/2026)
+
+Documento principal de salida: `docs/CIERRE_TRANSVERSAL_TECNICO_20261022.md`. En esta pasada se verificó documentación oficial de pruebas de Checkout Bricks y validación Webhooks; `scripts/build/transversal_mp_signature_contract.php` aportó **15/15 firmas HMAC verificadas con el controlador real y datos sintéticos**, incorporado al gate.
+
+**GO a integración interna de cambios y regresiones; NO GO a producción** hasta completar prueba E2E SQL transversal con `ImportService` real en DB desechable, homologación externa Mercado Pago y adopción del procedimiento supervisado de conciliación. No modificar el esquema real por UNIQUE físico sin diagnóstico/compatibilidad de NULL. Diseño visual pendiente por decisión del propietario.

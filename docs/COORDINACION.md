@@ -325,3 +325,11 @@
 - No tocar `docs/ESTADO_DESARROLLO.md` editado fuera de este mandato; no datos comerciales ni producción. Falta homologación MP y conciliación supervisada.
 
 - Gate global de segunda pasada QA transversal **PASS**: 888 PHP / 120 JS, incluye contrato cruzado 27/27; sin nueva alteración comercial, visual ni producción. Se mantiene pendiente E2E MariaDB auténtico bloqueado por el entorno.
+
+### 2026-10-22 — Dictamen de cierre transversal del principal (regresiones internas OK, NO GO producción)
+
+- Nuevo contrato `scripts/build/transversal_mp_signature_contract.php`: **15/15 PASS**, ejercita método real de firma HMAC del webhook con datos sintéticos, sin DB/HTTP externos: query `data.id` en mayúsculas, firma correcta, firma fraudulenta, ID/request-id alterados y headers faltantes; incorporado al gate global. Documentación oficial de prueba para Checkout Bricks y eventos Webhooks contrastada.
+- La certificación de alcance se registra en `docs/CIERRE_TRANSVERSAL_TECNICO_20261022.md`. Aceptación de integración interna y contratos, **NO GO producción** por falta de E2E ImportService↔Atributos↔B1 en MariaDB privada (el ejecutor remoto bloqueó iniciar esquema; sin bypass), homologación MP con credenciales de prueba/endpoint HTTPS y responsable financiero de conciliación. El entorno temporal de la última ejecución quedó eliminado.
+- Se aclaró el estado de `payment_in_flight` en protocolo MP: 10 casos aislados PASS en tanda anterior, aunque su conciliación operativa y validación real con proveedor siguen pendientes. No se accedió a DB habitual, no hubo pagos/refunds automáticos, migración UNIQUE ni aprobación visual.
+
+- **Gate definitivo de auditoría interna** tras añadir firma HMAC MP: 889 PHP / 120 JS / `[gate] OK` / exit 0, todos los contratos de categorías, imports, atributos, marcas, checkout, 27 B1/CSV y 15 firmas webhook PASS. Dictamen firmado en `docs/CIERRE_TRANSVERSAL_TECNICO_20261022.md`: **GO integración interna, NO GO producción** hasta E2E MariaDB y homologación + responsable de conciliación. Visual postergado.
