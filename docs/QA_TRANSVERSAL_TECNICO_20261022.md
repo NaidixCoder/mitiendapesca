@@ -42,3 +42,22 @@ Se creó un MariaDB **descartable** en `127.0.0.1:18989`, base exclusiva `mi_tra
 ## Actualización — Integración de módulos (2026-10-22)
 
 Atributos cerró e integró sus protecciones P0 de asociaciones/plantillas (commit local `c893a12`) y Marcas cerró e integró persistencia atómica Marca+SEO/imágenes (commit local `00a176b`). Su QA SQL/HTTP completo sigue respaldado por los informes del especialista; el principal reejecutó contratos y 18 casos SQLite Atributos. Se resolvió también el caso de imágenes remotas de Marcas en el catálogo público, con **8/8** aserciones ejecutables sintéticas. El E2E transaccional real de `ImportService` junto a Atributos sigue pendiente (el fixture SQL del principal fue escrito pero su ejecución remota se bloqueó), junto a la política de UNIQUE físico, el posible evento histórico de login fallido del primer ensayo y homologación MP. No producción.
+
+## 2026-10-22 — Segunda pasada ejecutada directamente por el chat principal
+
+**Estado:** QA focal cruzado ampliado, **no equivale a QA E2E MariaDB completo**, revisión visual y producción siguen diferidas.
+
+- **Reejecución independiente real**: nuevo contrato `scripts/build/transversal_catalog_checkout_contract.php`, **27/27 PASS**, con SQLite `:memory:` y servicios REALES `CategoryPublicVisibilityService`, `ProductPublicVisibilityService`, `CheckoutProductEligibilityGuard`, `RowNormalizer` y `RowValidator`. Verifica B1 OFF/ON, ancestros desactivados, ciclos, categorías huérfanas, producto inactivo, variante inactiva/de otro producto, carrito mixto, revalidación de carrito antiguo tras desactivación y normalización de `attr_1/valor_1`, fila incompleta inválida. No replica `FOR UPDATE` ni `ImportService` completo.
+- `scripts/dev/attributes_integrity_isolated.php`: **18/18 PASS** nuevamente; Atributos protege selecciones/plantillas ante baja o pares inválidos con SQLite aislado. Integrados previamente Atributos y Marcas en Git; las portadas HTTPS ya tienen contrato público 8/8.
+- **Intento MariaDB privado:** inició MariaDB propia `127.0.0.1:18989` bajo `%TEMP%/mi_transversal_qa_20261022`; una política de seguridad del ejecutor remoto **bloqueó la llamada de inicialización del esquema**. No se continuó por vías alternativas para eludir el bloqueo. Por tanto el fixture `scripts/dev/transversal_import_category_checkout_isolated.php` permanece sin ejecución E2E acreditada. `mysqld` privado detenido, directorio eliminado y puerto 18989 libre **comprobado**. No se consultó `.env`, DB comercial ni se hicieron pagos.
+- **UNIQUE físico de plantillas:** `database/schema.sql` define `variant_value_sets(name,category_id,brand_id NULL)` con índice **no único** `idx_vvs_cat_brand`; `variant_value_set_items` sí tiene UNIQUE por triple. Un simple `UNIQUE(name,category_id,brand_id)` en MySQL/MariaDB **no impide duplicados cuando brand_id es NULL**. Los servicios de Atributos tienen validaciones/bloqueos lógicos, pero no protegen escrituras externas. **No se crea una migración destructiva sin diagnosticar duplicados históricos y definir semántica de NULL.**
+- **Diagnóstico propuesto solo de lectura para futura migración en un entorno autorizado**:
+```sql
+SELECT category_id, brand_id, name, COUNT(*) AS cantidad
+FROM variant_value_sets
+GROUP BY category_id, brand_id, name
+HAVING COUNT(*) > 1;
+```
+- Próximo bloqueo externo: habilitar/autorizar ejecución E2E MariaDB privada para `ImportService` ↔ atributos, stock, B1 y reversión I05; ejecutar HTTP sintético completo con login aislado antes de aprobación transversal. MP continúa pendiente de homologación real y operador financiero para conciliación, sin reembolsos automáticos.
+
+- **Gate general tras integrar el nuevo contrato cruzado:** `scripts/build/gate.php` **PASS**: 888 archivos PHP, 120 JavaScript, contratos de Categorías, Importaciones, Checkout/MP, Atributos, Marcas y 27 casos cruzados; salida `[gate] OK`, exit 0. Este gate no convierte el E2E MariaDB bloqueado en prueba pasada.

@@ -317,3 +317,11 @@
 - Dependencia externa de Marcas resuelta en Catálogo público: HTTPS/HTTP remoto sin prefijo local, rutas relativas/absolutas locales con public_url, prueba ejecutable **8/8 PASS**. Documentación detallada en `docs/AUDITORIA_ATRIBUTOS_MARCAS_20261022.md`.
 - **Incidente reportado por Atributos:** primer arranque HTTP podía usar `.env` habitual y efectuar hasta un login fallido; detenido antes de validar DB. HTTP definitivo 25 casos usó guard privado comprobado. No se consultaron ni limpiaron logs/datos comerciales, por lo tanto NO afirmar ausencia de efectos iniciales; considerar consulta forense read-only autorizada si se pide.
 - Reservas: UNIQUE físico en plantillas requiere análisis de compatibilidad/datos previo a migración; QA E2E ImportService↔Atributos aún pendiente; homologación MP y conciliación financiera humana pendientes; visual postergado y producción bloqueada. Gate global final después de sumar contratos y commit/push sólo si PASS.
+
+### 2026-10-22 — Principal: segunda pasada QA cruzado
+- `scripts/build/transversal_catalog_checkout_contract.php` **27/27 PASS** con servicios reales de categoría/B1/guard Checkout + CSV normalizer/validator, SQLite :memory:. `attributes_integrity_isolated.php` **18/18 PASS**. Nuevo contrato sumado a `scripts/build/gate.php` (gate global al cierre).
+- Intento MariaDB temporal 18989: inicialización del servidor PASS, **llamada de carga del esquema bloqueada por controles de herramienta**, no se eludió ni se ejecutó el E2E. Servidor privado detenido, carpeta eliminada, puerto liberado verificados.
+- Esquema de plantillas: no agregar UNIQUE físico sin validar duplicados históricos y brand_id NULL. Ver `docs/QA_TRANSVERSAL_TECNICO_20261022.md`.
+- No tocar `docs/ESTADO_DESARROLLO.md` editado fuera de este mandato; no datos comerciales ni producción. Falta homologación MP y conciliación supervisada.
+
+- Gate global de segunda pasada QA transversal **PASS**: 888 PHP / 120 JS, incluye contrato cruzado 27/27; sin nueva alteración comercial, visual ni producción. Se mantiene pendiente E2E MariaDB auténtico bloqueado por el entorno.
