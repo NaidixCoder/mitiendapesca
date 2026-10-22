@@ -1,6 +1,11 @@
 <?php
 namespace App\Controllers\Admin;
 
+use App\Repositories\Admin\BrandAdminRepository;
+use App\Services\Admin\Brands\ViewModels\BrandsIndexViewModel;
+use App\Services\Admin\Brands\BrandFormDraft;
+use App\Services\Admin\Brands\BrandSaveService;
+use App\Services\Admin\Brands\BrandSeoInput;
 use App\Services\Audit\Audit;
 use App\Services\Seo\BrandSeoBlocksService;
 use App\Services\Seo\SeoAuditService;
@@ -10,23 +15,28 @@ use Throwable;
 
 class BrandsController extends BaseController {
   public function index(): void {
-    $db = db();
-    $q  = trim($_GET['q'] ?? '');
-    $where = ''; $params=[];
-    if ($q!==''){ $where='WHERE (name LIKE :q OR slug LIKE :q)'; $params[':q']="%{$q}%"; }
-    $st = $db->prepare("SELECT id,name,slug,sort,cover_image,created_at FROM brands $where ORDER BY sort ASC, name ASC");
-    $st->execute($params);
-    $rows = $st->fetchAll(PDO::FETCH_ASSOC);
-    render_page('admin/brands/index', compact('rows','q'));
+    $q = mb_substr(trim((string)($_GET['q'] ?? '')), 0, 120);
+    $per = in_array((int)($_GET['per'] ?? 25), [25, 50], true) ? (int)($_GET['per'] ?? 25) : 25;
+    $page = max(1, (int)($_GET['page'] ?? 1));
+    $result = (new BrandAdminRepository(db()))->listPage($q, $page, $per);
+    $vm = (new BrandsIndexViewModel())->build($result['rows'], $result['total'], $q, $page, $per);
+    render_page('admin/brands/index', array_merge(['pageId' => 'admin-brands-index'], $vm));
   }
 
   public function form(): void {
     $db = db();
     $id = (int)($_GET['id'] ?? 0);
     $row = ['id'=>0,'name'=>'','slug'=>'','meta_title'=>null,'meta_description'=>null,'seo_text'=>null,'sort'=>0,'cover_image'=>''];
-    if ($id>0){ $st=$db->prepare("SELECT * FROM brands WHERE id=?"); $st->execute([$id]); $row=$st->fetch(PDO::FETCH_ASSOC) ?: $row; }
+    if ($id > 0) {
+      $existing = (new BrandAdminRepository($db))->find($id);
+      if ($existing === null) {
+        flash('error', 'La marca solicitada no existe.');
+        redirect('/admin/brands');
+        return;
+      }
+      $row = $existing;
+    }
 
-    $seoAudit = (new SeoAuditService($db))->auditBrandForAdmin($row);
     $seoSettings = ($id > 0) ? (new SeoManagerService($db))->getSettings('brand', (int)$id) : [];
     $seoBlocks = ['bullets'=>[], 'specs'=>[], 'faq'=>[]];
     if ($id > 0) {
@@ -34,8 +44,17 @@ class BrandsController extends BaseController {
         $seoBlocks = (new BrandSeoBlocksService($db))->getForBrand((int)$id);
       } catch (Throwable $e) {
         if (function_exists('log_error')) log_error('Admin\\BrandsController seoBlocks: '.$e->getMessage());
+        // No mostrar bloques vacíos si falló leer los existentes: guardar
+        // desde ese formulario borraría contenido legítimo accidentalmente.
+        flash('error', 'No se pudo cargar la información SEO de la marca. No se realizaron cambios.');
+        redirect('/admin/brands');
+        return;
       }
     }
+
+    $oldValues = BrandFormDraft::consume($id);
+    BrandFormDraft::overlay($row, $seoSettings, $seoBlocks, $oldValues);
+    $seoAudit = (new SeoAuditService($db))->auditBrandForAdmin($row);
 
     render_page('admin/brands/form', [
       'pageId' => 'admin-brand-form',
@@ -43,127 +62,155 @@ class BrandsController extends BaseController {
       'seoAudit' => $seoAudit,
       'seoSettings' => $seoSettings,
       'seoBlocks' => $seoBlocks,
+      'hadValidationError' => $oldValues !== [],
     ]);
   }
 
   public function save(): void {
     rate_limit_or_fail('admin:'.client_ip().':'.($_SESSION['uid']??0).':brand_save', 20, 60);
     if (!verify_csrf()) { http_response_code(403); exit('CSRF'); }
-    header('Content-Type: application/json; charset=utf-8');
     require_once base_path('app/Support/str.php');
 
     $db=db();
-    $id=(int)($_POST['id']??0);
-    $name=trim($_POST['name']??'');
-    $slug=trim($_POST['slug']??'');
-    $sort=(int)($_POST['sort'] ?? 0);
-    $coverImage=trim((string)($_POST['cover_image'] ?? ''));
+    $id = filter_var($_POST['id'] ?? 0, FILTER_VALIDATE_INT);
+    if ($id === false || $id < 0) {
+      flash('error', 'Identificador de marca inválido.');
+      redirect('/admin/brands');
+      return;
+    }
+    $name = trim(is_string($_POST['name'] ?? null) ? $_POST['name'] : '');
+    $slug = trim(is_string($_POST['slug'] ?? null) ? $_POST['slug'] : '');
+    $sortRaw = $_POST['sort'] ?? '0';
+    $sort = filter_var($sortRaw, FILTER_VALIDATE_INT);
+    $coverImage = trim(is_string($_POST['cover_image'] ?? null) ? $_POST['cover_image'] : '');
     $coverFile = $_FILES['cover_image_file'] ?? null;
 
-    $prevSlug = '';
     if ($id > 0) {
-      try {
-        $stPrev = $db->prepare("SELECT slug FROM brands WHERE id=?");
-        $stPrev->execute([$id]);
-        $prevSlug = (string)($stPrev->fetchColumn() ?: '');
-      } catch (Throwable $e) {
-        $prevSlug = '';
+      $previous = (new BrandAdminRepository($db))->find($id);
+      if ($previous === null) {
+        flash('error', 'La marca que intentás modificar ya no existe.');
+        redirect('/admin/brands');
+        return;
       }
     }
 
-    $metaTitle = trim((string)($_POST['meta_title'] ?? ''));
-    $metaDesc  = trim((string)($_POST['meta_description'] ?? ''));
-    $seoText   = trim((string)($_POST['seo_text'] ?? ''));
+    $metaTitle = trim(is_string($_POST['meta_title'] ?? null) ? $_POST['meta_title'] : '');
+    $metaDesc  = trim(is_string($_POST['meta_description'] ?? null) ? $_POST['meta_description'] : '');
+    $seoText   = trim(is_string($_POST['seo_text'] ?? null) ? $_POST['seo_text'] : '');
     $metaTitle = ($metaTitle === '') ? null : $metaTitle;
     $metaDesc  = ($metaDesc === '') ? null : $metaDesc;
     $seoText   = ($seoText === '') ? null : $seoText;
     if ($slug==='' && $name!=='') $slug=str_slug($name);
 
-    $errs=[]; if($name==='')$errs[]='Nombre requerido'; if($slug==='')$errs[]='Slug requerido';
-    if(!$errs){ $st=$db->prepare("SELECT COUNT(*) FROM brands WHERE slug=? AND id<>?"); $st->execute([$slug,$id]); if((int)$st->fetchColumn()>0)$errs[]='Slug ya existe'; }
+    $errs = [];
+    if ($name === '') $errs[] = 'El nombre es obligatorio.';
+    if (mb_strlen($name) > 120) $errs[] = 'El nombre no puede superar 120 caracteres.';
+    if ($slug === '') $errs[] = 'El slug es obligatorio.';
+    if (strlen($slug) > 140) $errs[] = 'El slug no puede superar 140 caracteres.';
+    if ($slug !== '' && !preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/D', $slug)) {
+      $errs[] = 'El slug debe usar minúsculas, números y guiones.';
+    }
+    if ($sort === false || $sort < -2147483648 || $sort > 2147483647) $errs[] = 'El orden debe ser un número entero válido.';
+    if (!is_string($_POST['meta_title'] ?? '') || !is_string($_POST['meta_description'] ?? '') || !is_string($_POST['seo_text'] ?? '')) $errs[] = 'Los campos SEO deben contener texto.';
+    if (mb_strlen((string)$metaTitle) > 70) $errs[] = 'El título SEO no puede superar 70 caracteres.';
+    if (mb_strlen((string)$metaDesc) > 160) $errs[] = 'La descripción SEO no puede superar 160 caracteres.';
+    if (strlen($coverImage) > 255 || ($coverImage !== '' && !preg_match('#^(https?://|/|[a-z0-9_-]+/)#i', $coverImage))) {
+      $errs[] = 'La URL de portada debe ser una ruta pública o un enlace HTTP/HTTPS válido.';
+    }
+    if (!$errs && (new BrandAdminRepository($db))->slugExists($slug, $id)) $errs[] = 'Ya existe otra marca con ese slug.';
+    $seoInput = BrandSeoInput::parse($_POST);
+    $errs = array_merge($errs, $seoInput['errors']);
+    if ($errs) {
+      BrandFormDraft::remember($id, $_POST);
+      flash('error', implode(' · ', array_unique($errs)));
+      redirect($id ? '/admin/brands/edit?id=' . $id : '/admin/brands/new');
+      return;
+    }
 
+    $uploadedPath = '';
     if (is_array($coverFile) && (int)($coverFile['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
-      $upload = $this->storeCoverImage($coverFile, 'brands');
-      if (!($upload['ok'] ?? false)) {
-        $errs[] = (string)($upload['error'] ?? 'No se pudo subir la imagen de portada.');
-      } else {
-        $coverImage = (string)$upload['path'];
-      }
-    }
-
-    if($errs){ flash('error',implode(' · ',$errs)); redirect($id?'/admin/brands/edit?id='.$id:'/admin/brands/new'); }
-
-    if($id>0){
-      $ok=$db->prepare("UPDATE brands SET name=?,slug=?,meta_title=?,meta_description=?,seo_text=?,sort=?,cover_image=? WHERE id=?")
-        ->execute([$name,$slug,$metaTitle,$metaDesc,$seoText,$sort,$coverImage,$id]);
-      $ok? (Audit::log('brand.save','brand',$id,['op'=>'update']) || true) : flash('error','No se pudo actualizar.');
-      if($ok) flash('ok','Marca actualizada.');
-    } else {
-      $ok=$db->prepare("INSERT INTO brands (name,slug,meta_title,meta_description,seo_text,sort,cover_image) VALUES (?,?,?,?,?,?,?)")
-        ->execute([$name,$slug,$metaTitle,$metaDesc,$seoText,$sort,$coverImage]);
-      if($ok){ $id=(int)$db->lastInsertId(); Audit::log('brand.save','brand',$id,['op'=>'insert']); flash('ok','Marca creada.'); }
-      else { flash('error','No se pudo crear.'); }
-    }
-
-    if ($ok && $id > 0) {
       try {
-        $seoMgr = new SeoManagerService($db);
-        if ($slug !== '') {
-          $seoMgr->registerSlug('brand', (int)$id, $slug);
+        $upload = $this->storeCoverImage($coverFile, 'brands');
+        if (!($upload['ok'] ?? false)) {
+          $errs[] = (string)($upload['error'] ?? 'No se pudo subir la imagen de portada.');
+        } else {
+          $coverImage = $uploadedPath = (string)$upload['path'];
         }
-
-        if ($prevSlug !== '' && $prevSlug !== $slug) {
-          $seoMgr->recordBrandSlugChange((int)$id, $prevSlug, $slug);
-        }
-
-        $index = (($_POST['seo_index'] ?? '') === 'noindex') ? 'noindex' : 'index';
-        $follow = (($_POST['seo_follow'] ?? '') === 'nofollow') ? 'nofollow' : 'follow';
-        $robots = $index . ',' . $follow;
-
-        $twitter = trim((string)($_POST['seo_twitter_card'] ?? ''));
-        if (!in_array($twitter, ['', 'summary', 'summary_large_image'], true)) {
-          $twitter = '';
-        }
-
-        $seoMgr->saveSettings('brand', (int)$id, [
-          'robots' => $robots,
-          'canonical_override' => trim((string)($_POST['seo_canonical_override'] ?? '')),
-          'og_title' => trim((string)($_POST['seo_og_title'] ?? '')),
-          'og_description' => trim((string)($_POST['seo_og_description'] ?? '')),
-          'og_image' => trim((string)($_POST['seo_og_image'] ?? '')),
-          'twitter_card' => $twitter,
-          'schema_override_jsonld' => trim((string)($_POST['seo_schema_override_jsonld'] ?? '')),
-        ]);
-
-        $bullets = $_POST['seo_bullets'] ?? [];
-        if (!is_array($bullets)) $bullets = [];
-
-        $specLabels = $_POST['seo_specs_label'] ?? [];
-        $specValues = $_POST['seo_specs_value'] ?? [];
-        if (!is_array($specLabels)) $specLabels = [];
-        if (!is_array($specValues)) $specValues = [];
-        $specs = [];
-        $specCount = max(count($specLabels), count($specValues));
-        for ($i = 0; $i < $specCount; $i++) {
-          $specs[] = ['label' => ($specLabels[$i] ?? ''), 'value' => ($specValues[$i] ?? '')];
-        }
-
-        $faqQ = $_POST['seo_faq_q'] ?? [];
-        $faqA = $_POST['seo_faq_a'] ?? [];
-        if (!is_array($faqQ)) $faqQ = [];
-        if (!is_array($faqA)) $faqA = [];
-        $faq = [];
-        $faqCount = max(count($faqQ), count($faqA));
-        for ($i = 0; $i < $faqCount; $i++) {
-          $faq[] = ['q' => ($faqQ[$i] ?? ''), 'a' => ($faqA[$i] ?? '')];
-        }
-
-        (new BrandSeoBlocksService($db))->saveForBrand((int)$id, $bullets, $specs, $faq);
       } catch (Throwable $e) {
-        if (function_exists('log_error')) log_error('Admin\\BrandsController@save SEO: '.$e->getMessage());
+        if (function_exists('log_error')) log_error('Admin\\BrandsController upload: '.$e->getMessage());
+        $errs[] = 'No se pudo procesar la portada.';
       }
     }
+    if ($errs) {
+      BrandFormDraft::remember($id, $_POST);
+      flash('error', implode(' · ', $errs));
+      redirect($id ? '/admin/brands/edit?id=' . $id : '/admin/brands/new');
+      return;
+    }
+
+    $originalId = $id;
+    $previousCover = ($id > 0) ? (string)($previous['cover_image'] ?? '') : '';
+    try {
+      // Un solo COMMIT para brands + seo_settings + slug_history +
+      // seo_redirects + brand_seo_blocks. El servicio comparte este PDO.
+      $id = (new BrandSaveService($db))->save(
+        $id,
+        [
+          'name' => $name, 'slug' => $slug,
+          'sort' => (int)$sort, 'cover_image' => $coverImage,
+          'meta_title' => $metaTitle, 'meta_description' => $metaDesc,
+          'seo_text' => $seoText,
+        ],
+        $seoInput['settings'], $seoInput['bullets'],
+        $seoInput['specs'], $seoInput['faq']
+      );
+    } catch (Throwable $e) {
+      // Nunca borrar la portada anterior si falla DB/SEO; solo el nuevo
+      // archivo de este POST, cuyo nombre es aleatorio y controlado.
+      if ($uploadedPath !== '') $this->removeManagedBrandCover($uploadedPath);
+      if (function_exists('log_error')) log_error('Admin\\BrandsController atomic save: '.$e->getMessage());
+      BrandFormDraft::remember($originalId, $_POST);
+      flash('error', 'No se pudo guardar la marca y sus datos SEO. No se aplicó ningún cambio; revisá los datos e intentá nuevamente.');
+      redirect($originalId ? '/admin/brands/edit?id=' . $originalId : '/admin/brands/new');
+      return;
+    }
+
+    // SQL confirmado: recién ahora se puede liberar una imagen anterior
+    // generada por este módulo, siempre que ninguna marca la referencie.
+    if ($previousCover !== '' && $previousCover !== $coverImage) {
+      $this->removeManagedBrandCover($previousCover, $db);
+    }
+    try {
+      Audit::log('brand.save', 'brand', $id, ['op' => $originalId > 0 ? 'update' : 'insert']);
+    } catch (Throwable $e) {
+      if (function_exists('log_error')) log_error('Admin\\BrandsController audit: '.$e->getMessage());
+    }
+    flash('ok', $originalId ? 'Marca actualizada.' : 'Marca creada.');
     redirect('/admin/brands');
+  }
+
+  /**
+   * Solo archivos generados por storeCoverImage(), nunca URLs remotas,
+   * archivos heredados con nombres arbitrarios ni rutas de otros módulos.
+   * Puede ejecutarse tras COMMIT o como compensación de una subida nueva.
+   */
+  private function removeManagedBrandCover(string $path, ?PDO $db = null): void {
+    if (!preg_match('#^/uploads/brands/[0-9a-f]{32}\.(?:png|jpg|webp)$#D', $path)) return;
+    try {
+      if ($db !== null) {
+        $st = $db->prepare('SELECT COUNT(*) FROM brands WHERE cover_image = ?');
+        $st->execute([$path]);
+        if ((int)$st->fetchColumn() > 0) return;
+      }
+      $dir = base_path('public_html/uploads/brands');
+      $target = $dir . '/' . basename($path);
+      if (is_link($target) || !is_file($target)) return;
+      if (!@unlink($target) && function_exists('log_error')) {
+        log_error('Admin\\BrandsController cover cleanup failed: '.$path);
+      }
+    } catch (Throwable $e) {
+      if (function_exists('log_error')) log_error('Admin\\BrandsController cover cleanup: '.$e->getMessage());
+    }
   }
 
   /**
@@ -176,6 +223,11 @@ class BrandsController extends BaseController {
       return ['ok' => false, 'error' => 'Error de subida de imagen.'];
     }
 
+    $maxBytes = 5 * 1024 * 1024;
+    $size = (int)($file['size'] ?? 0);
+    if ($size <= 0 || $size > $maxBytes) {
+      return ['ok' => false, 'error' => 'La imagen debe pesar entre 1 byte y 5 MB.'];
+    }
     $tmp = (string)($file['tmp_name'] ?? '');
     if ($tmp === '' || !is_uploaded_file($tmp)) {
       return ['ok' => false, 'error' => 'Archivo temporal invalido.'];
@@ -183,7 +235,11 @@ class BrandsController extends BaseController {
 
     $imgInfo = @getimagesize($tmp);
     if (!is_array($imgInfo) || !isset($imgInfo[2])) {
-      return ['ok' => false, 'error' => 'El archivo debe ser una imagen valida.'];
+      return ['ok' => false, 'error' => 'El archivo debe ser una imagen válida.'];
+    }
+    if ((int)($imgInfo[0] ?? 0) < 1 || (int)($imgInfo[1] ?? 0) < 1 ||
+        (int)$imgInfo[0] > 6000 || (int)$imgInfo[1] > 6000) {
+      return ['ok' => false, 'error' => 'Las dimensiones de la imagen deben ser menores a 6000 px.'];
     }
 
     $type = (int)$imgInfo[2];
@@ -220,12 +276,40 @@ class BrandsController extends BaseController {
     if (!verify_csrf()) { http_response_code(403); exit('CSRF'); }
     header('Content-Type: application/json; charset=utf-8');
     require_once base_path('app/Support/str.php');
-    $name=trim($_POST['name']??''); if($name===''){ http_response_code(422); exit('Nombre requerido'); }
-    $slug=str_slug($name);
-    $db=db();
-    $st=$db->prepare("SELECT id FROM brands WHERE slug=?"); $st->execute([$slug]);
-    if($ex=$st->fetch(PDO::FETCH_ASSOC)){ echo json_encode(['ok'=>true,'id'=>$ex['id'],'name'=>$name]); return; }
-    $ok=$db->prepare("INSERT INTO brands (name,slug) VALUES (?,?)")->execute([$name,$slug]);
-    $ok? print json_encode(['ok'=>true,'id'=>(int)$db->lastInsertId(),'name'=>$name]) : (http_response_code(500) || print 'DB error');
+    $name = trim(is_string($_POST['name'] ?? null) ? $_POST['name'] : '');
+    if ($name === '' || mb_strlen($name) > 120) {
+      http_response_code(422);
+      echo json_encode(['ok'=>false, 'error'=>'Ingresá un nombre de hasta 120 caracteres.']);
+      return;
+    }
+    $slug = str_slug($name);
+    if ($slug === '' || strlen($slug) > 140) {
+      http_response_code(422);
+      echo json_encode(['ok'=>false, 'error'=>'El nombre no permite generar un slug válido.']);
+      return;
+    }
+    $db = db();
+    try {
+      $st = $db->prepare("SELECT id, name FROM brands WHERE slug=? LIMIT 1");
+      $st->execute([$slug]);
+      if ($existing = $st->fetch(PDO::FETCH_ASSOC)) {
+        echo json_encode(['ok'=>true, 'id'=>(int)$existing['id'], 'name'=>(string)$existing['name']]);
+        return;
+      }
+      $ok = $db->prepare("INSERT INTO brands (name,slug) VALUES (?,?)")->execute([$name,$slug]);
+      if (!$ok) throw new \RuntimeException('No se pudo insertar la marca.');
+      echo json_encode(['ok'=>true,'id'=>(int)$db->lastInsertId(),'name'=>$name]);
+    } catch (Throwable $e) {
+      // Entre el SELECT y el INSERT otro operador puede crear la misma marca.
+      $st = $db->prepare("SELECT id, name FROM brands WHERE slug=? LIMIT 1");
+      $st->execute([$slug]);
+      if ($existing = $st->fetch(PDO::FETCH_ASSOC)) {
+        echo json_encode(['ok'=>true, 'id'=>(int)$existing['id'], 'name'=>(string)$existing['name']]);
+        return;
+      }
+      if (function_exists('log_error')) log_error('Admin\BrandsController quick: '.$e->getMessage());
+      http_response_code(500);
+      echo json_encode(['ok'=>false, 'error'=>'No se pudo crear la marca.']);
+    }
   }
 }
