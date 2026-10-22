@@ -11,8 +11,14 @@ final class MercadoPagoWebhookController
 {
     public function handle(): void
     {
-        // Validacion simple por secret propio (recomendado)
+        // Nunca aceptar webhooks sin alguna credencial de autenticaciÃ³n configurada.
         $secret = (string)env('MP_WEBHOOK_SECRET', '');
+        $sigSecret = trim((string)env('MP_WEBHOOK_SIGNATURE_SECRET', ''));
+        if ($secret === '' && $sigSecret === '') {
+            http_response_code(503);
+            echo json_encode(['ok'=>false, 'error'=>'webhook_auth_not_configured']);
+            return;
+        }
         if ($secret !== '' && (string)($_GET['secret'] ?? '') !== $secret) {
             http_response_code(403);
             echo json_encode(['ok' => false, 'error' => 'forbidden']);
@@ -56,6 +62,7 @@ final class MercadoPagoWebhookController
 
             // Si tenemos token de intent, lo buscamos para enlazar el pago (auditoria/idempotencia)
             $intentId = 0;
+            $intent = null;
             if ($external !== '') {
                 try {
                     $intentRepo = new \App\Repositories\Checkout\CheckoutIntentRepository($db);
@@ -81,6 +88,45 @@ final class MercadoPagoWebhookController
             $paymentRowId = $payRepo->createOrUpdateByProviderPaymentId($paymentRowData);
             $attachedOrderId = $payRepo->findAttachedOrderIdByProviderPaymentId('mercadopago', $paymentId);
 
+            if ($status === 'approved') {
+                [$trusted, $reason] = \App\Services\Payments\MercadoPago\MercadoPagoPaymentMatchGuard::check(
+                    $pay, $intent, $paymentId
+                );
+                if (!$trusted || $paymentRowId <= 0) {
+                    Audit::log('payment_approved_mismatch','payment',(int)$paymentRowId,[
+                        'provider'=>'mercadopago', 'payment_id'=>$paymentId,
+                        'intent_id'=>$intentId,
+                        'reason'=>$trusted ? 'missing_payment_record' : $reason,
+                        'manual_reconciliation_required'=>true,
+                    ]);
+                    $this->logWebhookEvent('approved_mismatch_requires_review', [
+                        'payment_id'=>$paymentId,'intent_id'=>$intentId,
+                        'reason'=>$reason,
+                    ]);
+                    http_response_code(202);
+                    echo json_encode([
+                        'ok'=>false,'code'=>'approved_payment_requires_review',
+                        'payment_id'=>$paymentId,'order_id'=>0,
+                        'manual_reconciliation_required'=>true,
+                    ]);
+                    return;
+                }
+            }
+
+            if ($status === 'approved' && $intentId > 0) {
+                $other = $payRepo->findActiveForIntent($intentId, $paymentId);
+                if ($other) {
+                    Audit::log('payment_duplicate_for_intent','payment',(int)$paymentRowId,[
+                        'payment_id'=>$paymentId,'intent_id'=>$intentId,
+                        'other_payment_id'=>(string)($other['provider_payment_id'] ?? ''),
+                        'manual_reconciliation_required'=>true,
+                    ]);
+                    http_response_code(202);
+                    echo json_encode(['ok'=>false,'code'=>'duplicate_payment_for_intent',
+                        'manual_reconciliation_required'=>true,'payment_id'=>$paymentId]);
+                    return;
+                }
+            }
             if ($status !== 'approved') {
                 $terminalOrderStatus = $this->mapTerminalOrderStatus($status);
                 if ($attachedOrderId > 0 && $terminalOrderStatus !== null) {
@@ -150,8 +196,16 @@ final class MercadoPagoWebhookController
                     'reason' => $msgPaid,
                 ]);
 
-                http_response_code(200);
+                if (!$okPaid) {
+                    Audit::log('payment_existing_order_requires_review','payment',(int)$paymentRowId,[
+                        'provider'=>'mercadopago','payment_id'=>$paymentId,
+                        'order_id'=>$attachedOrderId,
+                        'manual_reconciliation_required'=>true,
+                    ]);
+                }
+                http_response_code($okPaid ? 200 : 202);
                 echo json_encode([
+                    'manual_reconciliation_required'=>!$okPaid,
                     'ok' => $okPaid,
                     'reconciled' => $okPaid,
                     'ignored' => !$okPaid,
@@ -248,7 +302,14 @@ final class MercadoPagoWebhookController
                 return;
             }
 
-            http_response_code($ok ? 200 : 422);
+            if (!$ok) {
+                Audit::log('payment_approved_without_order','payment',(int)$paymentRowId,[
+                    'provider'=>'mercadopago','payment_id'=>$paymentId,
+                    'intent_id'=>$intentId,'reason'=>$msg,
+                    'manual_reconciliation_required'=>true,
+                ]);
+            }
+            http_response_code($ok ? 200 : 503);
             echo json_encode(['ok' => $ok, 'msg' => $msg, 'order_id' => $orderId, 'status' => $status, 'type' => $type]);
         } catch (\Throwable $e) {
             $this->logWebhookEvent('exception', [
@@ -256,8 +317,10 @@ final class MercadoPagoWebhookController
                 'type' => (string)($type ?? ''),
                 'message' => $e->getMessage(),
             ]);
-            http_response_code(200); // MP reintenta; preferimos no DDOS
-            echo json_encode(['ok' => true]);
+            // Los 5xx habilitan reintento del proveedor. Nunca ACK exitoso al fallar
+            // el registro o la conciliaciÃ³n del cobro.
+            http_response_code(503);
+            echo json_encode(['ok'=>false, 'error'=>'webhook_processing_failed']);
         }
     }
 

@@ -11,6 +11,7 @@ use App\Services\Checkout\CheckoutStockPreflightService;
 use App\Services\Orders\OrderFromIntentService;
 use App\Services\Payments\MercadoPagoService;
 use App\Services\Payments\MercadoPago\MercadoPagoStatusMapper;
+use App\Services\Payments\MercadoPago\MercadoPagoPaymentMatchGuard;
 
 final class PaymentController
 {
@@ -146,6 +147,9 @@ final class PaymentController
             json(['ok' => false, 'error' => 'No se recibió token de tarjeta.'], 422);
         }
 
+        $chargeAttemptStarted = false;
+        $providerPaymentUnresolved = false;
+        $providerPaymentId = '';
         try {
             $selectedMethod = trim((string)($body['selectedPaymentMethod'] ?? ($_SESSION['checkout_payment']['method'] ?? '')));
             if (!in_array($selectedMethod, ['tarjeta_credito', 'tarjeta_debito'], true)) {
@@ -158,7 +162,14 @@ final class PaymentController
             $intentSvc = new CheckoutIntentService(db());
             [$okIntent, $msgIntent, $intent] = $intentSvc->createIntent($uid, $addressId, $selectedMethod);
             if (!$okIntent) {
-                json(['ok' => false, 'error' => (string)$msgIntent], 422);
+                $needsReview = (string)($intent['code'] ?? '') === 'payment_requires_review';
+                json([
+                    'ok'=>false,
+                    'code'=>$needsReview ? 'payment_requires_review' : 'checkout_intent_invalid',
+                    'manual_reconciliation_required'=>$needsReview,
+                    'error'=>(string)$msgIntent,
+                ], $needsReview ? 202 : 422);
+                return;
             }
 
             $intentToken = (string)($intent['token'] ?? '');
@@ -211,18 +222,77 @@ final class PaymentController
             }
 
             $idemKey = hash('sha256', (string)$uid . '|' . $intentToken . '|' . $token . '|' . $amount);
+            $payRepo = new PaymentRepository(db());
+            $intentId = (int)($intent['id'] ?? 0);
+            if ($intentId <= 0) {
+                json(['ok'=>false,'error'=>'No se pudo verificar el checkout.'], 422);
+                return;
+            }
+            $intentRepo = new \App\Repositories\Checkout\CheckoutIntentRepository(db());
+            $persistedIntent = $intentRepo->findByToken($intentToken);
+            $cartHash = (string)($persistedIntent['cart_hash'] ?? '');
+            if ((int)($persistedIntent['id'] ?? 0) !== $intentId
+                || (int)($persistedIntent['user_id'] ?? 0) !== $uid
+                || (int)($persistedIntent['address_id'] ?? 0) !== $addressId
+                || !preg_match('/^[a-f0-9]{64}$/D', $cartHash)) {
+                json(['ok'=>false,'error'=>'Intent de checkout inconsistente.'],422);
+                return;
+            }
+            $paymentLock = \App\Repositories\Checkout\CheckoutIntentRepository::paymentCartLockName(
+                $uid,$addressId,$cartHash
+            );
+            $lockSt = db()->prepare('SELECT GET_LOCK(:key,25)');
+            $lockSt->execute([':key'=>$paymentLock]);
+            if ((int)$lockSt->fetchColumn() !== 1) {
+                json(['ok'=>false,'code'=>'payment_in_progress',
+                    'error'=>'Hay un pago en proceso. No intentes pagar de nuevo.'],409);
+                return;
+            }
+            try {
+                // Proteger el mismo carrito incluso con intents/campaÃ±as diferentes.
+                $inFlight = $intentRepo->findInFlightForCart($uid,$addressId,$cartHash);
+                $outstanding = $payRepo->findOutstandingForCart($uid,$addressId,$cartHash);
+                if ($inFlight || $outstanding) {
+                    json([
+                        'ok'=>false,'code'=>'payment_requires_review',
+                        'manual_reconciliation_required'=>true,
+                        'payment_id'=>(string)($outstanding['provider_payment_id'] ?? ''),
+                        'error'=>'Este carrito tiene un pago sin resolver. No vuelvas a pagar hasta verificarlo.',
+                    ],202);
+                    return;
+                }
+                $already = $payRepo->findActiveForIntent($intentId);
+                if ($already) {
+                    $needsReview = (string)($already['status'] ?? '') === 'approved'
+                        && (int)($already['order_id'] ?? 0) <= 0;
+                    json(['ok'=>false,'code'=>'existing_payment_for_intent',
+                        'payment_id'=>(string)($already['provider_payment_id'] ?? ''),
+                        'manual_reconciliation_required'=>$needsReview,
+                        'error'=>'Ya existe un pago iniciado para este checkout. Verifica su estado antes de pagar nuevamente.'],
+                        202);
+                    return;
+                }
             $mp = new MercadoPagoService();
+            $attemptRepo = $intentRepo;
+            if (!$attemptRepo->markPaymentInFlight($intentId)) {
+                json(['ok'=>false,'code'=>'payment_requires_review',
+                    'manual_reconciliation_required'=>true,
+                    'error'=>'Ya existe una operacion que necesita revision. No vuelvas a pagar.'],202);
+                return;
+            }
+            $chargeAttemptStarted = true;
             if (function_exists('log_error')) {
                 log_error('Checkout PaymentController@payment payload=' . json_encode($this->sanitizeMpPaymentPayload($payload), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
             }
             $payment = $mp->createPayment($payload, $idemKey);
 
             $paymentId = (string)($payment['id'] ?? '');
+            $providerPaymentId = $paymentId;
             $status = strtolower(trim((string)($payment['status'] ?? '')));
+            $providerPaymentUnresolved = in_array($status, ['approved','pending','in_process','authorized'], true);
             $statusDetail = (string)($payment['status_detail'] ?? '');
             $mapper = new MercadoPagoStatusMapper();
 
-            $payRepo = new PaymentRepository(db());
             $paymentRowId = 0;
             if ($paymentId !== '') {
                 $paymentRowData = [
@@ -239,8 +309,38 @@ final class PaymentController
                 $paymentRowId = $payRepo->createOrUpdateByProviderPaymentId($paymentRowData);
             }
 
+            // Solo se libera el marcador cuando ya existe evidencia del proveedor
+            // guardada localmente. Ante error/crash queda bloqueado el reintento.
+            if ($paymentRowId <= 0) {
+                json(['ok'=>false,'code'=>'payment_state_uncertain',
+                    'manual_reconciliation_required'=>true,'order_id'=>0,
+                    'error'=>'El estado del pago necesita verificacion. No intentes pagar otra vez.'],202);
+                return;
+            }
+            $attemptRepo->clearPaymentInFlight($intentId);
+            $chargeAttemptStarted = false;
+            } finally {
+                $release = db()->prepare('SELECT RELEASE_LOCK(:key)');
+                $release->execute([':key'=>$paymentLock]);
+            }
             $orderId = 0;
             if ($status === 'approved') {
+                [$trusted, $trustReason] = MercadoPagoPaymentMatchGuard::check($payment, (array)$intent, $paymentId);
+                if (!$trusted || $paymentRowId <= 0) {
+                    Audit::log('payment_approved_mismatch', 'checkout', null, [
+                        'payment_id'=>$paymentId, 'payment_row_id'=>$paymentRowId,
+                        'intent_id'=>(int)($intent['id'] ?? 0),
+                        'reason'=>$trusted ? 'missing_payment_record' : $trustReason,
+                        'manual_reconciliation_required'=>true,
+                    ]);
+                    json([
+                        'ok'=>false, 'code'=>'approved_payment_requires_review',
+                        'payment_id'=>$paymentId, 'order_id'=>0,
+                        'manual_reconciliation_required'=>true,
+                        'error'=>'El proveedor aprobo un pago que no podemos vincular de forma segura. No pagues nuevamente: requiere conciliacion.',
+                    ], 202);
+                    return;
+                }
                 $orderSvc = new OrderFromIntentService(db());
                 [$okOrder, $_msgOrder, $orderId] = $orderSvc->createOrderFromIntent($intentToken);
                 if ($okOrder && $orderId > 0 && $paymentRowId > 0) {
@@ -353,6 +453,22 @@ final class PaymentController
                 // no-op
             }
 
+            if ($chargeAttemptStarted || $providerPaymentUnresolved) {
+                // El pago puede estar confirmado aun cuando falle la creaciÃ³n del pedido.
+                // Conservar el identificador del proveedor y bloquear la repeticiÃ³n del cargo.
+                Audit::log('checkout_payment_requires_reconciliation', 'checkout', null, [
+                    'payment_id'=>$providerPaymentId,
+                    'uncertain_before_persist'=>$chargeAttemptStarted,
+                    'manual_reconciliation_required'=>true,
+                ]);
+                json([
+                    'ok'=>false,'code'=>'payment_state_uncertain',
+                    'payment_id'=>$providerPaymentId,'order_id'=>0,
+                    'manual_reconciliation_required'=>true,
+                    'error'=>'No pudimos confirmar el resultado del pago. No vuelvas a pagar hasta que nuestro equipo lo revise.',
+                ],202);
+                return;
+            }
             $message = 'No se pudo procesar el pago.';
             $code = 'payment_error';
             $status = 500;

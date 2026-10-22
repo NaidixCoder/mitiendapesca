@@ -609,7 +609,44 @@ async function mountBrick({ amount, payerEmail, csrf, paymentUrl, stockPreflight
             overlayCtrl.start();
 
             const res = await postJson(paymentUrl, payloadJson, csrf);
-            const status = (res.status || '').toLowerCase();
+            // HTTP 202 es 2xx, pero "ok:false" NO significa compra exitosa.
+            // Un cobro aprobado sin pedido nunca debe activar el camino approved.
+            if (res && res.ok === false) {
+              const code = String(res.code || '');
+              const review = res.manual_reconciliation_required === true
+                || ['approved_without_order', 'approved_payment_requires_review',
+                  'duplicate_payment_for_intent'].includes(code);
+              const unresolved = review || code === 'existing_payment_for_intent';
+              if (unresolved) {
+                paymentUiLocked = true;
+                try { window.checkoutSetProcessing && window.checkoutSetProcessing(false); } catch (_) {}
+                try { hideOverlay(); } catch (_) {}
+                try { setBusy(btnStart, false); } catch (_) {}
+                const base = getMeta('app-base-url') || '/';
+                showPaymentResult({
+                  state: 'manual_reconciliation',
+                  tone: 'warning',
+                  icon: 'clock',
+                  badge: review ? 'RevisiÃ³n necesaria' : 'Pago en proceso',
+                  title: review ? 'Pago pendiente de conciliaciÃ³n' : 'Ya existe un pago en curso',
+                  lines: [
+                    String(res.error || 'No pudimos confirmar tu pedido.'),
+                    'No vuelvas a pagar hasta que se verifique el estado de esta operaciÃ³n.',
+                  ],
+                  actions: {
+                    primary: { kind: 'link', label: 'Ver mis pedidos', href: base + 'cuenta/pedidos', variant: 'brand' },
+                    secondary: { kind: 'link', label: 'Contactar soporte', href: base + 'ayuda#contacto', variant: 'ghost' },
+                  },
+                  flags: { clear_cart: false, lock_submit: true, allow_retry: false },
+                });
+                resolve({ ok: false, code, payment_id: res.payment_id || '', manual_reconciliation_required: review });
+                return;
+              }
+              const err = new Error(String(res.error || 'No se pudo confirmar el pago.'));
+              err.responseStatus = 202;
+              err.responseData = res;
+              throw err;
+            }            const status = (res.status || '').toLowerCase();
             const detail = String(res.status_detail || '').toLowerCase().replace(/[\s-]+/g, '_');
             const paymentId = res.payment_id ? String(res.payment_id) : '';
             const orderId = Number(res.order_id || 0) || 0;

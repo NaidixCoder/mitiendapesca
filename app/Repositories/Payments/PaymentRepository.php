@@ -125,6 +125,42 @@ final class PaymentRepository
         return (int)$stmt->rowCount() > 0;
     }
 
+    /**
+     * Detecta un pago confirmado/en proceso sin pedido de CUALQUIER intent
+     * del mismo carrito, aun si el intent anterior fue marcado failed.
+     * No dispara cambios de estado ni acciones monetarias.
+     */
+    public function findOutstandingForCart(int $userId,int $addressId,string $cartHash): ?array
+    {
+        $st=$this->db->prepare(
+            "SELECT p.* FROM payments p
+             INNER JOIN checkout_intents i ON i.id=p.intent_id
+             WHERE p.provider='mercadopago'
+               AND p.status IN ('approved','pending','in_process','authorized')
+               AND (p.order_id IS NULL OR p.order_id=0)
+               AND i.user_id=:uid AND i.address_id=:addr AND i.cart_hash=:hash
+             ORDER BY p.id DESC LIMIT 1"
+        );
+        $st->execute([':uid'=>$userId,':addr'=>$addressId,':hash'=>$cartHash]);
+        $row=$st->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+    /** Pago de este intent que debe resolverse ANTES de otro cobro. */
+    public function findActiveForIntent(int $intentId, string $excludeProviderPaymentId = ''): ?array
+    {
+        if ($intentId <= 0) return null;
+        $sql = "SELECT * FROM payments WHERE provider='mercadopago'
+            AND intent_id=:intent
+            AND status IN ('approved','pending','in_process','authorized')";
+        if ($excludeProviderPaymentId !== '') $sql .= ' AND provider_payment_id<>:excluded';
+        $sql .= ' ORDER BY id DESC LIMIT 1';
+        $st=$this->db->prepare($sql);
+        $params=[':intent'=>$intentId];
+        if ($excludeProviderPaymentId !== '') $params[':excluded']=$excludeProviderPaymentId;
+        $st->execute($params);
+        $row=$st->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
     public function attachOrder(int $paymentId, int $orderId): void
     {
         // Idempotente: no sobreescribimos un order_id ya asociado.

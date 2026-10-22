@@ -174,6 +174,67 @@ final class CheckoutIntentRepository
     }
 
     /**
+     * Serializa la decisiÃ³n buscar/crear intent para el MISMO carrito/campaÃ±a.
+     * GET_LOCK es por conexiÃ³n; no requiere esquema ni afecta otros clientes.
+     */
+    public static function paymentCartLockName(int $userId, int $addressId, string $cartHash): string
+    {
+        return 'mipt:charge:' . substr(hash('sha256', implode('|',[$userId,$addressId,$cartHash])),0,45);
+    }
+
+    public function acquireReuseLock(int $userId, int $addressId, string $cartHash, ?int $mkt, ?int $email): string
+    {
+        $identity = implode('|', [$userId,$addressId,$cartHash]);
+        $name = 'mipt:intent:' . substr(hash('sha256', $identity),0,48);
+        $st=$this->db->prepare('SELECT GET_LOCK(:name, 8)');
+        $st->execute([':name'=>$name]);
+        if ((int)$st->fetchColumn() !== 1) {
+            throw new \RuntimeException('Checkout en proceso. VolvÃ© a intentarlo sin duplicar el pago.');
+        }
+        return $name;
+    }
+
+    public function releaseReuseLock(string $name): void
+    {
+        if ($name === '' || !str_starts_with($name,'mipt:intent:')) return;
+        $st=$this->db->prepare('SELECT RELEASE_LOCK(:name)');
+        $st->execute([':name'=>$name]);
+    }
+    /**
+     * Marca durablemente el intent antes de llamar a Mercado Pago.
+     * Un worker caÃ­do conserva el bloqueo hasta conciliaciÃ³n supervisada.
+     */
+    public function markPaymentInFlight(int $id): bool
+    {
+        $st=$this->db->prepare(
+            "UPDATE checkout_intents SET fail_reason='payment_in_flight'
+             WHERE id=:id AND status='created' AND (fail_reason IS NULL OR fail_reason='')"
+        );
+        $st->execute([':id'=>$id]);
+        return (int)$st->rowCount()===1;
+    }
+
+    public function clearPaymentInFlight(int $id): void
+    {
+        $st=$this->db->prepare(
+            "UPDATE checkout_intents SET fail_reason=NULL
+             WHERE id=:id AND fail_reason='payment_in_flight'"
+        );
+        $st->execute([':id'=>$id]);
+    }
+
+    public function findInFlightForCart(int $userId,int $addressId,string $cartHash): ?array
+    {
+        $st=$this->db->prepare(
+            "SELECT id,token,status FROM checkout_intents
+             WHERE status='created' AND user_id=:u AND address_id=:a AND cart_hash=:h
+             AND fail_reason='payment_in_flight'
+             ORDER BY id DESC LIMIT 1"
+        );
+        $st->execute([':u'=>$userId,':a'=>$addressId,':h'=>$cartHash]);
+        return $st->fetch(\PDO::FETCH_ASSOC) ?: null;
+    }
+    /**
      * Lockea el intent por token (FOR UPDATE). Debe llamarse dentro de una transacción.
      * @return array<string,mixed>|null
      */

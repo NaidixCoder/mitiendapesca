@@ -67,6 +67,8 @@ $command([PHP_BINARY, 'scripts/audit/encoding_scan.php', '--fail-on-bom', '--bom
 $command([PHP_BINARY, 'scripts/build/regression.php'], 'Pruebas de regresion');
 $command([PHP_BINARY, 'scripts/build/checkout_intent_reuse_contract.php'], 'CheckoutIntent: campañas NULL/0 y reuso seguro');
 $command([PHP_BINARY, 'scripts/build/checkout_payment_orphan_contract.php'], 'Pago aprobado sin pedido: respuesta y conciliación');
+$command([PHP_BINARY, 'scripts/build/checkout_payment_integrity_contract.php'], 'Checkout MP integridad');
+$command([PHP_BINARY, 'scripts/build/checkout_payment_frontend_contract.php'], 'Checkout MP respuesta al cliente');
 // Architectural guardrails carried forward from the previous shell/batch gate.
 $patterns = [
     'CartService legacy' => '/\\bCartService\\b/',

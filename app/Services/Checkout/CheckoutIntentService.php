@@ -3,6 +3,7 @@ namespace App\Services\Checkout;
 
 use App\Repositories\Account\AddressRepository;
 use App\Repositories\Checkout\CheckoutIntentRepository;
+use App\Repositories\Payments\PaymentRepository;
 use App\Repositories\Settings\AppSettingsRepository;
 use App\Services\Cart\CartReadService;
 use App\Services\Cart\CartSelectionService;
@@ -189,6 +190,23 @@ final class CheckoutIntentService
         $emailCampaignId = (int)($_SESSION['email_campaign_id'] ?? 0);
 
         // Reutilización: mismo user+address+car_hash en ventana corta (evita tokens múltiples por doble submit)
+        $reuseLock = $repo->acquireReuseLock($userId,$addressId,$cartHash,$mktCampaignId ?: null,$emailCampaignId ?: null);
+        try {
+        // Aun si la respuesta de MP se perdiÃ³ antes de persistir payments,
+        // no ofrecer un nuevo cobro hasta revisar el intento en vuelo.
+        if ($repo->findInFlightForCart($userId,$addressId,$cartHash)) {
+            return [false,
+                'Hay un cobro cuyo resultado debe verificarse. No vuelvas a pagar.',
+                ['code'=>'payment_requires_review']];
+}
+        $outstanding=(new PaymentRepository($this->db))->findOutstandingForCart(
+            $userId,$addressId,$cartHash
+        );
+        if ($outstanding) {
+            return [false,
+                'Ya existe un pago en proceso o aprobado para este carrito. No vuelvas a pagar hasta verificarlo.',
+                ['code'=>'payment_requires_review']];
+        }
         $reuse = $repo->findReusable($userId, $addressId, $cartHash, 30, $mktCampaignId ?: null, $emailCampaignId ?: null);
         if ($reuse) {
             return [true, 'Intent reutilizado.', [
@@ -237,6 +255,9 @@ final class CheckoutIntentService
             'items' => $effectiveCart['items'],
             'totals' => ['subtotal'=>$subtotal,'shipping'=>$shipping,'discount'=>$discount,'total'=>$total,'total_net'=>$orderTotalNet,'total_vat'=>$orderTotalVat],
         ]];
+        } finally {
+            $repo->releaseReuseLock($reuseLock);
+        }
     }
 }
 

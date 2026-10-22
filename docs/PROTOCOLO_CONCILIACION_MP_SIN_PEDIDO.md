@@ -47,3 +47,36 @@ Revisar también eventos `payment_approved_but_product_unavailable`, `payment_ap
 - Verificar manejo de respuesta 202 en cliente web y de eventos 422 en monitoreo; asignar responsable de revisión real. **Hasta completar estas pruebas y el proceso humano, la producción sigue bloqueada.**
 
 **No aplicar SQL UPDATE/DELETE manual ni refund automático sobre registros comerciales sin una autorización específica, respaldo/auditoría y procedimiento aprobado.**
+
+## Protección adicional en implementación (no aceptada aún): `payment_in_flight`
+
+El flujo de Checkout introduce un indicador persistente `checkout_intents.fail_reason='payment_in_flight'` inmediatamente **antes** de solicitar el cargo externo. Su propósito es impedir una segunda cobranza si el proceso se interrumpe entre el cargo y su registro en `payments`. Cuando la respuesta del proveedor queda registrada de forma verificable, el marcador se libera. Un marcador no resuelto implica **resultado desconocido**, no pago rechazado ni pagado.
+
+Candidatos para investigación **solo lectura** en entorno administrativo autorizado:
+
+```sql
+SELECT id, user_id, address_id, status, fail_reason, created_at
+FROM checkout_intents
+WHERE status = 'created'
+  AND fail_reason = 'payment_in_flight'
+ORDER BY created_at, id;
+```
+
+**Operación:** el responsable debe cotejar la referencia del intent con el historial oficial de Mercado Pago, `payments`, `orders` y auditoría antes de permitir nuevos cobros. Si falta evidencia de resultado no se debe limpiar manualmente el marcador ni solicitar otro pago. Desbloquear únicamente mediante un procedimiento administrativo con aprobación y log de auditoría, todavía **no desarrollado ni autorizado para producción**. No hay devolución, creación de pedido ni movimiento contable automáticos.
+
+**Estado técnico al 22/10/2026:** el código del marcador está implementado localmente y sintácticamente válido, pero su E2E aislado específico está pendiente porque la herramienta bloqueó su ejecución. El marcador no constituye por sí solo conciliación financiera aprobada.
+
+## Evidencia integral del cierre tÃ©cnico V2 (22/10/2026)
+
+- MariaDB temporal y descartable 127.0.0.1:18959, base mi_checkout_integral_v2_test, con guardias DATABASE() y @@port y datos sintÃ©ticos.
+- 22/22 casos del repositorio de intents y pagos: campaÃ±as NULL/0, aislamiento, cobro repetido, enlace Ãºnico, importe, moneda, ID y referencia.
+- 15/15 casos del webhook real con cliente MP simulado: cobro invÃ¡lido, firma ausente, token inexistente, segundo pago distinto, reintento y excepciÃ³n de proveedor. El creador de pedido se simulÃ³ solo en esta prueba.
+- 18/18 casos SQL de locks entre conexiones, cobros huÃ©rfanos y campaÃ±as diferentes para el mismo carrito.
+- 10/10 casos de marcador duradero anterior a llamar al proveedor, bloqueo de reintento y liberaciÃ³n posterior.
+- 6/6 comprobaciones de OrderFromIntentService real tras dos procesos PHP iniciados concurrentemente: mismo order_id, una orden, una fila, stock de 5 a 3 una sola vez e intent consumido; con pausa deliberada dentro de transacciÃ³n para garantizar solapamiento. Email, lealtad y evaluaciÃ³n global B1 fueron sustituidos por mocks sintÃ©ticos.
+- Regresiones unitarias y estÃ¡ticas de Checkout, frontend y CategorÃ­as B1.
+- No hubo pagos reales, conexiones MP productivas, devoluciones ni cambios comerciales. No se probÃ³ homologaciÃ³n externa end-to-end ni se sustituyÃ³ la conciliaciÃ³n humana.
+
+### Condiciones para operar comercialmente
+
+Antes de habilitar cobros reales, un responsable administrativo-financiero debe aprobar formalmente el protocolo, quedar asignado a la revisiÃ³n de cobros sin pedido y marcadores payment_in_flight, contar con un canal de atenciÃ³n al comprador y autorizar individualmente la resoluciÃ³n de cada caso. Sin procedimiento adoptado, prueba externa de homologaciÃ³n y aceptaciÃ³n transversal, producciÃ³n permanece bloqueada. Nunca liberar marcadores por SQL manual sin evidencia documentada ni ejecutar reembolsos automÃ¡ticos.
