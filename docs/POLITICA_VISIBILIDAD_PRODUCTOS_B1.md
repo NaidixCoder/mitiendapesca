@@ -69,3 +69,9 @@ La aprobación expresa B1 del propietario prevalece sobre los textos históricos
 ## Actualización 2026-10-21 — V6B-2 cerrada, V6B-3 autorizada
 
 El chat principal reejecutó 28/28 B1, 24/24 público y 28/28 Admin después de la entrega §20 de `docs/modulos/categorias.md`. **V6B-2 cerrada técnicamente**. **V6B-3 AUTORIZADA** para proteger carrito, intents, pago y confirmación de pedidos; los archivos exactos y las pruebas están en la última adenda de `docs/DECISIONES_CATEGORIAS_FASE3.md`. B1 ON debe impedir crear nuevas compras con producto de categoría oculta; carritos previos permanecen para revisión. Los cobros MP ya aprobados que luego se vuelvan no elegibles requieren registro y conciliación manual, no se ocultan ni auto-reembolsan. **V6C SEO y producción siguen NO autorizadas.** Los encabezados históricos de V6B-2 «PREPARADA» quedaron superados por estas adendas.
+
+## Estado de proyecto — 2026-10-22: Compra B1 validada técnicamente, SEO 6C-A autorizada
+
+Ventana **6B-3** terminó con evidencias autenticadas sintéticas y contratos reejecutados por principal: **31/31 Checkout B1, 28/28 Productos B1, 24/24 Público, 28/28 Admin**. No constituye aprobación de producción. **6C-A SEO** fue autorizada (sitemap Productos/Categorías, noindex/canonical, 404/head), en reserva focal detallada en `docs/DECISIONES_CATEGORIAS_FASE3.md`. **6C-B redirects** sigue pendiente.
+
+**Dos pendientes no SEO para producción:** `CheckoutIntentRepository::findReusable()` no encuentra campañas SQL `NULL` porque hace `= 0`; implementar reparación de idempotencia solamente bajo futura reserva 6B-4. Los pagos Mercado Pago approved sin pedido por B1 requieren conciliación operativa/contable explícita, no basta marcar incidente; no refund automático autorizado. Hasta resolver ambos, mantener producción bloqueada.
