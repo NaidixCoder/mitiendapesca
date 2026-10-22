@@ -65,3 +65,7 @@ La aprobación expresa B1 del propietario prevalece sobre los textos históricos
 ## Estado actualizado del plan — 2026-10-21
 
 **V6B-1 completada y validada técnicamente. V6B-2 ABIERTA con autorización expresa del chat principal**, exclusivamente en los archivos y métodos descritos en la última adenda de `docs/DECISIONES_CATEGORIAS_FASE3.md` y su reserva en `docs/COORDINACION.md`. Las menciones anteriores de «PREPARADA/NO ABIERTA» describían el estado antes del cierre de V6B-1 y han quedado superadas. V6B-3 Cart/Checkout y V6C SEO siguen **NO autorizadas**. B1 sigue siendo la decisión comercial definitiva.
+
+## Actualización 2026-10-21 — V6B-2 cerrada, V6B-3 autorizada
+
+El chat principal reejecutó 28/28 B1, 24/24 público y 28/28 Admin después de la entrega §20 de `docs/modulos/categorias.md`. **V6B-2 cerrada técnicamente**. **V6B-3 AUTORIZADA** para proteger carrito, intents, pago y confirmación de pedidos; los archivos exactos y las pruebas están en la última adenda de `docs/DECISIONES_CATEGORIAS_FASE3.md`. B1 ON debe impedir crear nuevas compras con producto de categoría oculta; carritos previos permanecen para revisión. Los cobros MP ya aprobados que luego se vuelvan no elegibles requieren registro y conciliación manual, no se ocultan ni auto-reembolsan. **V6C SEO y producción siguen NO autorizadas.** Los encabezados históricos de V6B-2 «PREPARADA» quedaron superados por estas adendas.
