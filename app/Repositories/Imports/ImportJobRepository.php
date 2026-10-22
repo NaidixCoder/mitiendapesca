@@ -127,11 +127,30 @@ final class ImportJobRepository
                  ->execute([(int)$total,(int)$ok,(int)$errors,'finished',(int)$id]);
     }
 
-    public function markFailed(int $id, string $message = ''): void
+    public function markFailed(int $id, string $message = '', ?int $total = null, ?int $ok = null, ?int $errors = null): void
     {
-        // status simple; el detalle queda en errors.json
+        // I05: una ejecución revertida conserva sus contadores en historial,
+        // aunque ninguna de las filas válidas haya quedado aplicada.
+        if ($total !== null && $ok !== null && $errors !== null) {
+            $this->db->prepare("UPDATE import_jobs
+                 SET status='failed', total_rows=?, ok_rows=?, err_rows=?, finished_at=NOW()
+                 WHERE id=?")->execute([$total, $ok, $errors, $id]);
+            return;
+        }
         $this->db->prepare("UPDATE import_jobs SET status=?, finished_at=NOW() WHERE id=?")
                  ->execute(['failed',(int)$id]);
+    }
+
+    /**
+     * Confirmación SQL ambigua: nunca marcar finished/reverted automáticamente.
+     * El detalle técnico se conserva en _errors.json y en el evento de auditoría.
+     */
+    public function markReviewRequired(int $id, int $total, int $ok, int $errors): void
+    {
+        $this->db->prepare("UPDATE import_jobs
+                               SET status='review_required', total_rows=?, ok_rows=?, err_rows=?, finished_at=NOW()
+                             WHERE id=?")
+                 ->execute([(int)$total, (int)$ok, (int)$errors, (int)$id]);
     }
 
     /** @param array<string,mixed> $summary */
@@ -170,4 +189,3 @@ final class ImportJobRepository
                  ->execute([$revertStatus, (int)$userId, $json, $id]);
     }
 }
-

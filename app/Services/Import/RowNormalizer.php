@@ -173,11 +173,15 @@ $weightKeys = ['peso_envio_g','ship_weight_g','ship_weight','peso_envio_kg','shi
 // Atributos por columnas (atributo_1/valor_1 ...)
         $pairs = [];
         for ($i=1; $i<=3; $i++) {
-            $ak = 'atributo_'.$i;
-            $vk = 'valor_'.$i;
-            if (!isset($d[$ak]) && !isset($d[$vk])) continue;
-            $an = trim((string)($d[$ak] ?? ''));
-            $av = trim((string)($d[$vk] ?? ''));
+            // La plantilla oficial usa attr_N; aceptar también atributo_N
+            // para archivos previos. Nunca activar relaciones a medias.
+            $official = trim((string)($d['attr_'.$i] ?? ''));
+            $legacy = trim((string)($d['atributo_'.$i] ?? ''));
+            $an = $official !== '' ? $official : $legacy;
+            $av = trim((string)($d['valor_'.$i] ?? ''));
+            if (!empty($opt['update_attributes']) && ($an === '') !== ($av === '')) {
+                $out['_attr_error'] = 'Atributo '.$i.': completá nombre y valor o dejá ambos vacíos.';
+            }
             if ($an !== '' && $av !== '') $pairs[] = ['name'=>$an,'value'=>$av];
         }
         if ($pairs) $out['attr_pairs'] = $pairs;
@@ -219,4 +223,3 @@ $weightKeys = ['peso_envio_g','ship_weight_g','ship_weight','peso_envio_kg','shi
         return $out;
     }
 }
-

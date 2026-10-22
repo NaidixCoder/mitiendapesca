@@ -27,193 +27,163 @@ final class ImportRevertService
     /**
      * @return array{ok:bool,error?:string,summary?:array<string,mixed>}
      */
+    /**
+     * Solo un snapshot v3 COMPLETO y con after_sha256 de cada operación
+     * habilita reversión automática. V1/V2 quedan para recuperación manual.
+     */
+    public static function isSnapshotSafe(?array $snapshot): bool
+    {
+        if (!is_array($snapshot) || ($snapshot['version'] ?? null) !== 3
+            || ($snapshot['complete'] ?? null) !== true || !is_array($snapshot['ops'] ?? null)
+            || !$snapshot['ops']) return false;
+
+        $seen = [];
+        foreach ($snapshot['ops'] as $op) {
+            if (!is_array($op)) return false;
+            $entity = $op['entity'] ?? null;
+            $action = $op['action'] ?? null;
+            $id = $op['pk']['id'] ?? null;
+            $hash = $op['after_sha256'] ?? null;
+            if (!is_string($entity) || $entity === '' || !in_array($action, ['update','create'], true)
+                || !is_numeric($id) || (int)$id <= 0
+                || !is_string($hash) || !preg_match('/^[a-f0-9]{64}$/D', $hash)) return false;
+            if ($action === 'update' && (!is_array($op['before'] ?? null) || !$op['before'])) return false;
+            if ($action === 'create' && (!is_string($op['after_rel_sha256'] ?? null)
+                || !preg_match('/^[a-f0-9]{64}$/D', (string)$op['after_rel_sha256']))) return false;
+            $key = $entity.':'.(int)$id;
+            if (isset($seen[$key])) return false;
+            $seen[$key] = true;
+        }
+        return true;
+    }
+
     public function revertJob(int $jobId, int $userId): array
     {
-        $jobId = (int)$jobId;
         if ($jobId <= 0) return ['ok'=>false,'error'=>'Importación inválida.'];
 
         $job = $this->jobs->find($jobId);
         if (!$job) return ['ok'=>false,'error'=>'Importación no encontrada.'];
-
-        $status = (string)($job['status'] ?? '');
-        if (!in_array($status, ['finished','ok'], true)) {
-            return ['ok'=>false,'error'=>'Solo se puede revertir una importación que se haya ejecutado correctamente.'];
-        }
-
-        $revertStatus = (string)($job['revert_status'] ?? 'not_reverted');
-        if (in_array($revertStatus, ['reverted','reverted_with_warnings'], true)) {
-            return ['ok'=>true,'summary'=>['already_reverted'=>true]];
-        }
-
-        // Guardrail LIFO: solo el ÚLTIMO import revertible.
-        $lastId = $this->computeLastRevertibleJobId();
-        if ($lastId > 0 && $lastId !== $jobId) {
-            $sum = [
-                'job_id' => $jobId,
-                'blocked' => 'not_last',
-                'last_revertible_job_id' => $lastId,
-                'message' => 'No disponible: solo se puede revertir el último import.'
-            ];
-            $this->jobs->markReverted($jobId, $userId, 'blocked_not_last', $sum);
-            Audit::log('import_revert_blocked','import_job',$jobId,$sum + ['reason'=>'not_last']);
-            return ['ok'=>false,'error'=>'No disponible: solo se puede revertir el último import.'];
-        }
-
         $rbAbs = $this->resolveRollbackPath((string)($job['file_path'] ?? ''), (string)($job['file_name'] ?? ''));
-        if (!$rbAbs || !is_file($rbAbs)) {
-            return ['ok'=>false,'error'=>'No se encontró el punto de restauración para esta importación.'];
-        }
+        $raw = $rbAbs && is_file($rbAbs) ? @file_get_contents($rbAbs) : false;
+        $snapshot = is_string($raw) && $raw !== '' ? json_decode($raw, true) : null;
+        $snapshotSafe = self::isSnapshotSafe(is_array($snapshot) ? $snapshot : null)
+            && (int)($snapshot['job_id'] ?? 0) === $jobId;
 
-        $raw = @file_get_contents($rbAbs);
-        $json = $raw ? json_decode($raw, true) : null;
-        if (!is_array($json)) {
-            return ['ok'=>false,'error'=>'Archivo de rollback inválido.'];
-        }
-
-        $version = (int)($json['version'] ?? 0);
-        if ($version !== 2) {
-            return ['ok'=>false,'error'=>'Este rollback es legacy (v1) y no es compatible con Revert v2. Reimportá para regenerar el punto de restauración.'];
-        }
-
-        $ops = $json['ops'] ?? null;
-        if (!is_array($ops) || !$ops) {
-            return ['ok'=>false,'error'=>'No hay operaciones para revertir.'];
-        }
-
+        // Sin snapshot verificable, NO restaurar v2 ni v1, ni completar por timestamps.
         $summary = [
             'job_id' => $jobId,
-            'rollback_file' => basename($rbAbs),
-            'imported_at' => substr((string)($job['finished_at'] ?? $job['created_at'] ?? ''), 0, 19),
             'restored' => 0,
             'deleted' => 0,
             'warnings' => [],
-            'counts' => [
-                'restore_ok' => 0,
-                'restore_fail' => 0,
-                'delete_ok' => 0,
-                'delete_fail' => 0,
-            ],
+            'conflicts' => [],
         ];
-
-        // Phase A: RESTORE updates
-        // Phase B: DELETE creates (en orden inverso)
-        $updates = [];
-        $creates = [];
-        foreach ($ops as $op) {
-            if (!is_array($op)) continue;
-            $entity = (string)($op['entity'] ?? '');
-            $action = (string)($op['action'] ?? '');
-            $pk = is_array($op['pk'] ?? null) ? (array)$op['pk'] : [];
-            $before = is_array($op['before'] ?? null) ? (array)$op['before'] : [];
-            if ($entity === '' || $action === '' || empty($pk['id'])) continue;
-
-            if ($action === 'update') {
-                $updates[] = ['entity'=>$entity,'pk'=>$pk,'before'=>$before];
-            } elseif ($action === 'create') {
-                $creates[] = ['entity'=>$entity,'pk'=>$pk];
-            }
-        }
-
-        if (!$updates && !$creates) {
-            return ['ok'=>false,'error'=>'Este rollback no contiene acciones aplicables.'];
-        }
-
-        // Guardrail conflictos (manual edits) sobre entidades sensibles (product/variant)
-        $importedAt = (string)($summary['imported_at'] ?? '');
-        if ($importedAt !== '') {
-            $conflicts = $this->detectConflicts($updates, $creates, $importedAt);
-            if ($conflicts) {
-                $blocked = [
-                    'job_id' => $jobId,
-                    'blocked' => 'conflict',
-                    'imported_at' => $importedAt,
-                    'conflicts' => $conflicts,
-                ];
-                $this->jobs->markReverted($jobId, $userId, 'blocked_conflict', $blocked);
-                Audit::log('import_revert_blocked','import_job',$jobId,$blocked + ['reason'=>'conflict']);
-                return ['ok'=>false,'error'=>'No se puede revertir: hubo ediciones manuales posteriores al import.'];
-            }
-        }
+        $blockError = null;
+        $blockReason = null;
+        $success = false;
 
         try {
+            // En InnoDB RR, el barrido PRIMARY FOR UPDATE toma locks de filas
+            // y gaps: una inserción o cambio concurrente a review_required
+            // no puede adelantarse entre el guard y el rollback comercial.
+            // SET TRANSACTION solo afecta esta operación, no la sesión global.
+            if ($this->db->exec('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ') === false) {
+                throw new \RuntimeException('No se pudo asegurar el aislamiento del rollback');
+            }
             $this->db->beginTransaction();
-
-            foreach ($updates as $u) {
-                $id = (int)($u['pk']['id'] ?? 0);
-                if ($id > 0 && !$this->revertRepo->exists((string)$u['entity'], $id)) {
-                    $summary['counts']['restore_fail']++;
-                    $summary['warnings'][] = [
-                        'type' => 'missing_target',
-                        'entity' => $u['entity'],
-                        'pk' => $u['pk'],
-                    ];
-                    continue;
-                }
-                $ok = $this->revertRepo->restore((string)$u['entity'], (array)$u['pk'], (array)$u['before']);
-                if ($ok) {
-                    $summary['restored']++;
-                    $summary['counts']['restore_ok']++;
-                } else {
-                    $summary['counts']['restore_fail']++;
-                    $summary['warnings'][] = [
-                        'type' => 'restore_failed',
-                        'entity' => $u['entity'],
-                        'pk' => $u['pk'],
-                    ];
-                }
-            }
-
-            // Deletes en orden inverso
-            for ($i = count($creates) - 1; $i >= 0; $i--) {
-                $c = $creates[$i];
-                try {
-                    $res = $this->revertRepo->deleteResult((string)$c['entity'], (array)$c['pk']);
-                    if (!empty($res['ok'])) {
-                        $summary['deleted']++;
-                        $summary['counts']['delete_ok']++;
-                    } else {
-                        $summary['counts']['delete_fail']++;
-                        $summary['warnings'][] = [
-                            'type' => !empty($res['fk_block']) ? 'delete_fk_blocked' : 'delete_failed',
-                            'entity' => $c['entity'],
-                            'pk' => $c['pk'],
-                            'deactivated' => (bool)($res['deactivated'] ?? false),
-                        ];
+            // PRIMERO barrera de conciliación: adquisición consistente DESC
+            // antes de lockLatestPendingJobId y del job objetivo.
+            $reviews = $this->revertRepo->lockPendingReconciliationJobIds();
+            $lastId = $this->revertRepo->lockLatestPendingJobId();
+            $lockedJob = $this->revertRepo->lockJob($jobId);
+            if (!$lockedJob) throw new \RuntimeException('Importación desaparecida.');
+            $lockedStatus = (string)($lockedJob['status'] ?? '');
+            if ($reviews) {
+                $blockReason = 'review_required_pending';
+                $blockError = 'Reversión suspendida: existen importaciones con confirmación SQL pendiente de conciliación supervisada.';
+                // No modificar el estado del objetivo; solo auditoría del intento.
+                $summary['pending_review_job_ids'] = array_slice($reviews, 0, 10);
+                $summary['pending_review_count'] = count($reviews);
+            } elseif (!in_array($lockedStatus, ['finished','ok'], true)) {
+                $blockReason = 'job_not_eligible';
+                $blockError = 'Solo se puede revertir una importación ejecutada correctamente.';
+            } elseif (in_array((string)($lockedJob['revert_status'] ?? ''), ['reverted','reverted_with_warnings'], true)) {
+                $this->db->rollBack();
+                return ['ok'=>true,'summary'=>['already_reverted'=>true]];
+            } elseif ($lastId !== $jobId) {
+                $blockReason = 'not_last';
+                $blockError = 'Solo puede revertirse la última importación no revertida (LIFO).';
+                $summary['last_revertible_job_id'] = $lastId;
+            } elseif (!$snapshotSafe) {
+                $blockReason = 'unverifiable_snapshot';
+                $blockError = 'Punto de restauración ausente, anterior o incompleto: no permite comprobar los cambios posteriores. Se requiere recuperación manual.';
+            } else {
+                // Check ALL entities before the first write; deterministic lock order.
+                $ops = $snapshot['ops'];
+                $sorted = $ops;
+                usort($sorted, static fn($a, $b) => strcmp(
+                    (string)$a['entity'].':'.sprintf('%020d',(int)$a['pk']['id']),
+                    (string)$b['entity'].':'.sprintf('%020d',(int)$b['pk']['id'])
+                ));
+                foreach ($sorted as $op) {
+                    $ent = (string)$op['entity'];
+                    $id = (int)$op['pk']['id'];
+                    $fingerprint = $this->revertRepo->fingerprint($ent, $id, true);
+                    if ($fingerprint === null || !hash_equals((string)$op['after_sha256'], $fingerprint)) {
+                        $summary['conflicts'][] = ['entity'=>$ent,'id'=>$id,'reason'=>$fingerprint===null?'missing_row':'state_changed'];
                     }
-                } catch (Throwable $e) {
-                    $summary['counts']['delete_fail']++;
-                    $summary['warnings'][] = [
-                        'type' => 'delete_exception',
-                        'entity' => $c['entity'],
-                        'pk' => $c['pk'],
-                        'error' => $e->getMessage(),
-                    ];
-                    // No abortamos: seguimos con el resto.
+                    if ($fingerprint !== null && $op['action'] === 'create') {
+                        $related = $this->revertRepo->dependentFingerprint($ent, $id, true);
+                        if (!hash_equals((string)$op['after_rel_sha256'], $related)) {
+                            $summary['conflicts'][] = ['entity'=>$ent,'id'=>$id,'reason'=>'related_records_changed'];
+                        }
+                    }
+                }
+                if ($summary['conflicts']) {
+                    $blockReason = 'state_conflict';
+                    $blockError = 'Reversión bloqueada: un registro fue modificado o no puede verificarse desde la importación.';
+                } else {
+                    // Restore BEFORE values then remove creates in reverse order.
+                    // Any failure aborts the entire transaction, never best-effort writes.
+                    foreach ($ops as $op) {
+                        if ($op['action'] !== 'update') continue;
+                        if (!$this->revertRepo->restore((string)$op['entity'], (array)$op['pk'], (array)$op['before'])) {
+                            throw new \RuntimeException('Falló la restauración de '.$op['entity'].' #'.$op['pk']['id']);
+                        }
+                        $summary['restored']++;
+                    }
+                    for ($i=count($ops)-1; $i>=0; $i--) {
+                        $op=$ops[$i];
+                        if ($op['action'] !== 'create') continue;
+                        $out=$this->revertRepo->deleteResult((string)$op['entity'], (array)$op['pk']);
+                        if (empty($out['ok']) || !empty($out['fk_block'])) {
+                            throw new \RuntimeException('No se pudo eliminar '.$op['entity'].' #'.$op['pk']['id'].'. No se aplicaron cambios.');
+                        }
+                        $summary['deleted']++;
+                    }
+                    $this->jobs->markReverted($jobId, $userId, 'reverted', $summary);
+                    $success = true;
                 }
             }
 
+            if ($blockReason !== null) {
+                $summary['blocked'] = $blockReason;
+                if (!in_array($blockReason, ['review_required_pending', 'job_not_eligible'], true)) {
+                    $this->jobs->markReverted($jobId, $userId,
+                        $blockReason === 'not_last' ? 'blocked_not_last' : 'blocked_conflict', $summary);
+                }
+            }
             $this->db->commit();
         } catch (Throwable $e) {
             if ($this->db->inTransaction()) $this->db->rollBack();
-            return ['ok'=>false,'error'=>'Rollback falló: ' . $e->getMessage()];
+            return ['ok'=>false,'error'=>'Reversión cancelada sin cambios: '.$e->getMessage()];
         }
 
-        $finalStatus = !empty($summary['warnings']) ? 'reverted_with_warnings' : 'reverted';
-        $this->jobs->markReverted($jobId, $userId, $finalStatus, $summary);
-
-        // Auditoría (evento humano + metadata operativa)
-        $meta = [
-            'job_id' => $jobId,
-            'file_name' => (string)($job['file_name'] ?? ''),
-            'restored' => (int)($summary['restored'] ?? 0),
-            'deleted' => (int)($summary['deleted'] ?? 0),
-            'warnings_count' => is_array($summary['warnings'] ?? null) ? count($summary['warnings']) : 0,
-            'warnings' => $summary['warnings'] ?? [],
-        ];
-        $actionKey = ($finalStatus === 'reverted_with_warnings') ? 'import_reverted_warn' : 'import_reverted';
-        Audit::log($actionKey,'import_job',$jobId,$meta);
-
-        return ['ok'=>true,'summary'=>$summary];
+        if ($success) {
+            Audit::log('import_reverted','import_job',$jobId, $summary);
+            return ['ok'=>true,'summary'=>$summary];
+        }
+        Audit::log('import_revert_blocked','import_job',$jobId,$summary);
+        return ['ok'=>false,'error'=>$blockError ?? 'Reversión no disponible.'];
     }
 
     private function resolveRollbackPath(string $filePath, string $fileName): ?string

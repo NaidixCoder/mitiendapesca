@@ -76,7 +76,7 @@ final class ImportsIndexViewModel
                         'entidad' => 'Validación',
                         'accion' => 'Revisar',
                         'notas' => [(string)($warnRow['warning'] ?? 'Warning')],
-                        'level' => 'warn',
+                        'level' => 'warning',
                     ];
                 }
             }
@@ -120,10 +120,11 @@ final class ImportsIndexViewModel
         $countErrors = 0;
         $countWarnings = 0;
         foreach ($detailRows as $detailRow) {
-            $level = (string)($detailRow['level'] ?? '');
+            $level = strtolower(trim((string)($detailRow['level'] ?? '')));
+            if ($level === 'warn') { $level = 'warning'; }
             if ($level === 'error') {
                 $countErrors++;
-            } elseif ($level === 'warn') {
+            } elseif ($level === 'warning') {
                 $countWarnings++;
             }
         }
@@ -136,12 +137,13 @@ final class ImportsIndexViewModel
             if (!is_array($row)) {
                 continue;
             }
-            $level = (string)($row['level'] ?? '');
-            $badgeClass = 'bg-slate-100 border-slate-200 text-slate-700';
+            $level = strtolower(trim((string)($row['level'] ?? '')));
+            if ($level === 'warn') { $level = 'warning'; }
+            $badgeClass = 'av3-ui-badge--neutral';
             if ($level === 'error') {
-                $badgeClass = 'bg-red-50 border-red-200 text-red-700';
-            } elseif ($level === 'warn') {
-                $badgeClass = 'bg-amber-50 border-amber-200 text-amber-800';
+                $badgeClass = 'av3-ui-badge--danger';
+            } elseif ($level === 'warning') {
+                $badgeClass = 'av3-ui-badge--warning';
             }
             $detailRowsPrepared[] = [
                 'row' => (int)($row['row'] ?? 0),
@@ -232,7 +234,3 @@ final class ImportsIndexViewModel
         ];
     }
 }
-
-
-
-

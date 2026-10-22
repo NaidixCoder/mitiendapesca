@@ -6,6 +6,7 @@ final class RowValidator
     /** Devuelve mensaje de error o null si todo OK */
     public function validate(array $d, string $type): ?string
     {
+        if (!empty($d['_attr_error'])) return (string)$d['_attr_error'];
         if (!empty($d['_csv_parse_error'])) {
             return (string)$d['_csv_parse_error'];
         }

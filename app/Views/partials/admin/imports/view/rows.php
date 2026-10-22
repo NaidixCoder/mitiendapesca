@@ -2,60 +2,61 @@
 $isSuccess = !empty($show['is_success']);
 $rowsCount = (int)($show['rows_count'] ?? 0);
 $rowsPrepared = is_array($show['rows_prepared'] ?? null) ? $show['rows_prepared'] : [];
+$hasDiagnostics = !empty($show['has_diagnostics']);
 ?>
-<section class="av3-card">
-  <header class="av3-flex av3-items-center av3-justify-between av3-space-bottom-3">
-    <h3 class="av3-weight-strong"><?= $isSuccess ? 'Detalle por fila (ejecutado)' : 'Detalle por fila (validacion)' ?></h3>
-    <div class="av3-type-body av3-text-var-muted"><?= $rowsCount ?> filas</div>
+<section class="av3-ui-card av3-imports__block av3-imports__row-details" aria-labelledby="imports-rows-heading">
+  <header class="av3-imports__block-head">
+    <h3 id="imports-rows-heading">Diferencias y detalle por fila</h3>
+    <span><?= $hasDiagnostics ? ($rowsCount . ' filas · Detalle registrado') : 'Diagnóstico por fila no disponible' ?></span>
   </header>
-
-  <div class="av3-space-top-2 av3-type-caption av3-text-var-muted av3-flex av3-flex-wrap av3-gap-2">
-    <span class="badge-pill badge-success">OK</span>
-    <span class="badge-pill badge-neutral">Aviso</span>
-    <span class="badge-pill badge-danger">Error</span>
-    <span class="av3-ml-2">La columna "Cambios / notas" explica que se modifico en cada fila.</span>
-  </div>
-
-  <?php if (empty($rowsPrepared)): ?>
-    <p class="av3-type-body av3-text-var-muted">No hay detalle por fila (importaciones viejas).</p>
+  <?php if (!$rowsPrepared): ?>
+    <p class="av3-ui-empty"><?= $hasDiagnostics ? 'El diagnóstico no contiene filas detalladas.' : 'No se conserva el archivo de diagnóstico por fila de esta ejecución. Los cambios pueden haberse realizado y revertido; consultá el estado, el snapshot y la auditoría.' ?></p>
   <?php else: ?>
-    <div class="max-h-[520px] av3-overflow-auto av3-border av3-border-var-border av3-radius-card">
-      <table class="av3-table av3-width-full av3-type-body">
-        <thead class="av3-sticky top-0 av3-bg--color-var---admin-card">
-          <tr>
-            <th class="av3-w--90px">Fila</th>
-            <th class="av3-w--110px">Tipo</th>
-            <th class="av3-w--220px">SKU</th>
-            <th class="av3-w--220px">SKU padre</th>
-            <th class="av3-w--160px">Entidad</th>
-            <th class="av3-w--130px">Resultado</th>
-            <th class="av3-w--170px">Accion</th>
-            <th>Cambios / notas</th>
-          </tr>
-        </thead>
+    <div class="av3-imports__table-container">
+      <table class="av3-ui-table av3-imports__table av3-imports__table--details">
+        <thead><tr>
+          <th scope="col">Fila</th><th scope="col">Tipo</th><th scope="col">SKU</th><th scope="col">SKU padre</th><th scope="col">Entidad</th><th scope="col">Resultado</th><th scope="col">Acción</th><th scope="col">Cambios / notas</th>
+        </tr></thead>
         <tbody>
           <?php foreach ($rowsPrepared as $rr): ?>
-            <?php $hasCambios = !empty($rr['cambios'] ?? []); ?>
-            <tr class="<?= e((string)($rr['row_class'] ?? '')) ?>">
-              <td class="whitespace-nowrap"><?= (int)($rr['row'] ?? 0) ?></td>
-              <td class="whitespace-nowrap"><?= e((string)($rr['tipo_fila'] ?? '')) ?></td>
-              <td class="whitespace-nowrap"><?= e((string)($rr['sku'] ?? '')) ?></td>
-              <td class="whitespace-nowrap"><?= e((string)($rr['sku_padre'] ?? '')) ?></td>
-              <td class="whitespace-nowrap"><?= e((string)($rr['entidad'] ?? '')) ?></td>
-              <td class="whitespace-nowrap"><span class="<?= e((string)($rr['result_badge'] ?? 'badge-pill badge-neutral')) ?>"><?= e((string)($rr['result_label'] ?? '')) ?></span></td>
-              <td class="whitespace-nowrap"><span class="<?= e((string)($rr['action_badge'] ?? 'badge-pill badge-neutral')) ?>"><?= e(((string)($rr['accion'] ?? '')) ?: '-') ?></span></td>
-              <td>
-                <?php if (!empty($rr['is_noop']) && !$hasCambios): ?>
-                  <span class="av3-text-var-muted">Sin cambios detectados.</span>
-                <?php elseif (!$hasCambios): ?>
-                  <span class="av3-text-var-muted">-</span>
+            <?php
+            $hasChanges = !empty($rr['cambios']);
+            $level = (string)($rr['level'] ?? 'ok');
+            $tone = $level === 'error' ? 'av3-ui-badge--danger' : ($level === 'warning' ? 'av3-ui-badge--warning' : '');
+            ?>
+            <tr class="av3-imports__row">
+              <td data-label="Fila" class="av3-imports__row-number"><?= (int)($rr['row'] ?? 0) ?></td>
+              <td data-label="Tipo"><?= e((string)($rr['tipo_fila'] ?? '')) ?></td>
+              <td data-label="SKU" class="av3-imports__sku"><?= e((string)($rr['sku'] ?? '')) ?: '—' ?></td>
+              <td data-label="SKU padre" class="av3-imports__sku"><?= e((string)($rr['sku_padre'] ?? '')) ?: '—' ?></td>
+              <td data-label="Entidad"><?= e((string)($rr['entidad'] ?? '')) ?></td>
+              <td data-label="Resultado"><span class="av3-ui-badge <?= e($tone) ?>"><?= e((string)($rr['result_label'] ?? '')) ?></span></td>
+              <td data-label="Acción"><?= e((string)($rr['accion'] ?? '')) ?: '—' ?></td>
+              <td data-label="Cambios / notas" class="av3-imports__notes">
+                <?php if (!empty($rr['is_noop']) && !$hasChanges): ?>
+                  <span class="av3-imports__muted">Sin cambios detectados.</span>
+                <?php elseif (!$hasChanges): ?>
+                  <span class="av3-imports__muted">Sin diferencias registradas.</span>
                 <?php else: ?>
-                  <div class="av3-flow-1">
-                    <?php foreach ((array)($rr['cambios'] ?? []) as $c): ?>
+                  <div class="av3-imports__diffs">
+                    <?php foreach ((array)$rr['cambios'] as $c): ?>
                       <?php if (($c['type'] ?? '') === 'diff'): ?>
-                        <div class="av3-type-body"><span class="av3-weight-medium"><?= e((string)($c['k'] ?? '')) ?>:</span> <span class="av3-text-var-muted"><?= e((string)($c['from'] ?? '')) ?></span> <span class="av3-mx-1 av3-text-var-muted">-></span> <span class="av3-weight-medium"><?= e((string)($c['to'] ?? '')) ?></span></div>
+                        <div class="av3-imports__diff">
+                          <span class="av3-imports__diff-key"><?= e((string)($c['k'] ?? '')) ?></span>
+                          <span class="av3-imports__diff-values">
+                            <span class="av3-imports__diff-from"><?= e((string)($c['from'] ?? '')) ?></span>
+                            <span class="av3-imports__diff-arrow" aria-label="cambia a">→</span>
+                            <span class="av3-imports__diff-to"><?= e((string)($c['to'] ?? '')) ?></span>
+                          </span>
+                        </div>
+                      <?php elseif (($c['type'] ?? '') === 'metadata'): ?>
+                        <div class="av3-imports__details-values">
+                          <?php foreach ((array)($c['items'] ?? []) as $item): ?>
+                            <span><small><?= e((string)($item['label'] ?? '')) ?></small><strong><?= e((string)($item['value'] ?? '')) ?></strong></span>
+                          <?php endforeach; ?>
+                        </div>
                       <?php else: ?>
-                        <div class="av3-type-body av3-text-var-muted">- <?= e((string)($c['raw'] ?? '')) ?></div>
+                        <div class="av3-imports__hint"><?= e((string)($c['raw'] ?? '')) ?></div>
                       <?php endif; ?>
                     <?php endforeach; ?>
                   </div>
@@ -66,6 +67,6 @@ $rowsPrepared = is_array($show['rows_prepared'] ?? null) ? $show['rows_prepared'
         </tbody>
       </table>
     </div>
-    <p class="help av3-space-top-2"><?= $isSuccess ? 'Detalle real de lo ejecutado. Revisa "Cambios / notas" para ver cada modificacion.' : 'Detalle de validacion: no se aplico nada si hubo errores.' ?></p>
+    <p class="av3-imports__block-note">El detalle refleja los datos registrados al ejecutar la importación. <?= !empty($show['job']) && (string)($show['job']['status'] ?? '') === 'review_required' ? 'Resultado de commit sin confirmar: solicitá conciliación supervisada antes de realizar otra operación.' : (((string)($show['revert_status'] ?? '')) === 'reverted' ? 'Los cambios de esta importación fueron revertidos según el snapshot verificado.' : (((string)($show['job']['status'] ?? '')) === 'failed' ? 'La ejecución terminó sin confirmar cambios comerciales.' : 'Consultá el estado y las advertencias antes de continuar.')) ?></p>
   <?php endif; ?>
 </section>

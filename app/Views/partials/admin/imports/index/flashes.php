@@ -1,2 +1,5 @@
-<?php if ($m = flash('ok')): ?><div class="av3-alert ok"><?= e($m) ?></div><?php endif; ?>
-<?php if ($m = flash('error')): ?><div class="av3-alert error"><?= e($m) ?></div><?php endif; ?>
+<?php foreach (['ok' => 'success', 'error' => 'error', 'warn' => 'warning'] as $type => $tone): ?>
+  <?php if ($message = flash($type)): ?>
+    <div class="av3-imports__notice av3-imports__notice--<?= e($tone) ?>" role="<?= $tone === 'error' ? 'alert' : 'status' ?>"><?= e((string)$message) ?></div>
+  <?php endif; ?>
+<?php endforeach; ?>

@@ -3,6 +3,23 @@ namespace App\Services\Import;
 
 final class ImportResult
 {
+    public const APPLY_NOT_STARTED = 'not_started';
+    public const APPLY_COMMITTED = 'committed';
+    public const APPLY_ROLLED_BACK = 'rolled_back';
+    public const APPLY_COMMIT_UNCERTAIN = 'commit_uncertain';
+
+    /** Resultado de la transacción SQL, independiente de errores por fila. */
+    public string $applyOutcome = self::APPLY_NOT_STARTED;
+
+    public function setApplyOutcome(string $outcome): void
+    {
+        if (!in_array($outcome, [self::APPLY_NOT_STARTED, self::APPLY_COMMITTED,
+            self::APPLY_ROLLED_BACK, self::APPLY_COMMIT_UNCERTAIN], true)) {
+            throw new \InvalidArgumentException('Resultado de importación desconocido.');
+        }
+        $this->applyOutcome = $outcome;
+    }
+
     /**
      * Total de filas analizadas (incluye OK/WARNING/SKIPPED/ERROR).
      */
@@ -162,6 +179,7 @@ final class ImportResult
     public function toArray(): array
     {
         return [
+            'apply_outcome' => $this->applyOutcome,
             'total' => $this->total,
             'ok' => $this->ok,
             'skipped' => $this->skipped,

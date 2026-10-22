@@ -7,6 +7,7 @@ use App\Repositories\Catalog\ProductVariantValueRepository;
 use App\Repositories\Catalog\ProductAttributeRepository;
 use App\Repositories\Catalog\ProductAttributeValueRepository;
 use App\Support\Format\Slug;
+use App\Repositories\Imports\ImportAttributeRelationsRepository;
 
 final class AttributeImporter
 {
@@ -15,7 +16,8 @@ final class AttributeImporter
         private AttributeValueRepository $values,
         private ProductVariantValueRepository $pvv,
         private ProductAttributeRepository $pa,
-        private ProductAttributeValueRepository $pav
+        private ProductAttributeValueRepository $pav,
+        private ImportAttributeRelationsRepository $relations
     ) {}
 
     /**
@@ -30,6 +32,16 @@ final class AttributeImporter
         if ($productId <= 0) return ['ok'=>false,'error'=>'Producto inválido'];
         if (!$pairs) return ['ok'=>true,'rollback_ops'=>[]];
 
+        // Primero capturar el BEFORE de los tres scopes. Nunca deducir el
+        // estado anterior a partir del resultado del reemplazo de variantes.
+        $relationOps = [];
+        if (!$dry) {
+            foreach (['relation_variant_values'=>$variantId,
+                      'relation_product_attrs'=>$productId,
+                      'relation_product_attr_values'=>$productId] as $entity=>$scope) {
+                $relationOps[] = $this->relations->capture($entity, $scope);
+            }
+        }
         $resolved = [];
         $rollbackOps = [];
         foreach ($pairs as $p) {
@@ -76,8 +88,10 @@ final class AttributeImporter
 
         if ($dry) return ['ok'=>true];
 
-        // 1) La variante guarda sus valores (product_variant_values)
-        $this->pvv->replaceForVariant($variantId, $resolved);
+        // 1) La variante reemplaza su conjunto. BEFORE capturado arriba.
+        if (!$this->pvv->replaceForVariant($variantId, $resolved)) {
+            throw new \RuntimeException('No se pudieron reemplazar relaciones de variante.');
+        }
 
         // 2) A nivel producto, aseguramos:
         // - el atributo como "disponible" (product_attributes)
@@ -85,11 +99,16 @@ final class AttributeImporter
         foreach ($resolved as $it) {
             $aid = (int)($it['attribute_id'] ?? 0);
             $vid = (int)($it['value_id'] ?? 0);
-            if ($aid > 0) $this->pa->ensure($productId, $aid, 0, 0);
-            if ($aid > 0 && $vid > 0) $this->pav->ensure($productId, $aid, $vid);
+            if ($aid > 0 && !$this->pa->ensure($productId, $aid, 0, 0)) {
+                throw new \RuntimeException('No se pudo guardar el atributo del producto.');
+            }
+            if ($aid > 0 && $vid > 0 && !$this->pav->ensure($productId, $aid, $vid)) {
+                throw new \RuntimeException('No se pudo guardar el valor del producto.');
+            }
         }
 
-        return ['ok'=>true,'rollback_ops'=>$rollbackOps];
+        // Orden de snapshot: maestros creados -> conjuntos de relaciones.
+        // Revert restaura TODOS los BEFORE antes de borrar cualquier CREATE.
+        return ['ok'=>true,'rollback_ops'=>array_merge($rollbackOps, $relationOps)];
     }
 }
-

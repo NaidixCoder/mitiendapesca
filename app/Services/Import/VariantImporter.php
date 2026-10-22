@@ -3,6 +3,7 @@ namespace App\Services\Import;
 
 use App\Repositories\Catalog\ProductRepository;
 use App\Repositories\Imports\ProductVariantImportRepository;
+use App\Repositories\Imports\ImportProductStateRepository;
 use App\Repositories\Catalog\InventoryRepository;
 
 final class VariantImporter
@@ -11,7 +12,8 @@ final class VariantImporter
         private ProductRepository $products,
         private ProductVariantImportRepository $variants,
         private InventoryRepository $inventory,
-        private ProductImporter $productImporter
+        private ProductImporter $productImporter,
+        private ImportProductStateRepository $productStates
     ) {}
 
     /**
@@ -22,6 +24,21 @@ final class VariantImporter
      */
     public function upsert(array $d, bool $dry, array $opt = []): array
     {
+        // El esquema real tiene dimensiones en products, NO en product_variants.
+        // Rechazar ANTES de consultar/crear padre, cambiar sale_mode o inventario.
+        // Con la opción apagada se ignoran los campos de envío, como corresponde.
+        if (!empty($opt['update_ship_dims'])) {
+            foreach (['ship_weight','ship_height','ship_width','ship_length'] as $shipField) {
+                if (!array_key_exists($shipField, $d)) continue;
+                $value = $d[$shipField];
+                if ($value === null || trim((string)$value) === '') continue;
+                return [
+                    'ok' => false,
+                    'error' => 'Las dimensiones de envío por variante no están disponibles en el esquema actual (' . $shipField . '). Desactivá Dimensiones de envío o dejá vacías esas celdas.',
+                ];
+            }
+        }
+
         $sku = trim((string)($d['sku'] ?? ''));
         if ($sku === '') return ['ok'=>false,'error'=>'Falta sku de variante'];
 
@@ -30,6 +47,9 @@ final class VariantImporter
 
         $parentCreated = false;
         $parentCreatedKey = null;
+        $parentRollbackOps = [];
+        $parentSnapshotComplete = false;
+        $parentExistingRollback = null;
 
         $rollback = null;
 
@@ -59,15 +79,72 @@ final class VariantImporter
                 }
 
                 $pr = $this->productImporter->upsert($parentData, $dry, $opt);
-                if (!$pr['ok']) return ['ok'=>false,'error'=>$pr['error'] ?? 'No se pudo crear producto padre'];
+                if (!$pr['ok']) {
+                    // ProductImporter pudo crear catálogos antes de fallar.
+                    // Un error en aplicación real no puede dejar esas altas sin traza.
+                    if (!$dry) throw new \RuntimeException('No se pudo crear producto padre: ' . ($pr['error'] ?? 'resultado inválido'));
+                    return ['ok'=>false,'error'=>$pr['error'] ?? 'No se pudo crear producto padre'];
+                }
 
                 // En dry-run: consideramos OK y dejamos que ImportService marque el padre como "planificado"
                 if ($dry) {
                     return ['ok'=>true,'variant_id'=>0,'product_id'=>0,'parent_created'=>true,'parent_key'=>$parentKey,'action'=>'create_parent'];
                 }
 
-                // Releer padre
-                $parent = $this->products->findBySku($parentKey) ?? $this->products->findByInternalCode($parentKey);
+                // Contrato íntegro del alta implícita: catálogos primero, padre después.
+                // No inferir IDs: se usan exclusivamente los retornados por ProductImporter.
+                $parentId = (int)($pr['product_id'] ?? 0);
+                $parentCreate = $pr['rollback'] ?? null;
+                if (($pr['action'] ?? '') !== 'create' || $parentId <= 0
+                    || !is_array($parentCreate)
+                    || ($parentCreate['entity'] ?? '') !== 'product'
+                    || ($parentCreate['action'] ?? '') !== 'create'
+                    || (int)($parentCreate['id'] ?? 0) !== $parentId
+                    || !isset($pr['rollback_ops']) || !is_array($pr['rollback_ops'])) {
+                    throw new \RuntimeException('No puede verificarse el snapshot del producto padre implícito.');
+                }
+                $seen = ['product:'.$parentId => true];
+                foreach ($pr['rollback_ops'] as $op) {
+                    $ent = is_array($op) ? (string)($op['entity'] ?? '') : '';
+                    $action = is_array($op) ? (string)($op['action'] ?? '') : '';
+                    $id = is_array($op) ? (int)($op['id'] ?? 0) : 0;
+                    $key = $ent.':'.$id;
+                    if (!in_array($ent, ['brand','category','supplier'], true)
+                        || $action !== 'create' || $id <= 0 || isset($seen[$key])) {
+                        throw new \RuntimeException('Operación de catálogo incompleta o duplicada en el snapshot del padre.');
+                    }
+                    $seen[$key] = true;
+                    $parentRollbackOps[] = $op;
+                }
+                // ProductImporter informa qué catálogos debió crear. Exigir
+                // también esas operaciones: un v3 con el padre pero sin una
+                // marca/categoría/proveedor nueva NO es recuperación completa.
+                foreach ([
+                    'brand' => ['flag'=>'would_create_brand', 'enabled'=>!empty($opt['create_missing_brands']) || !empty($opt['create_missing_catalog'])],
+                    'category' => ['flag'=>'would_create_category', 'enabled'=>!empty($opt['create_missing_categories']) || !empty($opt['create_missing_catalog'])],
+                    'supplier' => ['flag'=>'would_create_supplier', 'enabled'=>!empty($opt['create_missing_suppliers'])],
+                ] as $entity => $condition) {
+                    if (!empty($condition['enabled']) && !empty($pr[$condition['flag']])) {
+                        $documented = false;
+                        foreach ($parentRollbackOps as $op) {
+                            if (($op['entity'] ?? '') === $entity && ($op['action'] ?? '') === 'create') {
+                                $documented = true;
+                                break;
+                            }
+                        }
+                        if (!$documented) {
+                            throw new \RuntimeException('Falta la operación de rollback del catálogo ' . $entity . ' del padre implícito.');
+                        }
+                    }
+                }
+                $parentRollbackOps[] = $parentCreate;
+                $parentSnapshotComplete = true;
+
+                // Releer padre y comprobar que corresponde EXACTAMENTE al alta documentada.
+                $parent = $this->products->findBySku($parentKey);
+                if (!$parent || (int)($parent['id'] ?? 0) !== $parentId) {
+                    throw new \RuntimeException('No se pudo verificar la identidad del padre implícito creado.');
+                }
                 $parentCreated = true;
                 $parentCreatedKey = $parentKey;
             }
@@ -78,11 +155,15 @@ final class VariantImporter
             }
 
             if (!$parent) {
+                if ($parentCreated) throw new \RuntimeException('Padre implícito creado sin registro verificable.');
                 return ['ok'=>false,'error'=>"No existe producto padre: {$parentKey}"];
             }
         }
         $productId = (int)($parent['id'] ?? 0);
-        if ($productId <= 0) return ['ok'=>false,'error'=>'Producto padre inválido'];
+        if ($productId <= 0) {
+            if ($parentCreated) throw new \RuntimeException('Padre implícito con ID inválido.');
+            return ['ok'=>false,'error'=>'Producto padre inválido'];
+        }
 
         // Normalizaciones ya aplicadas por ImportService:
         // - cost_currency_id puede venir derivado desde moneda
@@ -90,12 +171,24 @@ final class VariantImporter
         $costCurrencyId = $d['cost_currency_id'] ?? null;
         $marginPct = array_key_exists('margin_pct', $d) ? $d['margin_pct'] : null;
 
-        // Asegurar modo variantes
-        if (!$dry && (($parent['sale_mode'] ?? '') !== 'variants')) {
-            $this->products->updateById($productId, ['sale_mode' => 'variants']);
+        // Validar ownership ANTES de escribir cualquier dato del padre.
+        $row = $this->variants->findBySku($sku);
+        if ($row && (int)($row['product_id'] ?? 0) !== $productId) {
+            if ($parentCreated) throw new \RuntimeException('SKU de variante pertenece a otro padre; creación implícita cancelada.');
+            return ['ok'=>false,'error'=>"El SKU {$sku} ya existe en otro producto"];
         }
 
-        $row = $this->variants->findBySku($sku);
+        // Toda operación de variante actualiza el cache de precio Desde, y
+        // ocasionalmente cambia sale_mode. Documentar el BEFORE del padre
+        // existente incluso cuando su modo ya era variants.
+        if (!$dry && !$parentCreated) {
+            $parentExistingRollback = $this->productStates->captureVariantParent($productId);
+        }
+        if (!$dry && (($parent['sale_mode'] ?? '') !== 'variants')) {
+            if (!$this->products->updateById($productId, ['sale_mode' => 'variants'])) {
+                throw new \RuntimeException('No se pudo activar el modo variantes del producto padre.');
+            }
+        }
 
         $fields = [];
 
@@ -142,24 +235,10 @@ if (!empty($opt['update_wholesale_overrides'])) {
             $fields['is_active'] = (int)$d['is_active'];
         }
 
-        // Envíos: ship_* (solo si el usuario habilita 'Dimensiones de envío')
-        if (!empty($opt['update_ship_dims'])) {
-            foreach (['ship_weight','ship_height','ship_width','ship_length'] as $k) {
-            if (!array_key_exists($k, $d)) continue;
-            $v = $d[$k];
-            if ($v === null || $v === '') continue;
-            $fields[$k] = (int)$v;
-            }
-        }
-
-
         $variantId = 0;
         $changes = [];
         $before = [];
         if ($row) {
-            if ((int)($row['product_id'] ?? 0) !== $productId) {
-                return ['ok'=>false,'error'=>"El SKU {$sku} ya existe en otro producto"]; 
-            }
             $variantId = (int)$row['id'];
             // Detectar cambios (para mostrar en el detalle)
             foreach ($fields as $k => $v) {
@@ -194,13 +273,17 @@ if (!empty($opt['update_wholesale_overrides'])) {
                 return ['ok'=>true,'variant_id'=>$variantId,'product_id'=>$productId,'action'=>'update','changes'=>$changes,'rollback'=>['entity'=>'variant','action'=>'update','id'=>$variantId,'before'=>$before]];
             }
             $ok = $this->variants->updateById($variantId, $fields);
-            if (!$ok) return ['ok'=>false,'error'=>'No se pudo actualizar variante'];
+            if (!$ok) {
+                throw new \RuntimeException('No se pudo actualizar variante sin riesgo de cambios parciales en el padre.');
+            }
             $rollback = ['entity'=>'variant','action'=>'update','id'=>$variantId,'before'=>$before];
         } else {
             $fields['sku'] = $sku;
             if ($dry) return ['ok'=>true,'variant_id'=>0,'product_id'=>0,'action'=>'create','changes'=>['alta: — -> creada'],'rollback'=>null];
             $variantId = $this->variants->insert($productId, $fields);
-            if ($variantId <= 0) return ['ok'=>false,'error'=>'No se pudo crear variante'];
+            if ($variantId <= 0) {
+                throw new \RuntimeException('No se pudo crear variante sin riesgo de cambios parciales en el padre.');
+            }
             $changes = ['alta: — -> creada'];
             $rollback = ['entity'=>'variant','action'=>'create','id'=>$variantId,'product_id'=>$productId];
         }
@@ -208,7 +291,14 @@ if (!empty($opt['update_wholesale_overrides'])) {
         // Actualiza cache 'Desde' del padre (solo aplica a sale_mode=variants)
         $this->products->refreshVariantPriceCache($productId);
 
-        return ['ok'=>true,'variant_id'=>$variantId,'product_id'=>$productId,'action'=>($row ? 'update' : 'create'),'changes'=>$changes,'rollback'=>$rollback] + ($parentCreated ? ['parent_created'=>true,'parent_key'=>(string)$parentCreatedKey] : []);
+        return ['ok'=>true,'variant_id'=>$variantId,'product_id'=>$productId,'action'=>($row ? 'update' : 'create'),'changes'=>$changes,'rollback'=>$rollback,
+                'rollback_ops'=>$parentCreated ? $parentRollbackOps : ($parentExistingRollback ? [$parentExistingRollback] : [])]
+            + ($parentCreated ? [
+                'parent_created'=>true,
+                'parent_key'=>(string)$parentCreatedKey,
+                'parent_product_id'=>$productId,
+                'parent_snapshot_complete'=>$parentSnapshotComplete,
+            ] : []);
     }
 
     /** @return array{ok:bool,error?:string,stock_from?:int,stock_to?:int,stock_mode?:string,threshold_from?:int,threshold_to?:int,rollback?:array<string,mixed>} */
@@ -238,4 +328,3 @@ if (!empty($opt['update_wholesale_overrides'])) {
         return ['ok'=>$ok,'stock_from'=>$prev ? (int)($prev['stock'] ?? 0) : 0,'stock_to'=>$newStock,'stock_mode'=>$mode,'threshold_from'=>$prev ? (int)($prev['low_stock_threshold'] ?? 3) : 3,'threshold_to'=>$thr,'rollback'=>['entity'=>'inventory_variant','action'=>($prev?'update':'create'),'id'=>$variantId,'before'=>['stock'=>$prev ? (int)($prev['stock'] ?? 0) : 0,'low_stock_threshold'=>$prev ? (int)($prev['low_stock_threshold'] ?? 3) : 3]]];
     }
 }
-

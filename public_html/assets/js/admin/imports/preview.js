@@ -1,80 +1,58 @@
-// Admin Imports - Preview filters (no HTML building)
+// Importaciones V3: filtros de filas solo presentacionales (sin modificar resultados).
 export function init() {
-  const btns = Array.from(document.querySelectorAll('.js-imports-filter'));
-  const rows = Array.from(document.querySelectorAll('.js-imports-row'));
-  const search = document.querySelector('.js-imports-search');
+  const root = document.querySelector('.av3-imports__board--preview');
+  if (!root) return;
+  const buttons = Array.from(root.querySelectorAll('.js-imports-filter'));
+  const rows = Array.from(root.querySelectorAll('.js-imports-row'));
+  const search = root.querySelector('.js-imports-search');
+  const count = root.querySelector('[data-imports-count]');
+  const empty = root.querySelector('[data-imports-empty]');
+  if (!buttons.length || !rows.length) return;
 
-  if (!btns.length || !rows.length) return;
+  const norm = value => String(value || '').trim().toLocaleLowerCase('es');
+  const levelOf = row => {
+    const level = norm(row.dataset.level);
+    return level === 'warn' ? 'warning' : level;
+  };
+  const isOk = row => !['error', 'warning'].includes(levelOf(row));
+  let filter = rows.some(row => levelOf(row) === 'error') ? 'error' : 'all';
+  let query = '';
 
-  let currentFilter = 'all';
-  let currentQuery = '';
+  const matches = row => {
+    const level = levelOf(row);
+    const action = norm(row.dataset.accion);
+    const matchesLevel = filter === 'all'
+      || (filter === 'error' && level === 'error')
+      || ((filter === 'warning' || filter === 'warn') && level === 'warning')
+      || (filter === 'ok' && isOk(row))
+      || (filter === 'changes' && isOk(row) && !!action
+          && !action.includes('sin cambios') && !action.includes('saltar') && !action.includes('no cambiar'));
+    const sku = norm(row.dataset.sku);
+    const parent = norm(row.dataset.parentSku);
+    return matchesLevel && (!query || sku.includes(query) || parent.includes(query));
+  };
 
-  function normalize(s) {
-    return String(s || '').toLowerCase().trim();
-  }
-
-  function isOkLevel(level) {
-    const l = normalize(level);
-    return l !== 'error' && l !== 'warn';
-  }
-
-  function matchesFilter(row) {
-    const level = normalize(row.dataset.level);
-    const accion = normalize(row.dataset.accion);
-
-    if (currentFilter === 'all') return true;
-    if (currentFilter === 'error') return level === 'error';
-    if (currentFilter === 'warn') return level === 'warn';
-    if (currentFilter === 'ok') return isOkLevel(level);
-
-    if (currentFilter === 'changes') {
-      // Consideramos "con cambios" todo lo que no sea error/warn y no sea "sin cambios"
-      if (!isOkLevel(level)) return false;
-      return accion && accion.indexOf('sin cambios') === -1 && accion.indexOf('saltar') === -1;
+  const render = () => {
+    let visible = 0;
+    for (const row of rows) {
+      const show = matches(row);
+      row.hidden = !show;
+      if (show) visible++;
     }
+    for (const button of buttons) {
+      button.setAttribute('aria-pressed', String(button.dataset.filter === filter));
+    }
+    if (count) count.textContent = visible === 1 ? '1 fila visible' : `${visible} filas visibles`;
+    if (empty) empty.hidden = visible > 0;
+  };
 
-    return true;
-  }
-
-  function matchesSearch(row) {
-    if (!currentQuery) return true;
-    const sku = normalize(row.dataset.sku);
-    return sku.includes(currentQuery);
-  }
-
-  function apply() {
-    rows.forEach((r) => {
-      const ok = matchesFilter(r) && matchesSearch(r);
-      r.classList.toggle('av3-hidden', !ok);
-    });
-
-    // Estilo activo del filtro
-    btns.forEach((b) => {
-      const active = b.dataset.filter === currentFilter;
-      b.classList.toggle('av3-bg-slate-900', active);
-      b.classList.toggle('av3-text-white', active);
-      b.classList.toggle('av3-border-slate-900', active);
-      b.classList.toggle('av3-surface-white', !active);
-    });
-  }
-
-  btns.forEach((b) => {
-    b.addEventListener('click', () => {
-      currentFilter = b.dataset.filter || 'all';
-      apply();
-    });
+  buttons.forEach(button => button.addEventListener('click', () => {
+    filter = button.dataset.filter || 'all';
+    render();
+  }));
+  if (search) search.addEventListener('input', () => {
+    query = norm(search.value);
+    render();
   });
-
-  if (search) {
-    search.addEventListener('input', () => {
-      currentQuery = normalize(search.value);
-      apply();
-    });
-  }
-
-  // default: si hay errores, arrancamos mostrando solo errores para UX
-  const hasErrors = rows.some(r => normalize(r.dataset.level) === 'error');
-  if (hasErrors) currentFilter = 'error';
-
-  apply();
+  render();
 }

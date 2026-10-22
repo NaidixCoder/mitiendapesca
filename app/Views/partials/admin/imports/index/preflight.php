@@ -1,225 +1,145 @@
-<section class="av3-card">
-  <div class="av3-pad-4 av3-md-pad-6 av3-flow-4">
-    <div class="av3-flex av3-items-start av3-gap-3">
-      <div class="av3-mt-0_5">??</div>
-      <div>
-        <h2 class="av3-type-base av3-weight-strong">Vista previa de seguridad</h2>
-        <p class="av3-type-body av3-text-slate-600 av3-space-top-1">Antes de aplicar, revis� lo que el CSV har�a sobre tu cat�logo.</p>
-        <?php if (!empty($previewData)): ?><p class="av3-type-body av3-text-slate-600 av3-space-top-2">Archivo: <b><?= e((string)($previewData['original_name'] ?? 'archivo.csv')) ?></b> � Filas analizadas: <b><?= (int)($previewData['total'] ?? 0) ?></b></p><?php endif; ?>
-      </div>
+<?php
+$previewTotal = (int)($previewData['total'] ?? 0);
+$previewErrors = (int)($previewData['errors'] ?? 0);
+$previewWarnings = (int)($previewData['warnings'] ?? 0);
+?>
+<section class="av3-ui-card av3-imports__board av3-imports__board--preview" aria-labelledby="imports-preview-title">
+  <div class="av3-imports__board-head">
+    <div>
+      <h2 id="imports-preview-title">Vista previa de seguridad</h2>
+      <p>Revisá las operaciones previstas. Hasta que confirmes, no se modifica el catálogo.</p>
     </div>
-
-    <div class="av3-grid av3-grid-cols-1 av3-md-grid-cols-4 av3-gap-3">
-      <div class="av3-radius-card av3-border av3-border-slate-200 av3-pad-3">
-        <div class="av3-type-caption av3-text-slate-500">Productos</div>
-        <div class="av3-type-body av3-space-top-1">
-          Crear: <b><?= (int)($plan['create_products'] ?? 0) ?></b> � Actualizar: <b><?= (int)($plan['update_products'] ?? 0) ?></b>
-        </div>
-      </div>
-      <div class="av3-radius-card av3-border av3-border-slate-200 av3-pad-3">
-        <div class="av3-type-caption av3-text-slate-500">Variantes</div>
-        <div class="av3-type-body av3-space-top-1">
-          Crear: <b><?= (int)($plan['create_variants'] ?? 0) ?></b> � Actualizar: <b><?= (int)($plan['update_variants'] ?? 0) ?></b>
-        </div>
-      </div>
-      <div class="av3-radius-card av3-border av3-border-slate-200 av3-pad-3">
-        <div class="av3-type-caption av3-text-slate-500">Cat�logo</div>
-        <div class="av3-type-body av3-space-top-1">
-          Marcas nuevas: <b><?= (int)($plan['create_brands'] ?? 0) ?></b> � Categor�as nuevas: <b><?= (int)($plan['create_categories'] ?? 0) ?></b> � Proveedores nuevos: <b><?= (int)($plan['create_suppliers'] ?? 0) ?></b>
-        </div>
-      </div>
-
-      <div class="av3-radius-card av3-border av3-border-slate-200 av3-pad-3">
-        <div class="av3-type-caption av3-text-slate-500">Salud</div>
-        <div class="av3-type-body av3-space-top-1">
-          OK: <b><?= (int)($previewData['ok'] ?? 0) ?></b> � Saltadas: <b><?= (int)($previewData['skipped'] ?? 0) ?></b> � Warnings: <b><?= (int)($previewData['warnings'] ?? 0) ?></b> � Errores: <b><?= (int)($previewData['errors'] ?? 0) ?></b>
-        </div>
-      </div>
-    </div>
-
-    <?php if ($planCreateBrands > 0 || $planCreateCats > 0): ?>
-      <div class="av3-alert warn av3-flex av3-items-start av3-justify-between av3-gap-3">
-        <div class="av3-type-body">
-          <?php if ($planCreateBrands > 0): ?>
-            <div>Se crear�an <b><?= $planCreateBrands ?></b> marcas nuevas.</div>
-          <?php endif; ?>
-          <?php if ($planCreateCats > 0): ?>
-            <div>Se crear�an <b><?= $planCreateCats ?></b> categor�as nuevas.</div>
-          <?php endif; ?>
-          <?php if ($preflightReason !== ''): ?>
-            <div class="av3-space-top-2 av3-text-slate-700"><?= e($preflightReason) ?></div>
-          <?php endif; ?>
-        </div>
-      </div>
-    <?php elseif ($preflightReason !== ''): ?>
-      <div class="av3-alert error">
-        <?= e($preflightReason) ?>
-      </div>
-    <?php endif; ?>
-
-    <?php if ($brandNames): ?>
-      <div class="av3-radius-card av3-border av3-border-slate-200 av3-pad-3">
-        <input id="preflight_brands_more" type="checkbox" class="peer sr-only" />
-        <div class="av3-flex av3-items-center av3-justify-between av3-gap-3">
-          <div class="av3-type-body av3-weight-medium">Marcas a crear (muestra)</div>
-          <?php if ($moreBrands > 0): ?>
-            <label for="preflight_brands_more" class="av3-type-caption av3-text-slate-600 av3-cursor-pointer av3-select-none hover:underline">
-              <span class="peer-checked:av3-hidden">Ver <?= (int)$moreBrands ?> m�s</span>
-              <span class="av3-hidden peer-checked:inline">Ocultar</span>
-            </label>
-          <?php endif; ?>
-        </div>
-
-        <div class="av3-type-body av3-text-slate-700 av3-space-top-2 av3-flex av3-flex-wrap av3-gap-2">
-          <?php foreach ($brandNames as $bn): ?>
-            <span class="av3-pad-x2 av3-pad-yhalf av3-radius-full av3-bg-slate-100 av3-border av3-border-slate-200 av3-type-caption"><?= e($bn) ?></span>
-          <?php endforeach; ?>
-        </div>
-
-        <?php if (count($allBrands) > 20): ?>
-          <div class="av3-type-body av3-text-slate-700 av3-space-top-2 av3-hidden peer-checked:flex av3-flex-wrap av3-gap-2">
-            <?php foreach (array_slice($allBrands, 20) as $bn): ?>
-              <span class="av3-pad-x2 av3-pad-yhalf av3-radius-full av3-bg-slate-100 av3-border av3-border-slate-200 av3-type-caption"><?= e($bn) ?></span>
-            <?php endforeach; ?>
-          </div>
-        <?php endif; ?>
-      </div>
-    <?php endif; ?>
-
-    <?php if ($catNames): ?>
-      <div class="av3-radius-card av3-border av3-border-slate-200 av3-pad-3">
-        <input id="preflight_cats_more" type="checkbox" class="peer sr-only" />
-        <div class="av3-flex av3-items-center av3-justify-between av3-gap-3">
-          <div class="av3-type-body av3-weight-medium">Categor�as a crear (muestra)</div>
-          <?php if ($moreCats > 0): ?>
-            <label for="preflight_cats_more" class="av3-type-caption av3-text-slate-600 av3-cursor-pointer av3-select-none hover:underline">
-              <span class="peer-checked:av3-hidden">Ver <?= (int)$moreCats ?> m�s</span>
-              <span class="av3-hidden peer-checked:inline">Ocultar</span>
-            </label>
-          <?php endif; ?>
-        </div>
-
-        <div class="av3-type-body av3-text-slate-700 av3-space-top-2 av3-flex av3-flex-wrap av3-gap-2">
-          <?php foreach ($catNames as $cn): ?>
-            <span class="av3-pad-x2 av3-pad-yhalf av3-radius-full av3-bg-slate-100 av3-border av3-border-slate-200 av3-type-caption"><?= e($cn) ?></span>
-          <?php endforeach; ?>
-        </div>
-
-        <?php if (count($allCats) > 20): ?>
-          <div class="av3-type-body av3-text-slate-700 av3-space-top-2 av3-hidden peer-checked:flex av3-flex-wrap av3-gap-2">
-            <?php foreach (array_slice($allCats, 20) as $cn): ?>
-              <span class="av3-pad-x2 av3-pad-yhalf av3-radius-full av3-bg-slate-100 av3-border av3-border-slate-200 av3-type-caption"><?= e($cn) ?></span>
-            <?php endforeach; ?>
-          </div>
-        <?php endif; ?>
-      </div>
-    <?php endif; ?>
-
-    <?php if (!empty($detailRowsPrepared)): ?>
-      <div class="av3-radius-card av3-border av3-border-slate-200 av3-overflow-hidden">
-        <input id="preflight_detail_toggle" type="checkbox" class="peer sr-only" />
-        <label for="preflight_detail_toggle" class="av3-flex av3-items-center av3-justify-between av3-gap-3 av3-pad-3 av3-cursor-pointer av3-select-none">
-          <div class="av3-type-body av3-weight-medium">Detalle por fila</div>
-          <div class="av3-type-caption av3-text-slate-600">
-            <span class="peer-checked:av3-hidden">Ver detalle</span>
-            <span class="av3-hidden peer-checked:inline">Ocultar</span>
-          </div>
-        </label>
-        <div class="av3-hidden peer-checked:block av3-border-top av3-border-slate-200">
-          <div class="av3-pad-3 av3-border-bottom av3-border-slate-200 av3-bg-slate-50">
-            <div class="av3-flex av3-flex-col av3-md-flex-row av3-md-items-center av3-gap-2 av3-md-gap-3">
-              <div class="av3-flex av3-flex-wrap av3-items-center av3-gap-2">
-                <button type="button" class="js-imports-filter av3-pad-x3 av3-pad-y1half av3-radius-full av3-border av3-type-caption av3-surface-white" data-filter="all">Todos <span class="av3-text-slate-500">(<?= (int)$cntAll ?>)</span></button>
-                <button type="button" class="js-imports-filter av3-pad-x3 av3-pad-y1half av3-radius-full av3-border av3-type-caption av3-surface-white" data-filter="error">Errores <span class="av3-text-slate-500">(<?= (int)$cntErr ?>)</span></button>
-                <button type="button" class="js-imports-filter av3-pad-x3 av3-pad-y1half av3-radius-full av3-border av3-type-caption av3-surface-white" data-filter="warn">Warnings <span class="av3-text-slate-500">(<?= (int)$cntWarn ?>)</span></button>
-                <button type="button" class="js-imports-filter av3-pad-x3 av3-pad-y1half av3-radius-full av3-border av3-type-caption av3-surface-white" data-filter="ok">OK <span class="av3-text-slate-500">(<?= (int)$cntOk ?>)</span></button>
-                <button type="button" class="js-imports-filter av3-pad-x3 av3-pad-y1half av3-radius-full av3-border av3-type-caption av3-surface-white" data-filter="changes">Con cambios</button>
-              </div>
-              <div class="md:ml-auto av3-width-full av3-md-w-72">
-                <input type="text" class="js-imports-search av3-width-full av3-border av3-radius-control av3-pad-x3 av3-pad-y2 av3-type-body" placeholder="Buscar por SKU..." />
-                <p class="av3-type-caption av3-text-slate-500 av3-space-top-1">Tip: escrib� parte del SKU para filtrar r�pido.</p>
-                <?php if (!empty($extraErr) || !empty($extraWarn)): ?>
-                  <div class="av3-type-caption av3-text-slate-600">
-                    <?php if (!empty($extraErr)): ?><span class="av3-text-red-700">Errores globales: <?= (int)$extraErr ?></span><?php endif; ?>
-                    <?php if (!empty($extraWarn)): ?><span class="av3-text-amber-700 av3-ml-2">Warnings globales: <?= (int)$extraWarn ?></span><?php endif; ?>
-                  </div>
-                <?php endif; ?>
-              </div>
-            </div>
-          </div>
-
-          <div class="max-h-[420px] av3-overflow-auto">
-            <table class="av3-min-w-full av3-type-body">
-              <thead class="av3-sticky top-0 av3-surface-white av3-z-10">
-                <tr class="av3-text-left av3-border-bottom av3-border-slate-200">
-                  <th class="av3-pad-x3 av3-pad-y2 av3-size-w-12">#</th>
-                  <th class="av3-pad-x3 av3-pad-y2 av3-w-28">Tipo</th>
-                  <th class="av3-pad-x3 av3-pad-y2 av3-size-w-40">SKU</th>
-                  <th class="av3-pad-x3 av3-pad-y2 av3-size-w-40">SKU padre</th>
-                  <th class="av3-pad-x3 av3-pad-y2 av3-size-w-40">Entidad</th>
-                  <th class="av3-pad-x3 av3-pad-y2 av3-w-28">Acci�n</th>
-                  <th class="av3-pad-x3 av3-pad-y2">Notas</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-100">
-                <?php foreach ($detailRowsPrepared as $row): ?>
-                  <tr class="js-imports-row" data-level="<?= e((string)($row['level'] ?? '')) ?>" data-sku="<?= e((string)($row['sku'] ?? '')) ?>" data-accion="<?= e((string)($row['accion'] ?? '')) ?>">
-                    <td class="av3-pad-x3 av3-pad-y2 av3-text-slate-600"><?= (int)($row['row'] ?? 0) ?></td>
-                    <td class="av3-pad-x3 av3-pad-y2"><span class="av3-pad-x2 av3-pad-yhalf av3-radius-full av3-border av3-type-caption <?= e((string)($row['level_badge_class'] ?? 'av3-bg-slate-100 av3-border-slate-200 av3-text-slate-700')) ?>"><?= e((string)($row['tipo_fila'] ?? '')) ?></span></td>
-                    <td class="av3-pad-x3 av3-pad-y2 av3-font-mono av3-type-caption"><?= e((string)($row['sku'] ?? '')) ?></td>
-                    <td class="av3-pad-x3 av3-pad-y2 av3-font-mono av3-type-caption"><?= e((string)($row['sku_padre'] ?? '')) ?></td>
-                    <td class="av3-pad-x3 av3-pad-y2"><?= e((string)($row['entidad'] ?? '')) ?></td>
-                    <td class="av3-pad-x3 av3-pad-y2"><?= e((string)($row['accion'] ?? '')) ?></td>
-                    <td class="av3-pad-x3 av3-pad-y2">
-                      <?php $notes = $row['notas'] ?? []; ?>
-                      <?php if (!empty($notes)): ?>
-                        <ul class="list-disc av3-pad-left-5 av3-space-y-0-5">
-                          <?php foreach ($notes as $n): ?>
-                            <li class="av3-text-slate-700"><?= e((string)$n) ?></li>
-                          <?php endforeach; ?>
-                        </ul>
-                      <?php endif; ?>
-                    </td>
-                  </tr>
-                <?php endforeach; ?>
-              </tbody>
-            </table>
-          </div>
-          <?php if (!empty($previewData['rows_truncated'])): ?>
-            <div class="av3-pad-x3 av3-pad-y2 av3-type-caption av3-text-slate-600 av3-border-top av3-border-slate-200">
-              Mostrando las primeras 350 filas del detalle. (Se trunc� para no romper la UI.)
-            </div>
-          <?php endif; ?>
-        </div>
-      </div>
-    <?php endif; ?>
-
-    <?php if ($canApply): ?>
-      <div class="av3-pt-2">
-        <form method="post" action="<?= url('/admin/imports/apply') ?>" class="av3-flow-3">
-          <?= csrf_field() ?>
-          <input type="hidden" name="existing_file" value="<?= e((string)($confirm['existing_file'] ?? '')) ?>">
-          <input type="hidden" name="opt_b64" value="<?= e((string)($confirm['opt_b64'] ?? '')) ?>">
-
-          <?php if ($needsPhrase): ?>
-            <div class="av3-type-body av3-text-slate-700">
-              Para continuar, escrib� exactamente:
-              <span class="av3-font-mono av3-pad-x2 av3-pad-yhalf av3-radius-sm av3-bg-slate-100 av3-border av3-border-slate-200"><?= e($preflightPhrase) ?></span>
-            </div>
-            <div class="av3-flex av3-flex-col av3-md-flex-row av3-gap-3 av3-md-items-center">
-              <input name="confirm_phrase" class="av3-input" placeholder="Escrib� la frase de confirmaci�n">
-              <button type="submit" class="btn-danger">Confirmar e importar</button>
-              <a href="<?= url('/admin/imports') ?>" class="btn">Cancelar</a>
-            </div>
-            <div class="av3-type-caption av3-text-slate-500">Tip: esto existe para evitar accidentes tipo autocompletado de Excel (L10 ? L600).</div>
-          <?php else: ?>
-            <div class="av3-flex av3-flex-col av3-md-flex-row av3-gap-3 av3-md-items-center">
-              <button type="submit" class="btn-primary">Aplicar importaci�n</button>
-              <a href="<?= url('/admin/imports') ?>" class="btn">Cancelar</a>
-            </div>
-          <?php endif; ?>
-        </form>
-      </div>
-    <?php endif; ?>
+    <span class="av3-ui-badge <?= $previewErrors > 0 ? 'av3-ui-badge--danger' : ($previewWarnings > 0 ? 'av3-ui-badge--warning' : '') ?>">
+      <?= $previewErrors > 0 ? 'Con errores' : ($previewWarnings > 0 ? 'Con advertencias' : 'Lista para revisar') ?>
+    </span>
   </div>
+
+  <div class="av3-imports__preview-meta">
+    <div><span>Archivo</span><strong><?= e((string)($previewData['original_name'] ?? 'archivo.csv')) ?></strong></div>
+    <div><span>Filas analizadas</span><strong><?= $previewTotal ?></strong></div>
+  </div>
+
+  <div class="av3-imports__stats" aria-label="Resumen de la vista previa">
+    <div class="av3-imports__stat"><span>Productos</span><strong><?= (int)($plan['create_products'] ?? 0) ?> <small>nuevos</small> · <?= (int)($plan['update_products'] ?? 0) ?> <small>actualizar</small></strong></div>
+    <div class="av3-imports__stat"><span>Variantes</span><strong><?= (int)($plan['create_variants'] ?? 0) ?> <small>nuevas</small> · <?= (int)($plan['update_variants'] ?? 0) ?> <small>actualizar</small></strong></div>
+    <div class="av3-imports__stat"><span>Catálogo a crear</span><strong><?= (int)($plan['create_brands'] ?? 0) ?> <small>marcas</small> · <?= (int)($plan['create_categories'] ?? 0) ?> <small>categorías</small> · <?= (int)($plan['create_suppliers'] ?? 0) ?> <small>proveedores</small></strong></div>
+    <div class="av3-imports__stat"><span>Validación</span><strong><?= (int)($previewData['ok'] ?? 0) ?> <small>OK</small> · <?= $previewWarnings ?> <small>avisos</small> · <?= $previewErrors ?> <small>errores</small></strong></div>
+  </div>
+
+  <?php if ($preflightReason !== '' || $planCreateBrands > 0 || $planCreateCats > 0): ?>
+    <div class="av3-imports__notice av3-imports__notice--<?= $preflightReason !== '' && $planCreateBrands === 0 && $planCreateCats === 0 ? 'error' : 'warning' ?>" role="status">
+      <?php if ($planCreateBrands > 0 || $planCreateCats > 0): ?>
+        <strong>Creaciones previstas:</strong>
+        <?= $planCreateBrands ?> marcas y <?= $planCreateCats ?> categorías nuevas.
+      <?php endif; ?>
+      <?php if ($preflightReason !== ''): ?><p><?= e($preflightReason) ?></p><?php endif; ?>
+    </div>
+  <?php endif; ?>
+
+  <?php if ($brandNames || $catNames): ?>
+    <div class="av3-imports__catalog-preview">
+      <?php foreach ([['Marcas', $allBrands, $brandNames, $moreBrands], ['Categorías', $allCats, $catNames, $moreCats]] as [$label, $all, $sample, $more]): ?>
+        <?php if ($sample): ?>
+          <details class="av3-imports__mini-details">
+            <summary><?= e($label) ?> por crear <span class="av3-ui-badge av3-ui-badge--neutral"><?= count($all) ?></span><span class="av3-imports__chevron" aria-hidden="true"></span></summary>
+            <div class="av3-imports__chips">
+              <?php foreach ($all as $name): ?><span class="av3-imports__chip"><?= e((string)$name) ?></span><?php endforeach; ?>
+            </div>
+          </details>
+        <?php endif; ?>
+      <?php endforeach; ?>
+    </div>
+  <?php endif; ?>
+
+  <?php if ($previewErrors > 0): ?>
+    <div class="av3-imports__notice av3-imports__notice--error" role="alert">
+      <strong>El archivo contiene errores.</strong> No se puede aplicar esta importación. Revisá las filas señaladas y volvé a analizar un CSV corregido.
+    </div>
+  <?php elseif ($previewWarnings > 0): ?>
+    <div class="av3-imports__notice av3-imports__notice--warning" role="status">
+      Hay advertencias para revisar. Los detalles están disponibles por fila.
+    </div>
+  <?php endif; ?>
+
+  <?php if (!empty($detailRowsPrepared)): ?>
+    <details class="av3-imports__disclosure av3-imports__row-detail" <?= $previewErrors > 0 ? 'open' : '' ?>>
+      <summary>
+        <span><strong>Detalle por fila</strong><small><?= $cntAll ?> filas mostradas<?= !empty($previewData['rows_truncated']) ? ' (primeras 350)' : '' ?> · filtrá por resultado o SKU</small></span>
+        <span class="av3-imports__chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="av3-imports__detail-content">
+        <div class="av3-imports__filters">
+          <div class="av3-imports__filter-tabs" role="group" aria-label="Filtrar filas por resultado">
+            <button class="js-imports-filter av3-imports__filter" type="button" data-filter="all" aria-pressed="true">Todos <span><?= $cntAll ?></span></button>
+            <button class="js-imports-filter av3-imports__filter" type="button" data-filter="error" aria-pressed="false">Errores <span><?= $cntErr ?></span></button>
+            <button class="js-imports-filter av3-imports__filter" type="button" data-filter="warning" aria-pressed="false">Avisos <span><?= $cntWarn ?></span></button>
+            <button class="js-imports-filter av3-imports__filter" type="button" data-filter="ok" aria-pressed="false">OK <span><?= $cntOk ?></span></button>
+            <button class="js-imports-filter av3-imports__filter" type="button" data-filter="changes" aria-pressed="false">Con cambios</button>
+          </div>
+          <div class="av3-ui-field av3-imports__search">
+            <label class="av3-ui-field-label" for="imports-preview-search">Buscar por SKU</label>
+            <input class="av3-ui-control js-imports-search" type="search" id="imports-preview-search" placeholder="Código o SKU padre" autocomplete="off">
+          </div>
+        </div>
+        <?php if ($extraErr || $extraWarn): ?>
+          <p class="av3-imports__global-errors"><?= $extraErr ? 'Errores globales: ' . (int)$extraErr . '. ' : '' ?><?= $extraWarn ? 'Avisos globales: ' . (int)$extraWarn . '.' : '' ?> Estos mensajes no corresponden a una fila visible.</p>
+        <?php endif; ?>
+        <p class="av3-imports__match-count" data-imports-count aria-live="polite"></p>
+        <div class="av3-imports__table-container">
+          <table class="av3-ui-table av3-imports__table av3-imports__table--preview">
+            <thead><tr>
+              <th scope="col">Fila</th><th scope="col">Tipo</th><th scope="col">SKU</th><th scope="col">SKU padre</th><th scope="col">Entidad</th><th scope="col">Acción</th><th scope="col">Notas</th>
+            </tr></thead>
+            <tbody>
+              <?php foreach ($detailRowsPrepared as $row): ?>
+                <?php $level = (string)($row['level'] ?? 'ok'); ?>
+                <tr class="js-imports-row av3-imports__row" data-level="<?= e($level) ?>" data-sku="<?= e((string)($row['sku'] ?? '')) ?>" data-parent-sku="<?= e((string)($row['sku_padre'] ?? '')) ?>" data-accion="<?= e((string)($row['accion'] ?? '')) ?>">
+                  <td data-label="Fila" class="av3-imports__row-number"><?= (int)($row['row'] ?? 0) ?></td>
+                  <td data-label="Tipo"><span class="av3-ui-badge av3-ui-badge--neutral"><?= e((string)($row['tipo_fila'] ?? '')) ?></span></td>
+                  <td data-label="SKU" class="av3-imports__sku"><?= e((string)($row['sku'] ?? '')) ?></td>
+                  <td data-label="SKU padre" class="av3-imports__sku"><?= e((string)($row['sku_padre'] ?? '')) ?: '—' ?></td>
+                  <td data-label="Entidad"><?= e((string)($row['entidad'] ?? '')) ?></td>
+                  <td data-label="Acción"><span class="av3-imports__outcome av3-imports__outcome--<?= e(in_array($level, ['error','warning'], true) ? $level : 'ok') ?>"><?= e((string)($row['accion'] ?? '')) ?></span></td>
+                  <td data-label="Notas" class="av3-imports__notes">
+                    <?php foreach ((array)($row['notas'] ?? []) as $n): ?><div><?= e((string)$n) ?></div><?php endforeach; ?>
+                    <?php if (empty($row['notas'])): ?><span class="av3-imports__muted">Sin observaciones</span><?php endif; ?>
+                  </td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+          <p class="av3-imports__no-match" data-imports-empty hidden>No hay filas que coincidan con este filtro.</p>
+        </div>
+        <?php if (!empty($previewData['rows_truncated'])): ?>
+          <p class="av3-imports__hint av3-imports__table-foot">El detalle visual se limita a las primeras 350 filas; los totales de validación consideran el archivo completo.</p>
+        <?php endif; ?>
+      </div>
+    </details>
+  <?php endif; ?>
+
+  <footer class="av3-imports__decision">
+    <?php if ($canApply): ?>
+      <form method="post" action="<?= e(url('/admin/imports/apply')) ?>" class="av3-imports__apply-form">
+        <?= csrf_field() ?>
+        <input type="hidden" name="existing_file" value="<?= e((string)($confirm['existing_file'] ?? '')) ?>">
+        <input type="hidden" name="opt_b64" value="<?= e((string)($confirm['opt_b64'] ?? '')) ?>">
+        <?php if ($needsPhrase): ?>
+          <div class="av3-imports__confirm-block">
+            <label class="av3-ui-field av3-imports__confirm-field" for="imports-confirm">
+              <span class="av3-ui-field-label">Confirmación de seguridad</span>
+              <span class="av3-imports__hint">Escribí exactamente <code><?= e($preflightPhrase) ?></code> para autorizar la aplicación.</span>
+              <input id="imports-confirm" name="confirm_phrase" class="av3-ui-control" required autocomplete="off" placeholder="Frase de confirmación">
+            </label>
+            <p class="av3-imports__hint">Esta verificación evita aplicar archivos con autocompletados accidentales de filas.</p>
+          </div>
+        <?php endif; ?>
+        <div class="av3-ui-actions av3-imports__decision-actions">
+          <a href="<?= e(url('/admin/imports')) ?>" class="av3-ui-btn">Cancelar y volver</a>
+          <button class="av3-ui-btn <?= $needsPhrase ? 'av3-ui-btn--danger' : 'av3-ui-btn--primary' ?>" type="submit"><?= $needsPhrase ? 'Confirmar y aplicar importación' : 'Aplicar importación' ?></button>
+        </div>
+      </form>
+    <?php else: ?>
+      <a class="av3-ui-btn av3-ui-btn--primary" href="<?= e(url('/admin/imports')) ?>">Volver y corregir archivo</a>
+    <?php endif; ?>
+  </footer>
 </section>

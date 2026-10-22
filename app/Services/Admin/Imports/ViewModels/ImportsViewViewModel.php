@@ -92,6 +92,7 @@ final class ImportsViewViewModel
                 'ok_rows' => (int)($input['okRows'] ?? ($job ? (int)($job['ok_rows'] ?? 0) : 0)),
                 'err_rows' => (int)($input['errRows'] ?? ($job ? (int)($job['err_rows'] ?? 0) : 0)),
                 'is_success' => (bool)($input['isSuccess'] ?? false),
+                'has_diagnostics' => (bool)($input['hasDiagnostics'] ?? false),
                 'plan' => $plan,
                 'plan_stats' => $planStats,
                 'catalog_lists' => $catalogLists,
@@ -106,7 +107,3 @@ final class ImportsViewViewModel
         ];
     }
 }
-
-
-
-

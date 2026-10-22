@@ -27,6 +27,8 @@ final class ImportService
     private VariantImporter $variants;
     private AttributeImporter $attributes;
     private CurrencyRepository $currencies;
+    /** Optional test fixture; normal requests create their own store. */
+    private ?ImportSnapshotStore $snapshotStore = null;
 
         public function __construct(
         PDO $db,
@@ -61,13 +63,15 @@ final class ImportService
 
         $product = new ProductImporter($productsRepo, new BrandRepository($db), new CategoryRepository($db), new SupplierRepository($db));
         $inventory = new InventoryImporter($inventoryRepo, $productsRepo);
-        $variants = new VariantImporter($productsRepo, new ProductVariantImportRepository($db), $inventoryRepo, $product);
+        $variants = new VariantImporter($productsRepo, new ProductVariantImportRepository($db), $inventoryRepo, $product,
+            new \App\Repositories\Imports\ImportProductStateRepository($db));
         $attributes = new AttributeImporter(
             new AttributeRepository($db),
             new AttributeValueRepository($db),
 	        new ProductVariantValueRepository($db),
 	        new ProductAttributeRepository($db),
-	        new ProductAttributeValueRepository($db)
+	        new ProductAttributeValueRepository($db),
+            new \App\Repositories\Imports\ImportAttributeRelationsRepository($db)
         );
 
         return new self($db, $reader, $normalizer, $validator, $product, $inventory, $variants, $attributes, new CurrencyRepository($db));
@@ -179,6 +183,10 @@ final class ImportService
         $res = new ImportResult();
         $plannedProducts = [];
         $rollbackOps = [];
+        $snapshotWriter = null;
+        $commitAttempted = false;
+        $commitConfirmed = false;
+        $atomicityRejected = false;
 
         $didWarnIvaVariant = false;
 
@@ -322,14 +330,20 @@ if ($tipo === 'producto') {
                         continue;
                     }
 
-                    // Cambios detallados (campo: viejo -> nuevo)
-                    // Rollback: guardar snapshot previo (solo en ejecución real)
-                    if (!$dry && !empty($r['rollback']) && is_array($r['rollback'])) {
-                        $rollbackOps[] = $r['rollback'];
-                    }
-                    if (!$dry && !empty($r['rollback_ops']) && is_array($r['rollback_ops'])) {
-                        foreach ($r['rollback_ops'] as $opx) {
-                            if (is_array($opx)) $rollbackOps[] = $opx;
+                    // Altas auxiliares ANTES del producto: rollback borra
+                    // inversamente (inventario/variantes -> producto -> catálogos).
+                    if (!$dry) {
+                        foreach ((array)($r['rollback_ops'] ?? []) as $opx) {
+                            if (!is_array($opx) || empty($opx['entity'])
+                                || empty($opx['action']) || (int)($opx['id'] ?? 0) <= 0) {
+                                throw new \RuntimeException('Operación de catálogo no verificable.');
+                            }
+                            $rollbackOps[] = $opx;
+                        }
+                        if (!empty($r['rollback']) && is_array($r['rollback'])) {
+                            $rollbackOps[] = $r['rollback'];
+                        } elseif (($r['action'] ?? '') !== 'noop') {
+                            throw new \RuntimeException('Producto modificado sin operación de rollback.');
                         }
                     }
 
@@ -344,7 +358,7 @@ $action = (string)($r['action'] ?? '');
 if ($action === 'create') { $res->inc('create_products'); $rowMeta['accion'] = 'Crear'; }
 elseif ($action === 'update') { $res->inc('update_products'); $rowMeta['accion'] = 'Actualizar'; }
 else { $res->inc('noop_products'); $rowMeta['accion'] = 'Ignorar'; }
-$rowMeta['level'] = 'skipped';
+$rowMeta['level'] = in_array($action, ['create', 'update'], true) ? 'ok' : 'skipped';
 
         // Catálogo: guardar nombres planeados (únicos) y calcular contadores al final
         if (!empty($r['would_create_brand'])) {
@@ -381,16 +395,6 @@ $rowMeta['level'] = 'skipped';
                             }
                         }
                     
-                        // Rollback inventario producto
-                        if (!$dry && !empty($ir['rollback']) && is_array($ir['rollback'])) {
-                            $rollbackOps[] = $ir['rollback'];
-                        }
-                        if (!$dry && !empty($ir['rollback_ops']) && is_array($ir['rollback_ops'])) {
-                            foreach ($ir['rollback_ops'] as $opx) {
-                                if (is_array($opx)) $rollbackOps[] = $opx;
-                            }
-                        }
-
                         if (!empty($ir['changes']) && is_array($ir['changes'])) {
                             foreach ($ir['changes'] as $c) {
                                 if (is_string($c) && trim($c) !== '') $rowMeta['notas'][] = trim($c);
@@ -398,6 +402,13 @@ $rowMeta['level'] = 'skipped';
                         }
 }
                 } else {
+                    if (!empty($opt['update_attributes']) && !empty($data['attr_pairs'])) {
+                        $labels = [];
+                        foreach ((array)$data['attr_pairs'] as $pair) {
+                            $labels[] = trim((string)($pair['name'] ?? '')).': '.trim((string)($pair['value'] ?? ''));
+                        }
+                        $rowMeta['notas'][] = 'Atributos: '.implode(' · ', $labels);
+                    }
                     $opt2 = $opt;
                     $opt2['planned_products'] = $plannedProducts;
                     $r = $this->variants->upsert($data, $dry, $opt2);
@@ -411,14 +422,56 @@ $rowMeta['level'] = 'skipped';
                         continue;
                     }
 
-                    // Rollback: snapshot variante (solo en ejecución real)
+                    // Registrar primero altas del padre implícito y catálogos
+                    // (marca/categoría/proveedor -> padre), luego la variante.
+                    // El rollback consume CREATEs en orden INVERSO para respetar FK.
+                    if (!$dry && !empty($r['parent_created'])) {
+                        $parentOps = $r['rollback_ops'] ?? null;
+                        $parentId = (int)($r['parent_product_id'] ?? 0);
+                        $variantOp = $r['rollback'] ?? null;
+                        if (($r['parent_snapshot_complete'] ?? false) !== true
+                            || $parentId <= 0 || (int)($r['product_id'] ?? 0) !== $parentId
+                            || !is_array($parentOps) || !$parentOps
+                            || !is_array($variantOp) || ($variantOp['entity'] ?? '') !== 'variant'
+                            || !in_array((string)($variantOp['action'] ?? ''), ['create','update'], true)
+                            || (int)($variantOp['id'] ?? 0) <= 0) {
+                            throw new \RuntimeException('Snapshot del padre implícito incompleto: importación cancelada.');
+                        }
+                        $seenParentOps = [];
+                        $foundParentCreate = false;
+                        foreach ($parentOps as $parentOp) {
+                            $entity = is_array($parentOp) ? (string)($parentOp['entity'] ?? '') : '';
+                            $action = is_array($parentOp) ? (string)($parentOp['action'] ?? '') : '';
+                            $id = is_array($parentOp) ? (int)($parentOp['id'] ?? 0) : 0;
+                            $key = $entity.':'.$id;
+                            if (!in_array($entity, ['brand','category','supplier','product'], true)
+                                || $action !== 'create' || $id <= 0 || isset($seenParentOps[$key])
+                                || ($entity === 'product' && ($foundParentCreate || $id !== $parentId))
+                                || ($entity !== 'product' && $foundParentCreate)) {
+                                throw new \RuntimeException('Orden u operaciones del padre implícito no verificables.');
+                            }
+                            $seenParentOps[$key] = true;
+                            if ($entity === 'product') $foundParentCreate = true;
+                        }
+                        if (!$foundParentCreate || (string)($parentOps[array_key_last($parentOps)]['entity'] ?? '') !== 'product') {
+                            throw new \RuntimeException('Falta la operación CREATE del producto padre implícito.');
+                        }
+                    }
+                    // El retorno de VariantImporter incluye rollback_ops del padre
+                    // solo al crearlo. No registrar dos veces y nunca omitir ops malas.
+                    if (!$dry && isset($r['rollback_ops'])) {
+                        if (!is_array($r['rollback_ops'])) {
+                            throw new \RuntimeException('Operaciones de rollback de variante inválidas.');
+                        }
+                        foreach ($r['rollback_ops'] as $opx) {
+                            if (!is_array($opx)) {
+                                throw new \RuntimeException('Operación de rollback de variante inválida.');
+                            }
+                            $rollbackOps[] = $opx;
+                        }
+                    }
                     if (!$dry && !empty($r['rollback']) && is_array($r['rollback'])) {
                         $rollbackOps[] = $r['rollback'];
-                    }
-                    if (!$dry && !empty($r['rollback_ops']) && is_array($r['rollback_ops'])) {
-                        foreach ($r['rollback_ops'] as $opx) {
-                            if (is_array($opx)) $rollbackOps[] = $opx;
-                        }
                     }
 
                     // Cambios detallados (campo: viejo -> nuevo)
@@ -459,6 +512,7 @@ if ($va === 'create_parent') {
                         $ar = $this->attributes->applyPairsToVariant($variantId, $pid, (array)$data['attr_pairs'], $dry);
                         if (!$ar['ok']) {
                             $msg = (string)($ar['error'] ?? 'Error');
+                            if (!$dry) throw new \RuntimeException('Atributos no reversibles: '.$msg);
                             $rowMeta['accion'] = 'Error';
                             $rowMeta['level'] = 'error';
                             $rowMeta['notas'][] = $msg;
@@ -523,59 +577,148 @@ if ($va === 'create_parent') {
                 }
 }
 
-            if ($inTx) {
-                $this->db->commit();
+            // I05 — política comercial aprobada: ninguna fila fallida puede
+            // acompañar un COMMIT. Se evalúa después de recorrer TODO el CSV,
+            // para preservar cada diagnóstico, incluso si hubo escrituras previas.
+            // Los warnings informativos NO suman a errors.
+            if ($inTx && $res->errors > 0) {
+                $atomicityRejected = true;
+                throw new \RuntimeException('I05: se cancela el CSV completo por errores de fila.');
             }
 
-            // Guardar snapshot para rollback (solo ejecución real)
+            // Generar el estado FINAL mientras la transacción del import todavía
+            // mantiene sus locks. No modifica datos comerciales.
+            $rollbackPayload = null;
             if ($inTx && !$dry && !empty($opt['job_id'])) {
-                try {
-                    $rbFile = preg_replace('/\.csv$/','_rollback.json',$path);
-                    if ($rbFile) {
-                        // Rollback v2: formato único y reversible.
-                        $opsV2 = [];
-                        foreach ($rollbackOps as $op) {
-                            if (!is_array($op)) continue;
-                            $entity = (string)($op['entity'] ?? '');
-                            $action = (string)($op['action'] ?? '');
-                            $id = isset($op['id']) ? (int)$op['id'] : 0;
-                            if ($entity === '' || $action === '' || $id <= 0) continue;
-
-                            $x = [
-                                'entity' => $entity,
-                                'action' => $action,
-                                'pk' => ['id' => $id],
-                            ];
-                            if ($action === 'update' && !empty($op['before']) && is_array($op['before'])) {
-                                // before = solo columnas tocadas (mínimo suficiente)
-                                $x['before'] = (array)$op['before'];
-                            }
-                            $opsV2[] = $x;
-                        }
-
-                        $payload = [
-                            'version' => 2,
-                            'job_id' => (int)$opt['job_id'],
-                            'created_at_utc' => gmdate('Y-m-d H:i:s'),
-                            'ops' => $opsV2,
-                        ];
-                        @file_put_contents($rbFile, json_encode($payload, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE));
+                $opsV3 = [];
+                $keys = [];
+                $complete = true;
+                $reason = '';
+                foreach ($rollbackOps as $op) {
+                    if (!is_array($op)) { $complete = false; $reason='invalid_op'; break; }
+                    $entity = (string)($op['entity'] ?? '');
+                    $action = (string)($op['action'] ?? '');
+                    $id = (int)($op['id'] ?? 0);
+                    if ($entity === '' || $id <= 0 || !in_array($action,['create','update'],true)) {
+                        $complete=false; $reason='invalid_entity_action'; break;
                     }
-                } catch (\Throwable $e) {
-                    // No frenamos la importación por falla de snapshot.
+                    $before = (array)($op['before'] ?? []);
+                    if ($action==='update' && !$before) {
+                        $complete=false; $reason='missing_before'; break;
+                    }
+                    $key = $entity.':'.$id;
+                    if (isset($keys[$key])) {
+                        $i=$keys[$key];
+                        // Si una fila creó la entidad y otra la actualizó, revertimos
+                        // la creación (no la actualización). Para updates, usar
+                        // BEFORE original, no el intermedio.
+                        if ($action==='create') {
+                            $opsV3[$i]=['entity'=>$entity,'action'=>'create','pk'=>['id'=>$id]];
+                        }
+                        continue;
+                    }
+                    $x=['entity'=>$entity,'action'=>$action,'pk'=>['id'=>$id]];
+                    if ($action==='update')$x['before']=$before;
+                    $keys[$key]=count($opsV3);
+                    $opsV3[]=$x;
                 }
+
+                if (!$opsV3) { $complete=false; $reason='empty_ops'; }
+                if ($complete) {
+                    try {
+                        $stateRepo = new \App\Repositories\Imports\ImportRevertRepository($this->db);
+                        foreach ($opsV3 as &$op) {
+                            $fingerprint = $stateRepo->fingerprint((string)$op['entity'], (int)$op['pk']['id']);
+                            if ($fingerprint === null) {
+                                $complete=false; $reason='missing_poststate'; break;
+                            }
+                            $op['after_sha256']=$fingerprint;
+                            if ($op['action'] === 'create') {
+                                $op['after_rel_sha256']=$stateRepo->dependentFingerprint((string)$op['entity'], (int)$op['pk']['id']);
+                            }
+                        }
+                        unset($op);
+                    } catch (\Throwable $e) {
+                        $complete=false;
+                        $reason='cannot_read_poststate';
+                    }
+                }
+                $rollbackPayload = [
+                    'version'=>3,
+                    'job_id'=>(int)$opt['job_id'],
+                    'created_at_utc'=>gmdate('Y-m-d H:i:s'),
+                    'complete'=>$complete,
+                    'reason'=>$complete ? null : $reason,
+                    'ops'=>$opsV3,
+                ];
+            }
+
+            if ($inTx) {
+                // No se confirma ninguna ejecución potencialmente mutadora sin
+                // snapshot comprobable. Un import solo-noop se rechaza de modo
+                // conservador: los importadores podrían tener efectos no declarados.
+                if (empty($opt['job_id']) || !$rollbackPayload
+                    || empty($rollbackPayload['complete'])
+                    || !$rollbackPayload['ops']) {
+                    throw new \RuntimeException('La importación no tiene un snapshot v3 completo; cambios SQL cancelados.');
+                }
+
+                $snapshotWriter = $this->snapshotStore ?? new ImportSnapshotStore();
+                $snapshotWriter->prepare($path, (int)$opt['job_id'], $rollbackPayload);
+                $snapshotWriter->publish();
+                $snapshotWriter->beforeCommit();
+
+                $commitAttempted = true;
+                if (!$this->db->commit()) {
+                    throw new \RuntimeException('MySQL no confirmó el commit de la importación.');
+                }
+                $commitConfirmed = true;
+                $res->setApplyOutcome(ImportResult::APPLY_COMMITTED);
+                $snapshotWriter->committed();
             }
 
         } catch (\Throwable $e) {
-            if ($inTx && $this->db->inTransaction()) {
-                $this->db->rollBack();
+            $rollbackConfirmed = false;
+            if ($inTx && !$commitConfirmed && $this->db->inTransaction()) {
+                try {
+                    $rollbackConfirmed = $this->db->rollBack();
+                } catch (\Throwable $rollbackError) {
+                    // Si el estado de MySQL es incierto, preservar el snapshot
+                    // publicado como posible evidencia de una transacción confirmada.
+                }
+            }
+            if ($commitConfirmed) {
+                $res->setApplyOutcome(ImportResult::APPLY_COMMITTED);
+            } elseif ($rollbackConfirmed) {
+                $res->setApplyOutcome(ImportResult::APPLY_ROLLED_BACK);
+            } elseif ($commitAttempted || ($inTx && !$rollbackConfirmed)) {
+                $res->setApplyOutcome(ImportResult::APPLY_COMMIT_UNCERTAIN);
+            } else {
+                $res->setApplyOutcome(ImportResult::APPLY_NOT_STARTED);
+            }
+            if ($snapshotWriter !== null) {
+                try {
+                    if (!$commitAttempted || $rollbackConfirmed) {
+                        $snapshotWriter->aborted();
+                    } else {
+                        // PDO::commit() pudo llegar al servidor y perder su respuesta.
+                        // En ese caso NO eliminar el punto publicado.
+                        $snapshotWriter->uncertainCommit();
+                    }
+                } catch (\Throwable $cleanupError) {
+                    // Nunca ocultar la causa SQL/FS original.
+                }
             }
             // Importante: los ParseError suelen mostrar solo el token inesperado.
             // Agregamos archivo/línea para debug rápido.
-            $res->addError(
-                0,
-                'Excepción: ' . get_class($e) . ': ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine()
-            );
+            // En I05 los errores individuales ya fueron recogidos en el CSV:
+            // no convertir la decisión de rollback en otro error artificial.
+            if (!$atomicityRejected) {
+                $res->addError(
+                    0,
+                    'Excepción: ' . get_class($e) . ': ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine()
+                );
+            }
         }
 
         // Contadores derivados (marcas/categorías únicas)

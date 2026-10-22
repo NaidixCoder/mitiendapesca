@@ -69,6 +69,9 @@ $command([PHP_BINARY, 'scripts/build/checkout_intent_reuse_contract.php'], 'Chec
 $command([PHP_BINARY, 'scripts/build/checkout_payment_orphan_contract.php'], 'Pago aprobado sin pedido: respuesta y conciliación');
 $command([PHP_BINARY, 'scripts/build/checkout_payment_integrity_contract.php'], 'Checkout MP integridad');
 $command([PHP_BINARY, 'scripts/build/checkout_payment_frontend_contract.php'], 'Checkout MP respuesta al cliente');
+foreach (glob('scripts/build/imports_*_contract.php') ?: [] as $importContract) {
+    $command([PHP_BINARY, $importContract], 'Importaciones: '.basename($importContract));
+}
 // Architectural guardrails carried forward from the previous shell/batch gate.
 $patterns = [
     'CartService legacy' => '/\\bCartService\\b/',

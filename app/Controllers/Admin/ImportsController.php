@@ -164,11 +164,23 @@ final class ImportsController extends BaseController
             }
         }
 
-        // Si hay errores, no aplicamos. Creamos job para auditoría y detalle.
+        // I05: errores del primer preview también requieren detalle persistido.
+        // No asumir que siempre se llamó antes a /preview.
         if ($dry->errors > 0) {
+            $errFile = preg_replace('/\.csv$/','_errors.json',(string)$realPath);
+            $dryDiagnostic = $dry->toArray();
+            $dryDiagnostic['options'] = $opt;
+            if (is_string($errFile) && $errFile !== '') {
+                @file_put_contents($errFile, json_encode($dryDiagnostic, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE), LOCK_EX);
+            }
             $jobId = $repo->create($type, $name, (string)$realPath);
             if ($jobId > 0) {
                 $repo->markDryFailed($jobId, (int)$dry->total, (int)$dry->ok, (int)$dry->errors);
+                Audit::log('import_dry_failed','import_job',$jobId,[
+                    'errors'=>(int)$dry->errors,
+                    'total'=>(int)$dry->total,
+                    'apply_outcome'=>\App\Services\Import\ImportResult::APPLY_NOT_STARTED,
+                ]);
             }
             flash('error',"Se encontraron {$dry->errors} errores. No se aplicaron cambios.");
             redirect('/admin/imports/show?id=' . (int)($jobId ?: 0));
@@ -197,27 +209,85 @@ final class ImportsController extends BaseController
 
         if ($dry2->errors > 0) {
             $repo->markDryFailed($jobId, (int)$dry2->total, (int)$dry2->ok, (int)$dry2->errors);
+            Audit::log('import_dry_failed','import_job',$jobId,[
+                'errors'=>(int)$dry2->errors,
+                'total'=>(int)$dry2->total,
+                'apply_outcome'=>\App\Services\Import\ImportResult::APPLY_NOT_STARTED,
+            ]);
             flash('error',"Se encontraron {$dry2->errors} errores. No se aplicaron cambios.");
             redirect('/admin/imports/show?id='.$jobId);
             return;
         }
 
         $real = $service->run($type, (string)$realPath, false, $opt);
+        $outcome = $real->applyOutcome;
+
+        // I05 obligatorio: el motor cancela toda transacción con errores por fila.
+        // El outcome SQL sigue siendo la única fuente para distinguir rollback
+        // confirmado de confirmación incierta (sin inferirlo de errores).
+        $diag = $real->toArray();
+        $diag['options'] = $opt;
+        foreach ($diag['errors'] as &$issue) {
+            if ((int)($issue['row'] ?? -1) === 0) {
+                $issue['error'] = 'La ejecución tuvo un incidente transaccional. Revisá el estado y la auditoría.';
+            }
+        }
+        unset($issue);
+        // _errors.json es diagnóstico, no el snapshot de recuperación v3.
+        if (is_string($errFile) && $errFile !== '') {
+            @file_put_contents($errFile, json_encode($diag, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        }
+
+        if ($outcome === \App\Services\Import\ImportResult::APPLY_ROLLED_BACK
+            || $outcome === \App\Services\Import\ImportResult::APPLY_NOT_STARTED) {
+            $repo->markFailed($jobId, 'Transacción no aplicada',
+                (int)$real->total, (int)$real->ok, (int)$real->errors);
+            Audit::log('import_apply_failed', 'import_job', $jobId, [
+                'apply_outcome' => $outcome,
+                'total' => (int)$real->total,
+                'errors' => (int)$real->errors,
+            ]);
+            flash('error', 'No se aplicaron cambios. La importación falló y la transacción fue cancelada o no llegó a iniciarse.');
+            redirect('/admin/imports/show?id='.$jobId);
+            return;
+        }
+        if ($outcome !== \App\Services\Import\ImportResult::APPLY_COMMITTED) {
+            $repo->markReviewRequired($jobId, (int)$real->total, (int)$real->ok, (int)$real->errors);
+            Audit::log('import_commit_uncertain', 'import_job', $jobId, [
+                'apply_outcome' => $outcome,
+                'total' => (int)$real->total,
+                'errors' => (int)$real->errors,
+                'review_required' => true,
+            ]);
+            flash('error', 'Resultado de commit incierto: puede haber cambios aplicados. Requiere conciliación supervisada; no reviertas ni reintentes automáticamente.');
+            redirect('/admin/imports/show?id='.$jobId);
+            return;
+        }
+        // Defensa ante regresiones del motor: COMMITTED + errores viola I05.
+        // Nunca declarar finished. No revertir un COMMIT ya confirmado:
+        // preservar snapshot, bloquear acciones y conciliar supervisadamente.
+        if ((int)$real->errors > 0) {
+            $repo->markReviewRequired($jobId, (int)$real->total, (int)$real->ok, (int)$real->errors);
+            Audit::log('import_inconsistent_commit', 'import_job', $jobId, [
+                'apply_outcome' => $outcome,
+                'errors' => (int)$real->errors,
+                'review_required' => true,
+            ]);
+            flash('error', 'Resultado inconsistente: MySQL confirmó cambios pero hay errores por fila. Se suspenden las reversiones hasta conciliación supervisada.');
+            redirect('/admin/imports/show?id='.$jobId);
+            return;
+        }
         $repo->markFinished($jobId, (int)$real->total, (int)$real->ok, (int)$real->errors);
 
         Audit::log('import_finished','import_job',$jobId,[
             'job_type' => $type,
-            'file_name' => (string)($job['file_name'] ?? ''),
+            'file_name' => $name,
             'total'    => (int)$real->total,
             'ok'       => (int)$real->ok,
             'errors'   => (int)$real->errors,
         ]);
 
-        if ($real->errors > 0) {
-            flash('error',"Importación aplicada con {$real->errors} errores (revisá el detalle)." );
-        } else {
-            flash('ok',"Importación completada: {$real->ok} filas." );
-        }
+        flash('ok',"Importación completada: {$real->ok} filas. Ningún error por fila.");
 
         redirect('/admin/imports/show?id='.$jobId);
     }
@@ -431,7 +501,13 @@ public function show(): void
         $actorName = null;
         try {
             $auditRepo = new AuditSearchRepository($db);
-            $actorName = $auditRepo->findLatestActorNameForEntity('import_job', $id, 'import_finished');
+            // El job puede ser fallido, incierto o revertido, no solo finished.
+            // Atribuir al operador únicamente si existe registro auténtico.
+            foreach (['import_finished','import_apply_failed','import_dry_failed',
+                      'import_commit_uncertain','import_inconsistent_commit'] as $event) {
+                $actorName = $auditRepo->findLatestActorNameForEntity('import_job', $id, $event);
+                if ($actorName !== null) break;
+            }
         } catch (\Throwable $e) {
             $actorName = null;
         }
@@ -441,6 +517,23 @@ public function show(): void
         if ($errFile && is_file($errFile)) {
             $json = @file_get_contents($errFile);
             if ($json) $summary = json_decode($json, true);
+        }
+
+        // Un archivo de Preview puede sobrevivir a un error de escritura del
+        // diagnóstico final. No mostrarlo como si probara un COMMIT real.
+        $status = (string)($job['status'] ?? '');
+        $diagnosticOutcome = is_array($summary) ? (string)($summary['apply_outcome'] ?? '') : '';
+        if (in_array($status, ['finished', 'ok'], true)
+            && $diagnosticOutcome !== \App\Services\Import\ImportResult::APPLY_COMMITTED) {
+            $summary = null;
+        } elseif ($status === 'dry-failed'
+            && $diagnosticOutcome !== \App\Services\Import\ImportResult::APPLY_NOT_STARTED) {
+            $summary = null;
+        } elseif ($status === 'failed' && !in_array($diagnosticOutcome, [
+            \App\Services\Import\ImportResult::APPLY_ROLLED_BACK,
+            \App\Services\Import\ImportResult::APPLY_NOT_STARTED,
+        ], true)) {
+            $summary = null;
         }
 
         $lastRevertibleId = self::computeLastRevertibleId($repo->listRecent(50));

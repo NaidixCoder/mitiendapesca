@@ -37,7 +37,7 @@ final class ProductVariantImportRepository
         $sku = trim($sku);
         if ($sku === '') return null;
 
-        $cols = "id, product_id, sku, internal_code, title, price, list_price, cost, is_active, ship_weight, ship_height, ship_width, ship_length";
+        $cols = "id, product_id, sku, internal_code, title, price, list_price, cost, cost_currency_id, margin_pct, is_active";
         if ($this->hasColumn('product_variants','price_wh1_override')) $cols .= ", price_wh1_override";
         if ($this->hasColumn('product_variants','price_wh2_override')) $cols .= ", price_wh2_override";
 
@@ -60,33 +60,29 @@ final class ProductVariantImportRepository
         $sku = trim((string)($fields['sku'] ?? ''));
         if ($sku === '') return 0;
 
-        // IMPORTANTE: mantener cantidad de columnas = cantidad de placeholders.
-        $sql = "INSERT INTO product_variants
-                    (product_id, sku, internal_code, title, price, list_price, price_updated_at, cost, cost_currency_id, margin_pct, ship_weight, ship_height, ship_width, ship_length, is_active)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-
-        $st = $this->db->prepare($sql);
-        $price = array_key_exists('price', $fields) ? (int)$fields['price'] : null;
+        // Únicamente columnas reales de product_variants. Overrides opcionales
+        // se insertan si existen físicamente (sin inventar ship_* de productos).
+        $price = array_key_exists('price', $fields) && $fields['price'] !== null ? (int)$fields['price'] : null;
         $listPrice = $fields['list_price'] ?? null;
-        $priceUpdatedAt = ($price !== null || $listPrice !== null) ? gmdate('Y-m-d H:i:s') : null;
-
-        $ok = $st->execute([
-            $productId,
-            $sku,
-            $fields['internal_code'] ?? null,
-            $fields['title'] ?? null,
-            $price,
-            $fields['list_price'] ?? null,
-            $priceUpdatedAt,
-            $fields['cost'] ?? null,
-            $fields['cost_currency_id'] ?? null,
-            $fields['margin_pct'] ?? null,
-            $fields['ship_weight'] ?? null,
-            $fields['ship_height'] ?? null,
-            $fields['ship_width'] ?? null,
-            $fields['ship_length'] ?? null,
+        $cols = ['product_id','sku','internal_code','title','price','list_price','price_updated_at',
+                 'cost','cost_currency_id','margin_pct','is_active'];
+        $values = [
+            $productId, $sku, $fields['internal_code'] ?? null, $fields['title'] ?? null,
+            $price, $listPrice,
+            ($price !== null || $listPrice !== null) ? gmdate('Y-m-d H:i:s') : null,
+            $fields['cost'] ?? null, $fields['cost_currency_id'] ?? null, $fields['margin_pct'] ?? null,
             isset($fields['is_active']) ? (int)$fields['is_active'] : 1,
-        ]);
+        ];
+        foreach (['price_wh1_override','price_wh2_override'] as $override) {
+            if (array_key_exists($override, $fields) && $this->hasColumn('product_variants', $override)) {
+                $cols[] = $override;
+                $values[] = $fields[$override];
+            }
+        }
+        $sql = 'INSERT INTO product_variants (' . implode(', ', $cols) . ') VALUES ('
+             . implode(',', array_fill(0, count($cols), '?')) . ')';
+        $st = $this->db->prepare($sql);
+        $ok = $st->execute($values);
 
         return $ok ? (int)$this->db->lastInsertId() : 0;
     }
@@ -97,7 +93,7 @@ final class ProductVariantImportRepository
         $variantId = (int)$variantId;
         if ($variantId <= 0) return false;
 
-        $allowed = ['sku','internal_code','title','price','list_price','cost','cost_currency_id','margin_pct','is_active','ship_weight','ship_height','ship_width','ship_length','price_wh1_override','price_wh2_override'];
+        $allowed = ['sku','internal_code','title','price','list_price','cost','cost_currency_id','margin_pct','is_active','price_wh1_override','price_wh2_override'];
 
         if (!$this->hasColumn('product_variants','price_wh1_override')) {
             $allowed = array_values(array_filter($allowed, fn($c) => $c !== 'price_wh1_override'));
@@ -131,4 +127,3 @@ final class ProductVariantImportRepository
         return (bool)$st->execute($params);
     }
 }
-

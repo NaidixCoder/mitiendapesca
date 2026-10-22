@@ -6,65 +6,65 @@ $revertStatus = (string)($show['revert_status'] ?? ($job ? (string)($job['revert
 $lastRevertibleId = (int)($show['last_revertible_id'] ?? 0);
 $revertSummary = is_array($show['revert_summary'] ?? null) ? $show['revert_summary'] : null;
 ?>
-<?php if ($job && !$rollbackFileOk && $rollbackVersion !== null && !in_array($revertStatus, ['reverted', 'reverted_with_warnings'], true)): ?>
-  <div class="av3-alert error">
-    <div class="av3-weight-strong">Rollback no compatible</div>
-    <div class="av3-type-body av3-text-slate-700">Este run tiene rollback v<?= (int)$rollbackVersion ?> (legacy). Para poder revertir con Revert v2, volve a ejecutar la importacion para regenerar el punto de restauracion.</div>
+<?php if ($job && (string)($job['status'] ?? '') === 'review_required'): ?>
+  <div class="av3-imports__notice av3-imports__notice--error" role="alert">
+    <strong>Revisión manual obligatoria: resultado de commit incierto</strong>
+    <p>No se pudo confirmar si MySQL aplicó los cambios. No revertir ni repetir automáticamente esta importación. Conservá el snapshot y solicitá una conciliación supervisada.</p>
+  </div>
+<?php endif; ?>
+<?php if ($job && (string)($job['status'] ?? '') === 'failed'): ?>
+  <div class="av3-imports__notice av3-imports__notice--error" role="alert">
+    <strong>Importación no aplicada</strong>
+    <p>La ejecución fue cancelada o revertida. No se confirmaron cambios de esta transacción.</p>
+  </div>
+<?php endif; ?>
+<?php if ($job && !$rollbackFileOk && in_array((string)($job['status'] ?? ''), ['finished','ok'], true) && $revertStatus === 'not_reverted'): ?>
+  <div class="av3-imports__notice av3-imports__notice--error" role="alert">
+    <strong>Reversión no compatible</strong>
+    <p><?= $rollbackVersion === null ? 'No existe un snapshot verificable para esta importación.' : ('El snapshot v' . (int)$rollbackVersion . ' no contiene todos los estados posteriores verificables.') ?> No se permite reversión automática; se requiere recuperación manual supervisada.</p>
   </div>
 <?php endif; ?>
 
 <?php if ($job && $rollbackFileOk && $revertStatus === 'not_reverted' && (int)($job['id'] ?? 0) !== $lastRevertibleId && $lastRevertibleId > 0): ?>
-  <div class="av3-alert warn">
-    <div class="av3-weight-strong">Revertir no disponible</div>
-    <div class="av3-type-body av3-text-slate-700 av3-space-top-1">Por seguridad, solo se puede revertir el <b>ultimo</b> import revertible (LIFO).</div>
-    <div class="av3-space-top-2 av3-type-body av3-text-slate-700">Ultimo revertible: <a class="btn-link" href="<?= url('/admin/imports/show?id='.$lastRevertibleId) ?>">#<?= (int)$lastRevertibleId ?></a></div>
+  <div class="av3-imports__notice av3-imports__notice--warning" role="status">
+    <strong>Reversión no disponible por orden de importación</strong>
+    <p>Por seguridad, solo puede revertirse la última importación elegible (LIFO).
+      Última revertible: <a href="<?= e(url('/admin/imports/show?id=' . $lastRevertibleId)) ?>">#<?= $lastRevertibleId ?></a>.</p>
   </div>
 <?php endif; ?>
 
 <?php if ($job && in_array($revertStatus, ['blocked_not_last', 'blocked_conflict'], true)): ?>
-  <?php
-  $sum = $revertSummary;
-  $title = ($revertStatus === 'blocked_conflict') ? 'Revert bloqueado por conflicto' : 'Revert no disponible';
-  $msg = ($revertStatus === 'blocked_conflict')
-    ? 'Hubo ediciones manuales posteriores al import. Por seguridad, este run no se puede revertir automaticamente.'
-    : 'Solo se puede revertir el ultimo import revertible (LIFO).';
-  ?>
-  <div class="av3-alert error">
-    <div class="av3-weight-strong"><?= e($title) ?></div>
-    <div class="av3-type-body av3-text-slate-700 av3-space-top-1"><?= e($msg) ?></div>
-    <?php if ($revertStatus === 'blocked_conflict' && is_array($sum) && !empty($sum['conflicts'])): ?>
-      <div class="av3-space-top-3 av3-radius-control av3-border av3-border-slate-200 av3-surface-white av3-pad-3">
-        <div class="av3-type-body av3-weight-strong">Conflictos detectados</div>
-        <ul class="av3-space-top-2 av3-type-body av3-text-slate-700 list-disc av3-pad-left-5 av3-flow-1">
-          <?php foreach ((array)$sum['conflicts'] as $c): ?>
-            <li><?= e((string)($c['entity'] ?? '')) ?> #<?= (int)($c['id'] ?? 0) ?> - actualizado: <?= e((string)($c['updated_at'] ?? '')) ?></li>
-          <?php endforeach; ?>
-        </ul>
-      </div>
-    <?php elseif ($revertStatus === 'blocked_not_last' && is_array($sum) && !empty($sum['last_revertible_job_id'])): ?>
-      <div class="av3-space-top-2 av3-type-body av3-text-slate-700">Ultimo revertible: <a class="btn-link" href="<?= url('/admin/imports/show?id='.(int)$sum['last_revertible_job_id']) ?>">#<?= (int)$sum['last_revertible_job_id'] ?></a></div>
+  <div class="av3-imports__notice av3-imports__notice--error" role="alert">
+    <strong><?= $revertStatus === 'blocked_conflict' ? (($revertSummary['blocked'] ?? '') === 'unverifiable_snapshot' ? 'Reversión sin estado verificable' : 'Reversión bloqueada por conflicto') : 'Reversión fuera de orden' ?></strong>
+    <p><?= $revertStatus === 'blocked_conflict'
+      ? (($revertSummary['blocked'] ?? '') === 'unverifiable_snapshot' ? 'El snapshot no es verificable. La reversión automática está bloqueada para proteger cambios posteriores.' : 'Se detectaron modificaciones posteriores o estados no verificables. No se modificó el catálogo.')
+      : 'Solo se permite revertir la última importación elegible (LIFO).' ?></p>
+    <?php if ($revertStatus === 'blocked_conflict' && $revertSummary && !empty($revertSummary['conflicts'])): ?>
+      <ul>
+        <?php foreach ((array)$revertSummary['conflicts'] as $conflict): ?>
+          <li><?= e((string)($conflict['entity'] ?? 'Entidad')) ?> #<?= (int)($conflict['id'] ?? 0) ?> · <?= e(match ((string)($conflict['reason'] ?? '')) { 'state_changed' => 'Estado modificado después de importar', 'related_records_changed' => 'Se modificaron relaciones dependientes', 'missing_row' => 'Registro no encontrado', default => 'Postestado no verificable' }) ?></li>
+        <?php endforeach; ?>
+      </ul>
+    <?php elseif ($revertStatus === 'blocked_not_last' && $revertSummary && !empty($revertSummary['last_revertible_job_id'])): ?>
+      <p>Última revertible: <a href="<?= e(url('/admin/imports/show?id=' . (int)$revertSummary['last_revertible_job_id'])) ?>">#<?= (int)$revertSummary['last_revertible_job_id'] ?></a></p>
     <?php endif; ?>
   </div>
 <?php endif; ?>
 
 <?php if ($job && in_array($revertStatus, ['reverted', 'reverted_with_warnings'], true)): ?>
-  <?php $revAt = $job['reverted_at_utc'] ?? null; $sum = $revertSummary; ?>
-  <div class="av3-alert ok">
-    <div class="av3-weight-strong">
-      Importacion revertida<?= $revAt ? ' - ' . e((string)$revAt) . ' UTC' : '' ?>
-      <?= $revertStatus === 'reverted_with_warnings' ? ' - con advertencias' : '' ?>
-    </div>
-    <?php if (is_array($sum)): ?>
-      <div class="av3-space-top-2 av3-type-body av3-text-slate-700">
-        <span class="av3-weight-strong">Resumen:</span>
-        Restaurados: <?= (int)($sum['restored'] ?? 0) ?> - Eliminados: <?= (int)($sum['deleted'] ?? 0) ?>
-        <?php if (!empty($sum['warnings']) && is_array($sum['warnings'])): ?>
-          - Advertencias: <?= count($sum['warnings']) ?>
-        <?php endif; ?>
-      </div>
+  <div class="av3-imports__notice av3-imports__notice--<?= $revertStatus === 'reverted_with_warnings' ? 'warning' : 'success' ?>" role="status">
+    <strong>Importación revertida<?= $revertStatus === 'reverted_with_warnings' ? ' con advertencias' : '' ?></strong>
+    <?php if (!empty($job['reverted_at_utc'])): ?><p>Revertida el <?= e((string)$job['reverted_at_utc']) ?> UTC.</p><?php endif; ?>
+    <?php if ($revertSummary): ?>
+      <p>Registros restaurados: <?= (int)($revertSummary['restored'] ?? 0) ?> · Eliminados: <?= (int)($revertSummary['deleted'] ?? 0) ?>
+        <?php if (!empty($revertSummary['warnings']) && is_array($revertSummary['warnings'])): ?> · Avisos: <?= count($revertSummary['warnings']) ?><?php endif; ?>
+      </p>
     <?php endif; ?>
   </div>
 <?php endif; ?>
 
-<?php if ($m = flash('ok')): ?><div class="av3-alert ok"><?= e($m) ?></div><?php endif; ?>
-<?php if ($m = flash('error')): ?><div class="av3-alert error"><?= e($m) ?></div><?php endif; ?>
+<?php foreach (['ok' => 'success', 'error' => 'error', 'warn' => 'warning'] as $type => $tone): ?>
+  <?php if ($message = flash($type)): ?>
+    <div class="av3-imports__notice av3-imports__notice--<?= e($tone) ?>" role="<?= $tone === 'error' ? 'alert' : 'status' ?>"><?= e((string)$message) ?></div>
+  <?php endif; ?>
+<?php endforeach; ?>

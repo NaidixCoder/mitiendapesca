@@ -7,8 +7,64 @@ final class ImportsViewPresenterService
      * @param array<int,array<string,mixed>> $rows
      * @return array<string,mixed>
      */
+    /**
+     * El Controller aún calcula LIFO v2: resolver el pendiente REAL sin
+     * modificar ese controlador compartido ni saltear jobs bloqueados.
+     */
+    /** Suspende acciones visuales cuando existe un commit sin conciliar. */
+    private function hasPendingReview(): bool
+    {
+        if (!function_exists('db')) return false;
+        try {
+            $st = db()->query("SELECT id FROM import_jobs WHERE status='review_required' LIMIT 1");
+            return $st && $st->fetchColumn() !== false;
+        } catch (\Throwable $e) {
+            return true; // Falla cerrada ante lector no disponible.
+        }
+    }
+
+    private function latestPending(int $fallback, array $rows = []): int
+    {
+        if (function_exists('db')) {
+            try {
+                $st = db()->query("SELECT id FROM import_jobs WHERE status IN ('finished','ok')
+                    AND COALESCE(revert_status,'not_reverted') NOT IN ('reverted','reverted_with_warnings')
+                    ORDER BY id DESC LIMIT 1");
+                return (int)($st->fetchColumn() ?: 0);
+            } catch (\Throwable $e) {
+                // Cerrar disponibilidad si no se puede asegurar orden.
+                return 0;
+            }
+        }
+        if ($rows) {
+            foreach ($rows as $r) {
+                if (in_array((string)($r['status'] ?? ''), ['finished','ok'], true)
+                    && !in_array((string)($r['revert_status'] ?? 'not_reverted'),
+                        ['reverted','reverted_with_warnings'], true)) return (int)$r['id'];
+            }
+        }
+        return $fallback;
+    }
+
+    private function rollbackSnapshot(string $path, int $jobId): array
+    {
+        $csv = $path !== '' && is_file($path) ? $path :
+            ($path !== '' && function_exists('storage_path') ? (string)storage_path($path) : '');
+        $file = $csv !== '' ? preg_replace('/\.csv$/', '_rollback.json', $csv) : null;
+        if (!$file || !is_file($file)) return ['valid'=>false,'version'=>null];
+        $raw = @file_get_contents($file);
+        $snap = $raw ? json_decode($raw, true) : null;
+        $version = is_array($snap) ? (int)($snap['version'] ?? 0) : null;
+        $valid = is_array($snap)
+            && \App\Services\Import\ImportRevertService::isSnapshotSafe($snap)
+            && (int)($snap['job_id'] ?? 0) === $jobId;
+        return ['valid'=>$valid, 'version'=>$version];
+    }
+
     public function presentIndex(array $rows, int $lastRevertibleId): array
     {
+        $lastRevertibleId = $this->latestPending($lastRevertibleId, $rows);
+        $reviewPending = $this->hasPendingReview();
         $prepared = [];
         foreach ($rows as $r) {
             if (!is_array($r)) {
@@ -30,33 +86,26 @@ final class ImportsViewPresenterService
                 $badge = 'badge-pill badge-warning';
                 $label = 'Procesando';
             }
+            if ($status === 'review_required') {
+                $badge = 'av3-ui-badge--warning';
+                $label = 'Revisión requerida';
+            }
 
             $rs = (string)($r['revert_status'] ?? 'not_reverted');
             $rollbackDone = in_array($rs, ['reverted', 'reverted_with_warnings'], true);
             $blocked = in_array($rs, ['blocked_not_last', 'blocked_conflict'], true);
+            if ($rollbackDone) {
+                $label = $rs === 'reverted' ? 'Revertida' : 'Revertida con advertencias';
+            } elseif ($blocked) {
+                $label = 'Reversión bloqueada';
+            }
 
             $canRollback = false;
             $legacyRollback = false;
-            if (in_array($status, ['finished', 'ok'], true) && !$rollbackDone && $rs === 'not_reverted') {
-                $csvPath = (string)($r['file_path'] ?? '');
-                $csvAbs = '';
-                if ($csvPath !== '' && is_file($csvPath)) {
-                    $csvAbs = $csvPath;
-                } elseif ($csvPath !== '' && function_exists('storage_path')) {
-                    $csvAbs = (string)storage_path($csvPath);
-                }
-
-                $rbAbs = $csvAbs !== '' ? preg_replace('/\.csv$/', '_rollback.json', $csvAbs) : null;
-                if (is_string($rbAbs) && $rbAbs !== '' && is_file($rbAbs)) {
-                    $rawRb = @file_get_contents($rbAbs);
-                    $jRb = is_string($rawRb) && $rawRb !== '' ? json_decode($rawRb, true) : null;
-                    $ver = is_array($jRb) ? (int)($jRb['version'] ?? 0) : 0;
-                    if ($ver === 2) {
-                        $canRollback = true;
-                    } else {
-                        $legacyRollback = true;
-                    }
-                }
+            if (in_array($status, ['finished','ok'], true) && !$rollbackDone && $rs === 'not_reverted') {
+                $check=$this->rollbackSnapshot((string)($r['file_path'] ?? ''),(int)($r['id'] ?? 0));
+                $canRollback = (bool)$check['valid'];
+                $legacyRollback = !$canRollback;
             }
 
             $id = (int)($r['id'] ?? 0);
@@ -64,7 +113,9 @@ final class ImportsViewPresenterService
                 'kind' => 'none',
                 'label' => '',
             ];
-            if ($canRollback && $id === $lastRevertibleId) {
+            if ($canRollback && $reviewPending) {
+                $rollbackUi = ['kind' => 'blocked', 'label' => 'Reversión suspendida: revisión pendiente'];
+            } elseif ($canRollback && $id === $lastRevertibleId) {
                 $rollbackUi = ['kind' => 'can_revert_last', 'label' => 'Revertir'];
             } elseif ($canRollback && $id !== $lastRevertibleId) {
                 $rollbackUi = ['kind' => 'can_revert_non_last', 'label' => 'Solo ultimo import'];
@@ -79,7 +130,7 @@ final class ImportsViewPresenterService
                     'label' => $rs === 'blocked_conflict' ? 'Revert bloqueado (conflicto)' : 'Revert bloqueado',
                 ];
             } elseif ($legacyRollback) {
-                $rollbackUi = ['kind' => 'legacy', 'label' => 'Rollback legacy'];
+                $rollbackUi = ['kind' => 'legacy', 'label' => 'Revisión manual necesaria'];
             }
 
             $prepared[] = [
@@ -111,31 +162,18 @@ final class ImportsViewPresenterService
         $job = is_array($job) ? $job : null;
         $summary = is_array($summary) ? $summary : null;
 
+        $lastRevertibleId = $this->latestPending($lastRevertibleId);
         $canRollback = false;
         $rollbackFileOk = false;
         $rollbackVersion = null;
         $revertStatus = $job ? (string)($job['revert_status'] ?? 'not_reverted') : 'not_reverted';
 
         if ($job && in_array((string)($job['status'] ?? ''), ['finished', 'ok'], true)) {
-            $csvPath = (string)($job['file_path'] ?? '');
-            $csvAbs = '';
-            if ($csvPath !== '' && is_file($csvPath)) {
-                $csvAbs = $csvPath;
-            } elseif ($csvPath !== '' && function_exists('storage_path')) {
-                $csvAbs = (string)storage_path($csvPath);
-            }
+            $check = $this->rollbackSnapshot((string)($job['file_path'] ?? ''), (int)($job['id'] ?? 0));
+            $rollbackVersion = $check['version'];
+            $rollbackFileOk = $check['valid'];
 
-            $rbAbs = $csvAbs !== '' ? preg_replace('/\.csv$/', '_rollback.json', $csvAbs) : null;
-            if (is_string($rbAbs) && $rbAbs !== '' && is_file($rbAbs)) {
-                $raw = @file_get_contents($rbAbs);
-                $j = (is_string($raw) && $raw !== '') ? json_decode($raw, true) : null;
-                if (is_array($j)) {
-                    $rollbackVersion = (int)($j['version'] ?? 0);
-                    $rollbackFileOk = ($rollbackVersion === 2);
-                }
-            }
-
-            if ($rollbackFileOk && $revertStatus === 'not_reverted' && (int)($job['id'] ?? 0) === $lastRevertibleId) {
+            if ($rollbackFileOk && !$this->hasPendingReview() && $revertStatus === 'not_reverted' && (int)($job['id'] ?? 0) === $lastRevertibleId) {
                 $canRollback = true;
             }
         }
@@ -157,6 +195,8 @@ final class ImportsViewPresenterService
             $statusBadge = 'badge-pill badge-success';
         } elseif ($statusKey === 'dry-failed' || $statusKey === 'failed') {
             $statusBadge = 'badge-pill badge-danger';
+        } elseif ($statusKey === 'review_required') {
+            $statusBadge = 'av3-ui-badge--warning';
         }
 
         $totalRows = (int)($job['total_rows'] ?? 0);
@@ -211,18 +251,19 @@ final class ImportsViewPresenterService
             if (!is_array($rr)) {
                 continue;
             }
-            $lvl = (string)($rr['level'] ?? 'ok');
+            $lvl = strtolower(trim((string)($rr['level'] ?? 'ok')));
+            if ($lvl === 'warn') { $lvl = 'warning'; }
             $rowClass = '';
             if ($lvl === 'error') {
                 $rowClass = 'bg-red-50/40';
-            } elseif ($lvl === 'warn') {
-                $rowClass = 'bg-amber-50/40';
+            } elseif ($lvl === 'warning') {
+                $rowClass = '';
             }
 
             $resultBadge = 'badge-pill badge-success';
             $resultLabel = 'OK';
-            if ($lvl === 'warn') {
-                $resultBadge = 'badge-pill badge-neutral';
+            if ($lvl === 'warning') {
+                $resultBadge = 'av3-ui-badge--warning';
                 $resultLabel = 'Aviso';
             } elseif ($lvl === 'error') {
                 $resultBadge = 'badge-pill badge-danger';
@@ -230,6 +271,19 @@ final class ImportsViewPresenterService
             }
 
             $accionTxt = (string)($rr['accion'] ?? '');
+            // I05: un diagnóstico positivo no implica una escritura confirmada.
+            // En jobs cancelados las acciones son PREVISTAS, no ejecutadas.
+            if (in_array($statusKey, ['failed', 'dry-failed'], true) && $lvl !== 'error') {
+                $resultLabel = $lvl === 'warning' ? 'Aviso · no aplicada' : 'Válida · no aplicada';
+                $resultBadge = 'av3-ui-badge--neutral';
+                if ($accionTxt !== '') {
+                    $accionTxt = 'Prevista: '.$accionTxt;
+                }
+            }
+            if ($statusKey === 'review_required' && $lvl !== 'error') {
+                $resultLabel = 'Confirmación pendiente';
+                $resultBadge = 'av3-ui-badge--warning';
+            }
             $actionBadge = 'badge-pill badge-neutral';
             if (stripos($accionTxt, 'Crear') !== false) {
                 $actionBadge = 'badge-pill badge-success';
@@ -246,7 +300,25 @@ final class ImportsViewPresenterService
                         'to' => trim((string)($mm[3] ?? '')),
                     ];
                 } else {
-                    $cambios[] = ['type' => 'note', 'raw' => $note];
+                    // Lectura de metadatos ya emitidos por el motor: no recalcula importes.
+                    $segments = preg_split('/\\s*·\\s*/u', $note) ?: [];
+                    $metaItems = [];
+                    $metaLabels = [
+                        'costo_sin_iva' => 'Costo neto', 'iva' => 'IVA',
+                        'costo_final_ars' => 'Costo con IVA', 'precio_ars' => 'Precio',
+                        'precio_lista_ars' => 'Precio de lista',
+                    ];
+                    foreach ($segments as $segment) {
+                        if (!preg_match('/^([a-z_]+):\\s*(.+)$/iu', trim($segment), $parts)) {
+                            $metaItems = [];
+                            break;
+                        }
+                        $key = trim((string)$parts[1]);
+                        $metaItems[] = ['label' => $metaLabels[$key] ?? str_replace('_', ' ', $key), 'value' => trim((string)$parts[2])];
+                    }
+                    $cambios[] = count($metaItems) > 1
+                        ? ['type' => 'metadata', 'items' => $metaItems]
+                        : ['type' => 'note', 'raw' => $note];
                 }
             }
 
@@ -256,6 +328,7 @@ final class ImportsViewPresenterService
 
             $rowsPrepared[] = [
                 'row' => (int)($rr['row'] ?? 0),
+                'level' => $lvl,
                 'tipo_fila' => (string)($rr['tipo_fila'] ?? ''),
                 'sku' => (string)($rr['sku'] ?? ''),
                 'sku_padre' => (string)($rr['sku_padre'] ?? ''),
@@ -270,6 +343,8 @@ final class ImportsViewPresenterService
             ];
         }
 
+        $hasDiagnostics = is_array($summary) && is_array($summary['rows'] ?? null)
+            && is_array($summary['plan'] ?? null);
         $isSuccess = ($statusKey === 'finished' && $errRows === 0);
         $hasCatalogLists = (
             (int)($plan['create_brands'] ?? 0) > 0
@@ -283,13 +358,14 @@ final class ImportsViewPresenterService
             'rollbackVersion' => $rollbackVersion,
             'revertStatus' => $revertStatus,
             'revertSummary' => $revertSummary,
-            'statusKey' => $statusKey,
+            'statusKey' => $statusKey === 'review_required' ? 'Revisión requerida' : $statusKey,
             'statusBadge' => $statusBadge,
             'totalRows' => $totalRows,
             'okRows' => $okRows,
             'errRows' => $errRows,
             'lastRevertibleId' => $lastRevertibleId,
             'isSuccess' => $isSuccess,
+            'hasDiagnostics' => $hasDiagnostics,
             'plan' => $plan,
             'warnList' => $warnList,
             'errList' => $errList,
