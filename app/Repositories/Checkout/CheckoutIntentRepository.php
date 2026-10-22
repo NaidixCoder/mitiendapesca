@@ -144,10 +144,10 @@ final class CheckoutIntentRepository
 
         $where = "user_id=:u AND address_id=:a AND status='created' AND cart_hash=:h";
         if ($this->hasColumn('marketing_campaign_id')) {
-            $where .= " AND marketing_campaign_id = :m";
+            $where .= " AND COALESCE(marketing_campaign_id, 0) = :m";
         }
         if ($this->hasColumn('email_campaign_id')) {
-            $where .= " AND email_campaign_id = :e";
+            $where .= " AND COALESCE(email_campaign_id, 0) = :e";
         }
 
         // IMPORTANTE: MySQL no acepta bind de :mins dentro de INTERVAL.

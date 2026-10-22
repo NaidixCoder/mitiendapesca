@@ -280,6 +280,27 @@ final class PaymentController
                 return;
             }
 
+            // El cobro aprobado sin pedido no es un checkout exitoso.
+            // Conservar evidencia del proveedor; no repetir el pago automaticamente.
+            if ($status === 'approved' && $orderId <= 0) {
+                Audit::log('payment_approved_without_order', 'checkout', null, [
+                    'payment_id' => $paymentId,
+                    'payment_row_id' => $paymentRowId,
+                    'intent_id' => (int)($intent['id'] ?? 0),
+                    'status' => $status,
+                    'manual_reconciliation_required' => true,
+                ]);
+                json([
+                    'ok' => false,
+                    'code' => 'approved_without_order',
+                    'status' => $status,
+                    'payment_id' => $paymentId,
+                    'order_id' => 0,
+                    'manual_reconciliation_required' => true,
+                    'error' => 'El pago fue aprobado, pero no se pudo confirmar tu pedido. No vuelvas a pagar: nuestro equipo debe conciliar el cobro.',
+                ], 202);
+                return;
+            }
             $ui = $mapper->map($payment, [
                 'payment_id' => $paymentId,
                 'order_id' => $orderId,
