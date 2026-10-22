@@ -212,3 +212,46 @@ Se **pospone Ventana 2** (refactor general) y se habilita **Ventana 1C exclusiva
 **No reservado:** `ProductVariantImportRepository.php`, `VariantImporter.php`, catálogos/otros repositorios, `ImportRevertService/Repository`, `ImportPurgeService`, CSS/JS, routes, DDL/migrations, SEO, Categorías, Git. **V1E ship_weight**, V2 refactor, V3 integridad y V4 QA finales NO AUTORIZADAS.
 
 **Cierre:** documentar in `docs/modulos/importaciones.md` y detener, **sin commit/push**. En caso de necesitar editar otro archivo o modificar semántica comercial, pedir autorización adicional. Hasta validar la integración E2E el riesgo I06 y la V1D siguen abiertos.
+
+## Adenda 2026-10-22 — 1D-B validada; VENTANA 1D-C AUTORIZADA: barrera LIFO backend para conciliación incierta
+
+**Revisión del principal:** bitácora 1D-B de `docs/modulos/importaciones.md` documenta pruebas HTTP reales con app Admin autenticada y MariaDB descartable, resultado `committed` → `finished`, `rolled_back` → `failed` y ACK perdido → `review_required`, sin falso `import_finished`, snapshot conservado, historia/UI sin botón Revertir, teardown total. Principal leyó el cambio de `ImportsController::apply`, `ImportResult`, `ImportService`, presenter, `ImportRevertService` y `ImportRevertRepository`, y **reejecutó** contratos **30/30 outcome**, **19/19 snapshot**, **21/21 rollback**, **71/71 Admin**, todos PASS. Gate 845 PHP/120 JS y pruebas E2E/CLI se aceptan como evidencia **reportada por especialista**, no reejecutadas íntegramente por principal. **V1D-B validada técnicamente**, pero **I06 no está cerrado para producción**.
+
+### Vulnerabilidad verificada
+
+`ImportRevertRepository::lockLatestPendingJobId()` solo considera `status IN ('finished','ok')`, y **omite `review_required`**, aunque este estado puede esconder un COMMIT realmente confirmado. Por ello un POST directo a rollback de un job anterior podría evitar la barrera LIFO mientras el detalle/historial lo deshabilitan. Un bloqueo incidental FK en fixture **no equivale** a protección del servicio. No depender de UI, fecha, `revert_status` o snapshot de job anterior para descartar el riesgo.
+
+### Decisión obligatoria: fail-closed global de reversiones cuando existe commit sin conciliar
+
+**Mientras exista en `import_jobs` cualquier `status='review_required'` no resuelto, no se permite revertir AUTOMÁTICAMENTE NINGÚN job**, sea anterior o posterior. El bloqueo debe imponerse server-side en `ImportRevertService::revertJob`, bajo transacción y con consulta/bloqueo SQL consistente, **antes de cualquier restore/delete**; devolver resultado explicativo `review_required_pending` (o clave específica equivalente), registrar auditoría sin declarar éxito y preservar todo el catálogo y los snapshots. La UI ya ofrece un bloqueo conservador; el backend debe usar el mismo criterio. `failed` de rollback SQL confirmado **no es** `review_required`, no debe bloquear por sí solo. Jobs `finished` sin casos inciertos mantienen **LIFO v3 original**, hashes BEFORE/AFTER, FK y concurrencia.
+
+- Revalidar **estado del job objetivo bajo lock** dentro de la transacción; no confiar únicamente en un SELECT previo ni en botones UI. `review_required` nunca es sujeto válido a reversión automática, aun si tiene v3 y hash válido.
+- Consulta transaccional dedicada de detección de `review_required` (locks `FOR UPDATE`/orden de bloqueos consistente con lock LIFO existente); evaluar interacción con inserts concurrentes y evitar TOCTOU. Si el esquema/aislamiento no permite demostrarlo, documentar el límite y solicitar decisión adicional; no anunciar garantía absoluta no probada.
+- No alterar estado de conciliación ni inferir automáticamente si hubo commit; **conciliación manual supervisada** sigue fuera de esta ventana. No realizar nuevas importaciones, cancelarlas, revertir pagos o limpiar evidencia en base a la existencia de un archivo.
+- Preservar semántica de `blocked_conflict`/LIFO y idempotencia; no saltar un job `review_required` por considerar otro más nuevo `finished`. Manejar resultado de bloqueo como caso propio distinguible de conflicto en producto/variante y de `not_last`.
+- El servicio debe garantizar bloqueo con **POST real**, no solo contrato textual. No destruir ni mutar fila comercial, auditoría de aplicación ni archivos de snapshot cuando se detecte bloqueo.
+
+### Ventana 1D-C — autorización focal de archivos
+
+**Propietario único: chat Importaciones. Edición permitida EXCLUSIVAMENTE:**
+1. `app/Repositories/Imports/ImportRevertRepository.php` — nuevo SELECT transaccional seguro para conciliaciones abiertas y ajustes mínimos de `lockLatestPendingJobId()` exclusivamente por coherencia LIFO. No cambiar fingerprint, FK, `restore`/`delete`, SQL catalog, ni métodos de import.
+2. `app/Services/Import/ImportRevertService.php` — exclusivamente `revertJob()` en chequeo/orden de locks y devolución del bloqueo; preservar verificación v3, orden de operaciones, transacción e idempotencia.
+3. `scripts/build/imports_revert_contract.php`, **nuevo** contrato `scripts/build/imports_lifo_uncertain_contract.php` y scripts/fixtures aislados `scripts/dev/imports_*lifo*_isolated.php` o ampliación focal de suite V1C, **solo por este comportamiento**; `docs/modulos/importaciones.md`.
+4. `app/Services/Admin/Imports/ImportsViewPresenterService.php` y `app/Views/partials/admin/imports/view/notices.php` **SOLO SI** el nuevo error/backend no se representa legiblemente con lo ya construido, sin editar CSS/JS u otros bloques.
+
+**SOLO LECTURA/PROHIBIDO EDITAR:** `ImportsController.php`, `ImportJobRepository.php`, `ImportResult.php`, `ImportService.php`, `ImportSnapshotStore.php`, otros repositorios Catalog/Import/Settings, HTML/CSS/JS general, schema, routes, DB comercial, Marketing, Categorías, Marcas, Atributos y Git. Si falta un punto de integración, detener y solicitar ampliación.
+
+### Aceptación V1D-C — casos imprescindibles
+
+MySQL privado con fixtures y `SELECT DATABASE()`; nunca DB habitual:
+- Jobs confirmados #1/#2 + job #3 `review_required`: **POST de rollback de #2 y #1 bloqueado por conciliación**, sin cambios comerciales, sin falso evento `import_reverted`.
+- Job posterior #4 `finished` mientras #3 sigue incierto: **#4 también bloqueado**; la regla es global, no solo comparar IDs.
+- POST intentando revertir directamente #3: rechazado.
+- Sin `review_required`: LIFO normal, v3 válido permite revertir último; anterior bloqueado; `blocked_conflict` del último sigue bloqueando anteriores.
+- Job `failed` con SQL revertido no produce bloqueo global; coexistencia con snapshots legacy v2 y v3 inválidos conserva fail-closed.
+- Resolver `review_required` manualmente **solo en fixture** (representando una conciliación humana ya hecha, sin implementar automatización): se retoma únicamente LIFO normal, sin autorreversión previa.
+- Dos conexiones concurrentes: simulación de cambio a `review_required`/posteo de reversión, locks y orden consistente; probar sin mutaciones indebidas ni deadlock persistente. Si no se puede garantizar en diseño actual, declarar limitación.
+- Validar HTTP autenticado con token CSRF y rutas de rollback, estados, audit, error legible, snapshots intactos; 30/19/21/71 focales, nueva suite LIFO, V1C y V1D regresión, PHP lint, gate coordinado sin ejecutar simultáneamente con Categorías 6B-3.
+- Eliminación completa de MariaDB/copia/credenciales/sesiones/puertos temporales, sin escribir BD comercial.
+
+**Cierre:** informe completo `docs/modulos/importaciones.md`; pedir al principal revisión de I06 end-to-end. **No commit ni push**, no iniciar V1E (`ship_weight`) ni refactor V2/V3. Aprobación estética y producción siguen pendientes.
