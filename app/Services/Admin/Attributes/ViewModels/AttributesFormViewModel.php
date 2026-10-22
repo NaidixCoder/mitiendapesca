@@ -19,9 +19,9 @@ final class AttributesFormViewModel
         $unit = (string)($row['unit'] ?? '');
 
         $types = [
-            ['v' => 'select', 'l' => 'Seleccion'],
+            ['v' => 'select', 'l' => 'Selección'],
             ['v' => 'text', 'l' => 'Texto'],
-            ['v' => 'number', 'l' => 'Numero'],
+            ['v' => 'number', 'l' => 'Número'],
         ];
 
         $preparedValues = [];

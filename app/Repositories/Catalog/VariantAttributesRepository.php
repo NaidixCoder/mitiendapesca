@@ -9,9 +9,11 @@ final class VariantAttributesRepository
     {
     }
 
-    public function findAttributeValue(int $valueId): ?array
+    public function findAttributeValue(int $valueId, bool $forUpdate = false): ?array
     {
-        $st = $this->db->prepare('SELECT id, attribute_id, value FROM attribute_values WHERE id = ? LIMIT 1');
+        $sql = 'SELECT id, attribute_id, value FROM attribute_values WHERE id = ? LIMIT 1';
+        if ($forUpdate && $this->db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql') $sql .= ' FOR UPDATE';
+        $st = $this->db->prepare($sql);
         $st->execute([$valueId]);
         $row = $st->fetch(PDO::FETCH_ASSOC) ?: null;
         return $row;
@@ -33,14 +35,10 @@ final class VariantAttributesRepository
 
     public function countSetUsage(int $valueId): int
     {
-        try {
-            $st = $this->db->prepare('SELECT COUNT(*) FROM variant_value_set_items WHERE value_id = ?');
-            $st->execute([$valueId]);
-            return (int)($st->fetchColumn() ?: 0);
-        } catch (\Throwable $e) {
-            // Compat: tabla no presente en entornos viejos
-            return 0;
-        }
+        // Fallo cerrado: los errores SQL nunca equivalen a ausencia de relaciones.
+        $st = $this->db->prepare('SELECT COUNT(*) FROM variant_value_set_items WHERE value_id = ?');
+        $st->execute([$valueId]);
+        return (int)($st->fetchColumn() ?: 0);
     }
 
     public function deleteProductSelections(int $valueId): void

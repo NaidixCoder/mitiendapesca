@@ -33,6 +33,8 @@ final class VariantValueSetsService
                       ON pa.product_id = pav.product_id AND pa.attribute_id = pav.attribute_id
                     JOIN attributes a
                       ON a.id = pa.attribute_id
+                    JOIN attribute_values av
+                      ON av.id = pav.value_id AND av.attribute_id = pav.attribute_id
                     WHERE pav.product_id = :pid
                       AND COALESCE(a.is_variant_axis, 0) = 1
                     ORDER BY pav.attribute_id ASC, pav.value_id ASC";
@@ -46,6 +48,16 @@ final class VariantValueSetsService
         if (empty($pairs)) {
             return ['ok' => false, 'message' => 'No hay valores seleccionados para guardar como plantilla.'];
         }
+        // No omitir en silencio relaciones defectuosas del producto:
+        // la tabla tiene FK value_id, pero no FK compuesta (attribute_id,value_id).
+        $countSelected = $this->db->prepare("SELECT COUNT(*) FROM product_attribute_values pav
+            JOIN product_attributes pa ON pa.product_id=pav.product_id AND pa.attribute_id=pav.attribute_id
+            JOIN attributes a ON a.id=pa.attribute_id
+            WHERE pav.product_id=? AND a.is_variant_axis=1");
+        $countSelected->execute([$productId]);
+        if ((int)$countSelected->fetchColumn() !== count($pairs)) {
+            return ['ok'=>false,'message'=>'Hay selecciones incompatibles en el producto. No se creó la plantilla.'];
+        }
 
         try {
             $chk = $this->db->prepare("SELECT id FROM variant_value_sets WHERE category_id=:cat AND brand_id=:brand AND name=:name LIMIT 1");
@@ -57,7 +69,17 @@ final class VariantValueSetsService
         } catch (Throwable) {}
 
         try {
-            $this->db->beginTransaction();
+            $owns = !$this->db->inTransaction();
+            $sp = 'attribute_set_create_guard';
+            if ($owns) $this->db->beginTransaction();
+            else $this->db->exec('SAVEPOINT ' . $sp);
+            // Misma categoría bloqueada para serializar altas por nombre/ámbito.
+            $lockCat = $this->db->prepare('SELECT id FROM categories WHERE id=? FOR UPDATE');
+            $lockCat->execute([$categoryId]);
+            if (!$lockCat->fetchColumn()) throw new \DomainException('Categoría no disponible.');
+            $chk = $this->db->prepare('SELECT id FROM variant_value_sets WHERE category_id=? AND brand_id=? AND name=? LIMIT 1');
+            $chk->execute([$categoryId,$brandId,$name]);
+            if ($chk->fetchColumn()) throw new \DomainException('Ya existe una plantilla con ese nombre para esta categoría y marca.');
 
             $ins = $this->db->prepare("INSERT INTO variant_value_sets (name, category_id, brand_id) VALUES (:name, :cat, :brand)");
             $ins->execute([':name' => $name, ':cat' => $categoryId, ':brand' => $brandId]);
@@ -75,15 +97,26 @@ final class VariantValueSetsService
                 $attrsUniq[$aid] = true;
             }
 
-            $this->db->commit();
+            if ($itemsInserted <= 0 || $itemsInserted !== count($pairs)) {
+                throw new \DomainException('No se pudieron guardar todos los valores de la plantilla.');
+            }
+            if ($owns) $this->db->commit();
+            else $this->db->exec('RELEASE SAVEPOINT ' . $sp);
 
             if ($itemsInserted <= 0) {
                 return ['ok' => true, 'set_id' => $setId, 'message' => 'Plantilla guardada (sin nuevos ítems).', 'items' => 0, 'attributes' => count($attrsUniq)];
             }
 
             return ['ok' => true, 'set_id' => $setId, 'items' => $itemsInserted, 'attributes' => count($attrsUniq), 'message' => "Plantilla guardada: {$name}."];
-        } catch (Throwable) {
-            try { $this->db->rollBack(); } catch (Throwable $_) {}
+        } catch (Throwable $e) {
+            try {
+                if (isset($owns) && $owns && $this->db->inTransaction()) $this->db->rollBack();
+                elseif (isset($owns) && !$owns) {
+                    $this->db->exec('ROLLBACK TO SAVEPOINT '.$sp);
+                    $this->db->exec('RELEASE SAVEPOINT '.$sp);
+                }
+            } catch (Throwable $_) {}
+            if ($e instanceof \DomainException) return ['ok'=>false, 'message'=>$e->getMessage()];
             return ['ok' => false, 'message' => 'No se pudo guardar la plantilla.'];
         }
     }
@@ -107,16 +140,57 @@ final class VariantValueSetsService
         $setBrand = (int)($set['brand_id'] ?? 0);
         $setBrandIsNull = ($set['brand_id'] === null);
 
-        if ($categoryId > 0 && $setCat !== $categoryId) return ['ok' => false, 'message' => 'Esta plantilla no corresponde a la categoría del producto.'];
-        if (!$setBrandIsNull && $brandId > 0 && $setBrand !== $brandId) return ['ok' => false, 'message' => 'Esta plantilla no corresponde a la marca del producto.'];
+        if ($categoryId <= 0 || $categoryId !== $setCat) return ['ok'=>false, 'message'=>'Esta plantilla no corresponde a la categoría del producto.'];
+        // Las plantillas históricas admiten brand_id NULL (aplican a toda marca).
+        if (!$setBrandIsNull && ($brandId <= 0 || $setBrand !== $brandId)) {
+            return ['ok'=>false, 'message'=>'Esta plantilla no corresponde a la marca del producto.'];
+        }
 
-        $sti = $this->db->prepare("SELECT attribute_id, value_id FROM variant_value_set_items WHERE set_id=? ORDER BY attribute_id ASC, value_id ASC");
+        $sti = $this->db->prepare("SELECT i.attribute_id, i.value_id,
+            a.is_variant_axis, av.attribute_id AS actual_attribute_id
+            FROM variant_value_set_items i
+            LEFT JOIN attributes a ON a.id=i.attribute_id
+            LEFT JOIN attribute_values av ON av.id=i.value_id
+            WHERE i.set_id=? ORDER BY i.attribute_id ASC, i.value_id ASC");
         $sti->execute([$setId]);
         $items = $sti->fetchAll(PDO::FETCH_ASSOC) ?: [];
-        if (!$items) return ['ok' => false, 'message' => 'La plantilla no tiene ítems.'];
+        if (!$items) return ['ok'=>false, 'message'=>'La plantilla no tiene ítems.'];
+        foreach ($items as $item) {
+            if ((int)$item['attribute_id'] <= 0 || (int)$item['value_id'] <= 0
+                || (int)$item['is_variant_axis'] !== 1
+                || (int)$item['actual_attribute_id'] !== (int)$item['attribute_id']) {
+                return ['ok'=>false, 'message'=>'La plantilla contiene valores incompatibles. No se modificó el producto.'];
+            }
+        }
 
-        $this->db->beginTransaction();
+        $owns = !$this->db->inTransaction();
+        $sp = 'attribute_set_import_guard';
+        if ($owns) $this->db->beginTransaction();
+        else $this->db->exec('SAVEPOINT '.$sp);
         try {
+            // Revalidar datos BAJO locks: el producto o plantilla pueden cambiar
+            // entre preflight y escritura; Importaciones puede ser caller externo.
+            $lockProduct = $this->db->prepare('SELECT category_id,brand_id FROM products WHERE id=? FOR UPDATE');
+            $lockProduct->execute([$productId]);
+            $pmLocked = $lockProduct->fetch(PDO::FETCH_ASSOC);
+            $lockSet = $this->db->prepare('SELECT category_id,brand_id FROM variant_value_sets WHERE id=? FOR UPDATE');
+            $lockSet->execute([$setId]);
+            $setLocked = $lockSet->fetch(PDO::FETCH_ASSOC);
+            if (!$pmLocked || !$setLocked || (int)$pmLocked['category_id'] !== (int)$setLocked['category_id']
+                || ($setLocked['brand_id'] !== null && (int)$pmLocked['brand_id'] !== (int)$setLocked['brand_id'])) {
+                throw new \DomainException('La plantilla ya no corresponde al producto.');
+            }
+            $sti->execute([$setId]);
+            $lockedItems = $sti->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            if (!$lockedItems) throw new \DomainException('La plantilla no tiene ítems.');
+            foreach ($lockedItems as $item) {
+                if ((int)$item['attribute_id'] <= 0 || (int)$item['value_id'] <= 0
+                    || (int)$item['is_variant_axis'] !== 1
+                    || (int)$item['actual_attribute_id'] !== (int)$item['attribute_id']) {
+                    throw new \DomainException('La plantilla contiene valores incompatibles.');
+                }
+            }
+            $items = $lockedItems;
             $addedAttrs = 0;
             $addedVals = 0;
             $insAttr = $this->db->prepare("INSERT IGNORE INTO product_attributes (product_id, attribute_id, sort, is_required) VALUES (?,?,?,1)");
@@ -149,11 +223,19 @@ final class VariantValueSetsService
                 $addedVals += (int)$insVal->rowCount();
             }
 
-            $this->db->commit();
+            if ($owns) $this->db->commit();
+            else $this->db->exec('RELEASE SAVEPOINT '.$sp);
             $name = (string)($set['name'] ?? 'Plantilla');
             return ['ok' => true, 'set_id' => $setId, 'set_name' => $name, 'added_attributes' => $addedAttrs, 'added_values' => $addedVals, 'message' => "Plantilla importada: {$name}."];
         } catch (Throwable $e) {
-            $this->db->rollBack();
+            try {
+                if ($owns && $this->db->inTransaction()) $this->db->rollBack();
+                elseif (!$owns) {
+                    $this->db->exec('ROLLBACK TO SAVEPOINT '.$sp);
+                    $this->db->exec('RELEASE SAVEPOINT '.$sp);
+                }
+            } catch (Throwable $_) {}
+            if ($e instanceof \DomainException) return ['ok'=>false,'message'=>$e->getMessage()];
             throw $e;
         }
     }
@@ -235,15 +317,31 @@ final class VariantValueSetsService
 
     public function deleteValueSet(int $setId): bool
     {
-        if (!$this->valueSetsTablesExist()) return false;
-        $this->db->beginTransaction();
+        if ($setId <= 0 || !$this->valueSetsTablesExist()) return false;
+        $owns = !$this->db->inTransaction();
+        $sp = 'attribute_set_delete_guard';
         try {
-            $this->db->prepare("DELETE FROM variant_value_set_items WHERE set_id = ?")->execute([$setId]);
-            $this->db->prepare("DELETE FROM variant_value_sets WHERE id = ?")->execute([$setId]);
-            $this->db->commit();
+            if ($owns) $this->db->beginTransaction();
+            else $this->db->exec('SAVEPOINT '.$sp);
+            $lock = $this->db->prepare('SELECT id FROM variant_value_sets WHERE id=? FOR UPDATE');
+            $lock->execute([$setId]);
+            if (!$lock->fetchColumn()) {
+                if ($owns) $this->db->rollBack();
+                else { $this->db->exec('ROLLBACK TO SAVEPOINT '.$sp); $this->db->exec('RELEASE SAVEPOINT '.$sp); }
+                return false;
+            }
+            $this->db->prepare('DELETE FROM variant_value_set_items WHERE set_id=?')->execute([$setId]);
+            $del = $this->db->prepare('DELETE FROM variant_value_sets WHERE id=?');
+            $del->execute([$setId]);
+            if ($del->rowCount() !== 1) throw new \RuntimeException('La plantilla dejó de existir.');
+            if ($owns) $this->db->commit();
+            else $this->db->exec('RELEASE SAVEPOINT '.$sp);
             return true;
         } catch (Throwable) {
-            $this->db->rollBack();
+            try {
+                if ($owns && $this->db->inTransaction()) $this->db->rollBack();
+                elseif (!$owns) { $this->db->exec('ROLLBACK TO SAVEPOINT '.$sp); $this->db->exec('RELEASE SAVEPOINT '.$sp); }
+            } catch (Throwable $_) {}
             return false;
         }
     }
@@ -388,28 +486,101 @@ final class VariantValueSetsService
         return $out;
     }
 
+    private string $lastError = '';
+    private string $lastErrorCode = '';
+
+    public function lastError(): string { return $this->lastError; }
+    public function lastErrorCode(): string { return $this->lastErrorCode; }
+
+    /** Compatible con llamadas directas; NO altera el contrato booleano existente. */
     public function updateValueSet(int $setId, string $name, int $categoryId, int $brandId, array $pairs): bool
     {
-        if (!$this->valueSetsTablesExist()) return false;
-        $this->db->beginTransaction();
-        try {
-            $this->db->prepare("UPDATE variant_value_sets
-                                SET name = :name, category_id = :cid, brand_id = :bid, updated_at = NOW()
-                                WHERE id = :id")
-                     ->execute([':name' => $name, ':cid' => $categoryId, ':bid' => $brandId, ':id' => $setId]);
-            $this->db->prepare("DELETE FROM variant_value_set_items WHERE set_id = ?")->execute([$setId]);
-            $ins = $this->db->prepare("INSERT INTO variant_value_set_items (set_id, attribute_id, value_id) VALUES (:sid,:aid,:vid)");
-            foreach ($pairs as $p) {
-                $aid = (int)($p[0] ?? 0);
-                $vid = (int)($p[1] ?? 0);
-                if ($aid <= 0 || $vid <= 0) continue;
-                $ins->execute([':sid' => $setId, ':aid' => $aid, ':vid' => $vid]);
-            }
-            $this->db->commit();
-            return true;
-        } catch (Throwable) {
-            $this->db->rollBack();
-            return false;
+        $this->lastError = '';
+        $this->lastErrorCode = '';
+        $name = trim($name);
+        if (!$this->valueSetsTablesExist()) return $this->setError('SCHEMA', 'Plantillas no disponibles.');
+        if ($setId <= 0 || $name === '' || mb_strlen($name) > 120 || $categoryId <= 0 || $brandId <= 0) {
+            return $this->setError('INVALID', 'Revisá nombre, categoría y marca de la plantilla.');
         }
+        if (!$pairs || count($pairs) > 1000) return $this->setError('INVALID', 'Seleccioná entre 1 y 1000 valores.');
+
+        $unique = [];
+        foreach ($pairs as $pair) {
+            if (!is_array($pair) || count($pair) !== 2 || !isset($pair[0], $pair[1])
+                || !is_numeric($pair[0]) || !is_numeric($pair[1])
+                || (string)(int)$pair[0] !== (string)$pair[0] || (string)(int)$pair[1] !== (string)$pair[1]
+                || (int)$pair[0] <= 0 || (int)$pair[1] <= 0) {
+                return $this->setError('INVALID_PAIR', 'Hay un par atributo/valor inválido.');
+            }
+            $key = (int)$pair[0] . ':' . (int)$pair[1];
+            if (isset($unique[$key])) return $this->setError('DUPLICATE_PAIR', 'La selección contiene valores repetidos.');
+            $unique[$key] = true;
+        }
+
+        $owns = !$this->db->inTransaction();
+        $savepoint = 'attribute_set_update_guard';
+        try {
+            if ($owns) $this->db->beginTransaction();
+            else $this->db->exec('SAVEPOINT ' . $savepoint);
+
+            // Bloquear categoría antes de buscar duplicados serializa ediciones
+            // concurrentes del mismo ámbito entre los writers de este servicio.
+            $cat = $this->db->prepare("SELECT id FROM categories WHERE id=? FOR UPDATE");
+            $cat->execute([$categoryId]);
+            if (!$cat->fetchColumn()) throw new \DomainException('CATEGORY_NOT_FOUND');
+            $brand = $this->db->prepare("SELECT id FROM brands WHERE id=?");
+            $brand->execute([$brandId]);
+            if (!$brand->fetchColumn()) throw new \DomainException('BRAND_NOT_FOUND');
+            $lock = $this->db->prepare("SELECT id FROM variant_value_sets WHERE id=? FOR UPDATE");
+            $lock->execute([$setId]);
+            if (!$lock->fetchColumn()) throw new \DomainException('NOT_FOUND');
+
+            $dup = $this->db->prepare("SELECT id FROM variant_value_sets WHERE category_id=? AND brand_id=? AND name=? AND id<>? LIMIT 1");
+            $dup->execute([$categoryId, $brandId, $name, $setId]);
+            if ($dup->fetchColumn()) throw new \DomainException('DUPLICATE_SET');
+
+            // Validar absolutamente todos los pares ANTES de eliminar ítems previos.
+            $allowed = $this->db->prepare("SELECT av.id FROM attribute_values av
+                JOIN attributes a ON a.id=av.attribute_id
+                WHERE av.attribute_id=? AND av.id=? AND a.is_variant_axis=1 LIMIT 1");
+            foreach ($pairs as $pair) {
+                $allowed->execute([(int)$pair[0], (int)$pair[1]]);
+                if (!$allowed->fetchColumn()) throw new \DomainException('INVALID_PAIR');
+            }
+
+            $this->db->prepare("UPDATE variant_value_sets
+                SET name=?, category_id=?, brand_id=?, updated_at=NOW() WHERE id=?")
+                ->execute([$name, $categoryId, $brandId, $setId]);
+            $this->db->prepare("DELETE FROM variant_value_set_items WHERE set_id=?")->execute([$setId]);
+            $ins = $this->db->prepare("INSERT INTO variant_value_set_items (set_id,attribute_id,value_id) VALUES (?,?,?)");
+            foreach ($pairs as $pair) $ins->execute([$setId, (int)$pair[0], (int)$pair[1]]);
+            if ($owns) $this->db->commit();
+            else $this->db->exec('RELEASE SAVEPOINT ' . $savepoint);
+            return true;
+        } catch (Throwable $e) {
+            try {
+                if ($owns && $this->db->inTransaction()) $this->db->rollBack();
+                elseif (!$owns) {
+                    $this->db->exec('ROLLBACK TO SAVEPOINT ' . $savepoint);
+                    $this->db->exec('RELEASE SAVEPOINT ' . $savepoint);
+                }
+            } catch (Throwable $_) {}
+            $code = $e instanceof \DomainException ? $e->getMessage() : 'SQL_ERROR';
+            $messages = [
+                'CATEGORY_NOT_FOUND'=>'La categoría ya no existe.',
+                'BRAND_NOT_FOUND'=>'La marca ya no existe.',
+                'NOT_FOUND'=>'La plantilla ya no existe.',
+                'DUPLICATE_SET'=>'Ya existe una plantilla con ese nombre para la categoría y marca.',
+                'INVALID_PAIR'=>'Algún valor no pertenece al atributo indicado o no es eje de variante.',
+            ];
+            return $this->setError($code, $messages[$code] ?? 'No se pudo actualizar la plantilla; no se guardaron cambios.');
+        }
+    }
+
+    private function setError(string $code, string $message): bool
+    {
+        $this->lastErrorCode = $code;
+        $this->lastError = $message;
+        return false;
     }
 }

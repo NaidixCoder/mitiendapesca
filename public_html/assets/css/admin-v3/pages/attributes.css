@@ -1,0 +1,681 @@
+/* MiTiendaPesca — Atributos Admin V3. Una hoja por módulo, mobile-first.
+   Sistema visual compartido: tokens + av3-ui-*. Esta hoja solo compone.
+   Referencia estructural: Pedidos. No afecta el shell ni las páginas públicas. */
+body[data-page="admin-attributes"] .av3-attributes {
+  min-width:0;
+  width:100%;
+  color:var(--av3-color-text);
+  font-size:14px;
+  line-height:1.5;
+}
+body[data-page="admin-attributes"] .av3-attributes *,
+body[data-page="admin-attributes"] .av3-attributes *::before,
+body[data-page="admin-attributes"] .av3-attributes *::after {box-sizing:border-box}
+body[data-page="admin-attributes"] [data-attr-tab-action][hidden],
+body[data-page="admin-attributes"] .av3-attributes [hidden] {display:none!important}
+
+/* Listado: un solo panel. No hay tarjetas ni KPI auxiliares. */
+body[data-page="admin-attributes"] .av3-attributes__board {
+  min-width:0;
+  width:100%;
+  border-color:var(--av3-color-border);
+  border-radius:var(--av3-radius-card);
+  overflow:visible;
+  container-type:inline-size;
+}
+body[data-page="admin-attributes"] .av3-attributes__tabs {
+  display:flex;
+  align-items:center;
+  gap:2px;
+  padding:0 8px;
+  overflow-x:auto;
+  overscroll-behavior-inline:contain;
+  scrollbar-width:thin;
+  border-bottom:1px solid var(--av3-color-border);
+}
+body[data-page="admin-attributes"] .av3-attributes__tabs [role="tab"] {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  flex:none;
+  padding:13px 10px 11px;
+  min-height:45px;
+  text-decoration:none;
+  color:var(--av3-color-muted);
+  font-size:13px;
+  font-weight:500;
+  border-bottom:2px solid transparent;
+  white-space:nowrap;
+}
+body[data-page="admin-attributes"] .av3-attributes__tabs [role="tab"]:hover {
+  color:var(--av3-color-primary);
+  background:var(--av3-color-background);
+}
+body[data-page="admin-attributes"] .av3-attributes__tabs [aria-selected="true"] {
+  color:var(--av3-color-primary);
+  border-bottom-color:var(--av3-color-primary);
+  font-weight:600;
+}
+body[data-page="admin-attributes"] .av3-attributes :is(button,a,summary,input,select):focus-visible {
+  outline:2px solid var(--av3-color-primary);
+  outline-offset:2px;
+}
+body[data-page="admin-attributes"] .av3-attributes__tab-panel {
+  min-width:0;
+}
+
+/* Filtros: una misma línea operativa, sin superficie anidada. */
+body[data-page="admin-attributes"] .av3-attributes__filters {
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  align-items:end;
+  gap:11px;
+  padding:14px;
+  margin:0;
+}
+body[data-page="admin-attributes"] .av3-attributes__field {min-width:0}
+body[data-page="admin-attributes"] .av3-attributes__field .av3-ui-field-label {
+  color:var(--av3-color-text);
+  font-size:13px;
+  font-weight:500;
+}
+body[data-page="admin-attributes"] .av3-attributes__input {
+  min-height:var(--av3-control-height);
+  font-size:14px;
+}
+body[data-page="admin-attributes"] .av3-attributes__filter-actions {
+  display:flex;
+  justify-content:flex-start;
+  flex-wrap:wrap;
+  gap:8px;
+}
+body[data-page="admin-attributes"] .av3-attributes__filter-actions > * {flex:none}
+body[data-page="admin-attributes"] .av3-attributes__advanced {min-width:0}
+body[data-page="admin-attributes"] .av3-attributes__advanced > summary {
+  display:inline-flex;
+  cursor:pointer;
+  color:var(--av3-color-primary);
+  font-size:13px;
+  font-weight:600;
+  padding:6px 0;
+}
+body[data-page="admin-attributes"] .av3-attributes__advanced > summary::marker {color:var(--av3-color-primary)}
+body[data-page="admin-attributes"] .av3-attributes__advanced-fields {
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  gap:10px;
+  padding:9px 0 2px;
+}
+body[data-page="admin-attributes"] .av3-attributes__applied {
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:7px;
+  padding:0 14px 13px;
+  color:var(--av3-color-muted);
+  font-size:12px;
+}
+body[data-page="admin-attributes"] .av3-attributes__applied a {
+  padding:5px 9px;
+  border:1px solid var(--av3-color-border);
+  border-radius:7px;
+  color:var(--av3-color-primary);
+  background:var(--av3-color-background);
+  text-decoration:none;
+  max-width:100%;
+  overflow-wrap:anywhere;
+}
+
+/* Lista móvil: filas reales, no una tabla falsamente apilada. */
+body[data-page="admin-attributes"] .av3-attributes__desktop {display:none}
+body[data-page="admin-attributes"] .av3-attributes__mobile-list {
+  display:grid;
+  min-width:0;
+  border-top:1px solid var(--av3-color-border);
+}
+body[data-page="admin-attributes"] .av3-attributes__mobile-item {
+  display:grid;
+  gap:6px;
+  padding:13px 14px;
+  min-width:0;
+  border-bottom:1px solid var(--av3-color-border);
+}
+body[data-page="admin-attributes"] .av3-attributes__mobile-item:last-child {border-bottom:0}
+body[data-page="admin-attributes"] .av3-attributes__mobile-top {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  min-width:0;
+}
+body[data-page="admin-attributes"] .av3-attributes__mobile-top > strong {
+  font-size:14px;
+  font-weight:600;
+  overflow-wrap:anywhere;
+  min-width:0;
+}
+body[data-page="admin-attributes"] .av3-attributes__mobile-sub {
+  display:flex;
+  align-items:baseline;
+  gap:5px 12px;
+  flex-wrap:wrap;
+  color:var(--av3-color-muted);
+  font-size:12px;
+  min-width:0;
+}
+body[data-page="admin-attributes"] .av3-attributes__mobile-sub > * {overflow-wrap:anywhere}
+body[data-page="admin-attributes"] .av3-attributes__mobile-slug {overflow-wrap:anywhere}
+body[data-page="admin-attributes"] .av3-attributes__mobile-bottom {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:8px;
+  color:var(--av3-color-muted);
+  font-size:12px;
+}
+body[data-page="admin-attributes"] .av3-attributes__action-link {
+  display:inline-flex;
+  gap:5px;
+  align-items:center;
+  justify-content:flex-end;
+  flex:none;
+  padding:5px 0 5px 7px;
+  min-height:32px;
+  background:transparent;
+  border:0;
+  color:var(--av3-color-primary);
+  text-decoration:none;
+  cursor:pointer;
+  font:inherit;
+  font-size:13px;
+  font-weight:600;
+}
+body[data-page="admin-attributes"] .av3-attributes__action-link span {
+  font-size:20px;
+  line-height:1;
+  font-weight:400;
+}
+body[data-page="admin-attributes"] .av3-attributes__action-link:hover {text-decoration:underline}
+body[data-page="admin-attributes"] .av3-attributes__footer {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:8px;
+  padding:12px 14px;
+  border-top:1px solid var(--av3-color-border);
+  color:var(--av3-color-muted);
+  font-size:12px;
+}
+body[data-page="admin-attributes"] .av3-attributes__empty {
+  display:grid;
+  justify-items:center;
+  gap:5px;
+  padding:30px 18px;
+  border-top:1px solid var(--av3-color-border);
+  font-size:13px;
+}
+body[data-page="admin-attributes"] .av3-attributes__empty strong {
+  font-size:14px;
+  font-weight:600;
+  color:var(--av3-color-text);
+}
+body[data-page="admin-attributes"] .av3-attributes__empty a {color:var(--av3-color-primary)}
+
+/* Menú contextual: touch/teclado con details. Mantener fuera de superficies con overflow oculto. */
+body[data-page="admin-attributes"] .av3-attributes__set-actions {
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:7px;
+}
+body[data-page="admin-attributes"] .av3-attributes__menu {
+  position:relative;
+  flex:none;
+}
+body[data-page="admin-attributes"] .av3-attributes__menu > summary {
+  display:grid;
+  place-items:center;
+  width:34px;
+  height:34px;
+  border:1px solid var(--av3-color-border);
+  border-radius:7px;
+  color:var(--av3-color-text);
+  background:var(--av3-color-surface);
+  list-style:none;
+  cursor:pointer;
+  font-size:17px;
+  letter-spacing:1px;
+  line-height:1;
+}
+body[data-page="admin-attributes"] .av3-attributes__menu > summary::-webkit-details-marker {display:none}
+body[data-page="admin-attributes"] .av3-attributes__menu > summary:hover {
+  background:var(--av3-color-background);
+  border-color:var(--av3-color-muted);
+}
+body[data-page="admin-attributes"] .av3-attributes__menu-items {
+  position:absolute;
+  z-index:30;
+  right:0;
+  top:calc(100% + 5px);
+  display:grid;
+  min-width:136px;
+  padding:5px;
+  background:var(--av3-color-surface);
+  border:1px solid var(--av3-color-border);
+  border-radius:9px;
+  box-shadow:0 8px 25px rgba(24,43,57,.15);
+}
+body[data-page="admin-attributes"] .av3-attributes__menu-items button {
+  display:block;
+  border:0;
+  background:transparent;
+  text-align:left;
+  font:inherit;
+  font-size:13px;
+  padding:9px 11px;
+  cursor:pointer;
+  color:var(--av3-color-text);
+  border-radius:5px;
+  white-space:nowrap;
+}
+body[data-page="admin-attributes"] .av3-attributes__menu-items button:hover {
+  background:var(--av3-color-background);
+}
+body[data-page="admin-attributes"] .av3-attributes__menu-items button.av3-attributes__danger {color:#A43E39}
+
+/* Desktop: tabla alineada con Pedidos y filtros en una sola línea útil. */
+@container (min-width:780px) {
+  body[data-page="admin-attributes"] .av3-attributes__tabs {padding-inline:14px}
+  body[data-page="admin-attributes"] .av3-attributes__tabs [role="tab"] {padding-inline:12px}
+  body[data-page="admin-attributes"] .av3-attributes__filters {
+    padding:14px 18px 13px;
+    gap:12px;
+  }
+  body[data-page="admin-attributes"] .av3-attributes__filters--attributes {
+    grid-template-columns:minmax(0,1fr) auto;
+  }
+  body[data-page="admin-attributes"] .av3-attributes__filters--sets {
+    grid-template-columns:minmax(180px,1.5fr) minmax(140px,1fr) minmax(140px,1fr) auto;
+  }
+  body[data-page="admin-attributes"] .av3-attributes__filters--sets > .av3-attributes__search {
+    grid-column:1;grid-row:1;
+  }
+  body[data-page="admin-attributes"] .av3-attributes__filters--sets > .av3-attributes__advanced {
+    display:block;
+    grid-column:2/4;
+    grid-row:1;
+    min-width:0;
+  }
+  body[data-page="admin-attributes"] .av3-attributes__advanced > summary {display:none}
+  body[data-page="admin-attributes"] .av3-attributes__advanced-fields {
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    align-items:end;
+    gap:12px;
+    padding:0;
+  }
+  body[data-page="admin-attributes"] .av3-attributes__filters--sets > .av3-attributes__filter-actions {
+    grid-column:4;grid-row:1;
+  }
+  body[data-page="admin-attributes"] .av3-attributes__desktop {
+    display:block;
+    border-top:1px solid var(--av3-color-border);
+  }
+  body[data-page="admin-attributes"] .av3-attributes__mobile-list {display:none}
+  body[data-page="admin-attributes"] .av3-attributes__list-table {
+    width:100%;
+    font-size:14px;
+    border-collapse:collapse;
+  }
+  body[data-page="admin-attributes"] .av3-attributes__list-table th {
+    padding:10px 14px;
+    background:var(--av3-color-background);
+    font-size:12px;
+    font-weight:500;
+    text-transform:uppercase;
+    letter-spacing:.02em;
+    color:var(--av3-color-muted);
+    white-space:nowrap;
+  }
+  body[data-page="admin-attributes"] .av3-attributes__list-table td {
+    padding:11px 14px;
+    line-height:1.35;
+    vertical-align:middle;
+    font-size:14px;
+    color:var(--av3-color-text);
+    overflow-wrap:anywhere;
+  }
+  body[data-page="admin-attributes"] .av3-attributes__list-table td strong {
+    font-weight:600;
+    color:var(--av3-color-text);
+    font-size:14px;
+  }
+  body[data-page="admin-attributes"] .av3-attributes__list-table td small {
+    display:block;
+    margin-top:3px;
+    font-size:12px;
+    color:var(--av3-color-muted);
+  }
+  body[data-page="admin-attributes"] .av3-attributes__list-table td.av3-attributes__muted {color:var(--av3-color-muted)}
+  body[data-page="admin-attributes"] .av3-attributes__list-table .av3-attributes__number {
+    text-align:right;
+    font-variant-numeric:tabular-nums;
+  }
+  body[data-page="admin-attributes"] .av3-attributes__list-table .av3-attributes__actions-col {
+    text-align:right;
+    width:148px;
+    white-space:nowrap;
+  }
+  body[data-page="admin-attributes"] .av3-attributes__footer {padding:13px 18px}
+}
+
+/* Formularios propios de atributo y valores: conservan CRUD existente. */
+body[data-page="admin-attributes"] .av3-attributes--form {
+  max-width:1040px;
+  display:grid;
+  gap:18px;
+}
+body[data-page="admin-attributes"] .av3-attributes__panel {
+  min-width:0;
+  border-color:var(--av3-color-border);
+  border-radius:var(--av3-radius-card);
+  container-type:inline-size;
+}
+body[data-page="admin-attributes"] .av3-attributes__panel-head {
+  padding:15px;
+  gap:12px;
+  align-items:flex-start;
+  flex-wrap:wrap;
+}
+body[data-page="admin-attributes"] .av3-attributes__panel-head h2 {
+  margin:0;
+  font-size:16px;
+  font-weight:600;
+}
+body[data-page="admin-attributes"] .av3-attributes__panel-head p {
+  margin:4px 0 0;
+  font-size:13px;
+  color:var(--av3-color-muted);
+}
+body[data-page="admin-attributes"] .av3-attributes__count {
+  font-size:12px;
+  color:var(--av3-color-muted);
+  font-variant-numeric:tabular-nums;
+}
+body[data-page="admin-attributes"] .av3-attributes__field > span {
+  font-size:13px;
+  font-weight:500;
+}
+body[data-page="admin-attributes"] .av3-attributes__field em {
+  font-style:normal;
+  font-size:12px;
+  color:var(--av3-color-muted);
+}
+body[data-page="admin-attributes"] .av3-attributes__field small {
+  color:var(--av3-color-muted);
+  font-size:12px;
+}
+body[data-page="admin-attributes"] .av3-attributes__input--compact {
+  min-height:36px;
+  padding:6px 9px;
+}
+body[data-page="admin-attributes"] .av3-attributes__input--sort {
+  max-width:90px;
+  font-variant-numeric:tabular-nums;
+}
+body[data-page="admin-attributes"] .av3-attributes__form {padding:0 15px 16px}
+body[data-page="admin-attributes"] .av3-attributes__form-grid {
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  gap:16px;
+}
+body[data-page="admin-attributes"] .av3-attributes__form > .av3-attributes__notice {margin-top:18px}
+body[data-page="admin-attributes"] .av3-attributes__form-actions {
+  display:flex;
+  justify-content:flex-end;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:18px;
+  padding-top:15px;
+  border-top:1px solid var(--av3-color-border);
+}
+body[data-page="admin-attributes"] .av3-attributes__value-create {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 94px;
+  gap:10px;
+  align-items:end;
+  padding:0 15px 16px;
+}
+body[data-page="admin-attributes"] .av3-attributes__value-create > button {
+  grid-column:1/-1;
+}
+body[data-page="admin-attributes"] .av3-attributes__usage {
+  display:flex;
+  flex-wrap:wrap;
+  gap:4px 12px;
+  font-size:12px;
+}
+body[data-page="admin-attributes"] .av3-attributes__row-actions {
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:8px;
+}
+body[data-page="admin-attributes"] .av3-attributes__row-actions form,
+body[data-page="admin-attributes"] .av3-attributes__table--values td form {margin:0}
+body[data-page="admin-attributes"] .av3-attributes__table-wrap {min-width:0;width:100%}
+body[data-page="admin-attributes"] .av3-attributes__table--values thead {display:none}
+body[data-page="admin-attributes"] .av3-attributes__table--values,
+body[data-page="admin-attributes"] .av3-attributes__table--values tbody {display:block;width:100%}
+body[data-page="admin-attributes"] .av3-attributes__table--values tr {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:9px 13px;
+  padding:14px;
+  border-top:1px solid var(--av3-color-border);
+}
+body[data-page="admin-attributes"] .av3-attributes__table--values tr td {
+  display:block;
+  min-width:0;
+  padding:0;
+  border:0;
+  overflow-wrap:anywhere;
+}
+body[data-page="admin-attributes"] .av3-attributes__table--values td::before {
+  content:attr(data-label);
+  display:block;
+  margin-bottom:3px;
+  font-size:12px;
+  color:var(--av3-color-muted);
+}
+body[data-page="admin-attributes"] .av3-attributes__table--values td:first-child,
+body[data-page="admin-attributes"] .av3-attributes__table--values td:last-child {grid-column:1/-1}
+body[data-page="admin-attributes"] .av3-attributes__table--values td:last-child .av3-attributes__row-actions {justify-content:flex-start}
+body[data-page="admin-attributes"] .av3-attributes__empty-row td {
+  text-align:center;
+  padding:22px;
+}
+body[data-page="admin-attributes"] .av3-attributes__empty-row strong,
+body[data-page="admin-attributes"] .av3-attributes__empty-row span {display:block}
+body[data-page="admin-attributes"] .av3-attributes__empty-row span {color:var(--av3-color-muted);font-size:13px;margin-top:4px}
+body[data-page="admin-attributes"] .av3-attributes__notice {
+  padding:11px 13px;
+  font-size:13px;
+  line-height:1.45;
+  border:1px solid var(--av3-color-border);
+  background:var(--av3-color-background);
+  color:var(--av3-color-text);
+  border-radius:8px;
+}
+body[data-page="admin-attributes"] .av3-attributes__notice--warning {color:#765311}
+
+/* Editar plantilla: estilos de composición aislados, controles del DS. */
+body[data-page="admin-attributes"] .av3-attributes__set-detail {display:grid;gap:14px}
+body[data-page="admin-attributes"] .av3-attributes__set-meta {
+  font-size:13px;
+  color:var(--av3-color-muted);
+}
+body[data-page="admin-attributes"] .av3-attributes__set-title {font-size:16px;font-weight:600}
+body[data-page="admin-attributes"] .av3-attributes__set-group {
+  padding:14px;
+  min-width:0;
+  border:1px solid var(--av3-color-border);
+  border-radius:9px;
+}
+body[data-page="admin-attributes"] .av3-attributes__set-group h3 {
+  margin:0 0 9px;
+  font-size:14px;
+  font-weight:600;
+}
+body[data-page="admin-attributes"] .av3-attributes__chips {display:flex;flex-wrap:wrap;gap:7px}
+body[data-page="admin-attributes"] .av3-attributes__chip {
+  font-size:12px;
+  padding:5px 9px;
+  border:1px solid var(--av3-color-border);
+  border-radius:7px;
+  background:var(--av3-color-background);
+}
+body[data-page="admin-attributes"] .av3-attributes__set-form {display:grid;gap:16px}
+body[data-page="admin-attributes"] .av3-attributes__set-fields {
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  gap:12px;
+}
+body[data-page="admin-attributes"] .av3-attributes__set-options {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(165px,1fr));
+  gap:8px;
+}
+body[data-page="admin-attributes"] .av3-attributes__set-option {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+  padding:9px 10px;
+  border:1px solid var(--av3-color-border);
+  border-radius:8px;
+  cursor:pointer;
+}
+body[data-page="admin-attributes"] .av3-attributes__set-option:has(input:checked) {
+  border-color:var(--av3-color-primary);
+  background:var(--av3-color-background);
+}
+body[data-page="admin-attributes"] .av3-attributes__set-option input {
+  accent-color:var(--av3-color-primary);
+  flex:none;
+  width:16px;
+  height:16px;
+}
+body[data-page="admin-attributes"] .av3-attributes__set-option span {overflow-wrap:anywhere}
+body[data-page="admin-attributes"] .av3-attributes__set-toolbar {
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  gap:9px;
+  align-items:end;
+}
+body[data-page="admin-attributes"] .av3-attributes__set-toolbar--top {margin-top:4px}
+body[data-page="admin-attributes"] .av3-attributes__set-toolbar--bottom {margin-top:13px}
+body[data-page="admin-attributes"] .av3-attributes__set-form-actions {justify-content:flex-end}
+body[data-page="admin-attributes"] .av3-attributes__set-error {font-size:13px;color:#A43E39}
+
+/* Diálogo existente. Su nodo es desplazado a body por JS para evitar containment. */
+body[data-page="admin-attributes"] .av3-attributes__modal {
+  position:fixed;
+  inset:0;
+  z-index:1250;
+  display:grid;
+  place-items:center;
+  padding:10px;
+}
+body[data-page="admin-attributes"] .av3-attributes__modal[hidden] {display:none}
+body[data-page="admin-attributes"] .av3-attributes__modal-backdrop {
+  position:absolute;
+  inset:0;
+  background:rgba(18,36,43,.54);
+}
+body[data-page="admin-attributes"] .av3-attributes__modal-dialog {
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  width:min(100%,900px);
+  min-height:120px;
+  max-height:94dvh;
+  overflow:hidden;
+  background:var(--av3-color-surface);
+  border:1px solid var(--av3-color-border);
+  border-radius:12px;
+  box-shadow:0 20px 55px rgba(10,34,42,.21);
+  outline:none;
+}
+body[data-page="admin-attributes"] .av3-attributes__modal-header {
+  display:flex;
+  flex:none;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:12px 18px;
+  border-bottom:1px solid var(--av3-color-border);
+}
+body[data-page="admin-attributes"] .av3-attributes__modal-heading {font-size:15px;font-weight:600}
+body[data-page="admin-attributes"] .av3-attributes__modal-body {
+  min-height:0;
+  padding:14px;
+  overflow:auto;
+  overscroll-behavior:contain;
+}
+
+/* Ampliación progresiva por ancho real, no por un viewport con sidebar variable. */
+@container (min-width:510px) {
+  body[data-page="admin-attributes"] .av3-attributes__filters--attributes {
+    grid-template-columns:minmax(0,1fr) auto;
+  }
+}
+@container (min-width:600px) {
+  body[data-page="admin-attributes"] .av3-attributes__form-grid {
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  body[data-page="admin-attributes"] .av3-attributes__field--wide {grid-column:1/-1}
+  body[data-page="admin-attributes"] .av3-attributes__value-create {
+    grid-template-columns:minmax(0,1fr) 110px auto;
+  }
+  body[data-page="admin-attributes"] .av3-attributes__value-create > button {grid-column:auto}
+  body[data-page="admin-attributes"] .av3-attributes__set-fields {
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  body[data-page="admin-attributes"] .av3-attributes__set-fields > :first-child {grid-column:1/-1}
+  body[data-page="admin-attributes"] .av3-attributes__set-toolbar {
+    grid-template-columns:minmax(0,1fr) auto;
+  }
+}
+@container (min-width:780px) {
+  body[data-page="admin-attributes"] .av3-attributes__table--values {
+    display:table;
+    width:100%;
+  }
+  body[data-page="admin-attributes"] .av3-attributes__table--values thead {display:table-header-group}
+  body[data-page="admin-attributes"] .av3-attributes__table--values tbody {display:table-row-group;width:auto}
+  body[data-page="admin-attributes"] .av3-attributes__table--values tr {display:table-row;padding:0;border:0}
+  body[data-page="admin-attributes"] .av3-attributes__table--values tr td {
+    display:table-cell;
+    padding:12px 14px;
+    border-bottom:1px solid var(--av3-color-border);
+    vertical-align:middle;
+  }
+  body[data-page="admin-attributes"] .av3-attributes__table--values td::before {display:none;content:none}
+  body[data-page="admin-attributes"] .av3-attributes__table--values td:last-child .av3-attributes__row-actions {justify-content:flex-end}
+}
+@media (min-width:768px) {
+  body[data-page="admin-attributes"] .av3-attributes--form {gap:18px}
+  body[data-page="admin-attributes"] .av3-attributes__panel-head {padding:18px 20px 16px}
+  body[data-page="admin-attributes"] .av3-attributes__form {padding:0 20px 20px}
+  body[data-page="admin-attributes"] .av3-attributes__value-create {padding:0 20px 18px}
+  body[data-page="admin-attributes"] .av3-attributes__modal {padding:16px}
+  body[data-page="admin-attributes"] .av3-attributes__modal-dialog {max-height:min(88vh,900px)}
+  body[data-page="admin-attributes"] .av3-attributes__modal-body {padding:18px}
+}
+@media (prefers-reduced-motion:reduce) {
+  body[data-page="admin-attributes"] .av3-attributes *,
+  body[data-page="admin-attributes"] .av3-attributes *::before,
+  body[data-page="admin-attributes"] .av3-attributes *::after {transition:none!important}
+}

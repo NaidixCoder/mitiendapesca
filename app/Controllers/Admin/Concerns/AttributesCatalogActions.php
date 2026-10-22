@@ -18,12 +18,14 @@ trait AttributesCatalogActions
         $where = '';
         $params = [];
         if ($q !== '') {
-            $where = 'WHERE (name LIKE :q OR slug LIKE :q';
+            $where = 'WHERE (name LIKE :q_name OR slug LIKE :q_slug';
+            $params[':q_name'] = '%' . $q . '%';
+            $params[':q_slug'] = '%' . $q . '%';
             if (AttributesSchema::hasColumn($db, 'attributes', 'code')) {
-                $where .= ' OR code LIKE :q';
+                $where .= ' OR code LIKE :q_code';
+                $params[':q_code'] = '%' . $q . '%';
             }
             $where .= ')';
-            $params[':q'] = '%'.$q.'%';
         }
 
         $selectColumns = implode(', ', AttributesSchema::editableColumns($db)) . ', created_at';
@@ -78,6 +80,7 @@ trait AttributesCatalogActions
             'categories' => $categories,
             'brands' => $brands,
             'pageTitle' => 'Atributos',
+            'extraHead' => '<link rel="stylesheet" href="' . e(asset('css/admin-v3/pages/attributes.css')) . '">',
         ], $vm));
     }
 
@@ -168,6 +171,7 @@ trait AttributesCatalogActions
             'row'    => $row,
             'values' => $values,
             'pageTitle' => ($id ? 'Editar atributo' : 'Nuevo atributo'),
+            'extraHead' => '<link rel="stylesheet" href="' . e(asset('css/admin-v3/pages/attributes.css')) . '">',
         ], $vm));
     }
 

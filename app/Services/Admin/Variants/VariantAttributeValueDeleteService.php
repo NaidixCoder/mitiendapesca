@@ -5,43 +5,19 @@ use App\Repositories\Catalog\VariantAttributesRepository;
 use PDO;
 use Throwable;
 
+/**
+ * Eliminar un valor maestro nunca puede borrar indirectamente selecciones
+ * de productos, variantes o plantillas (las FK existentes son CASCADE).
+ */
 final class VariantAttributeValueDeleteService
 {
-    public function __construct(private PDO $db)
-    {
-    }
+    public function __construct(private PDO $db) {}
 
-    /**
-     * Limpieza segura: elimina un attribute_values.id si ya no esta referenciado.
-     */
+    /** Limpieza explícita desde Productos: solo el maestro realmente huérfano. */
     public function pruneAttributeValueIfUnused(int $valueId): bool
     {
         if ($valueId <= 0) return false;
-
-        $st = $this->db->prepare("SELECT id FROM attribute_values WHERE id = ? LIMIT 1");
-        $st->execute([$valueId]);
-        $exists = (int)($st->fetchColumn() ?: 0);
-        if ($exists <= 0) return false;
-
-        $checks = [
-            ['table' => 'product_attribute_values', 'col' => 'value_id'],
-            ['table' => 'product_variant_values',   'col' => 'value_id'],
-            ['table' => 'variant_value_set_items',  'col' => 'value_id'],
-        ];
-
-        foreach ($checks as $c) {
-            try {
-                $q = $this->db->prepare("SELECT 1 FROM {$c['table']} WHERE {$c['col']} = ? LIMIT 1");
-                $q->execute([$valueId]);
-                if ($q->fetchColumn()) return false;
-            } catch (Throwable $e) {
-                continue;
-            }
-        }
-
-        $del = $this->db->prepare("DELETE FROM attribute_values WHERE id = ? LIMIT 1");
-        $del->execute([$valueId]);
-        return $del->rowCount() > 0;
+        return !empty($this->deleteAttributeValue($valueId)['ok']);
     }
 
     /**
@@ -49,109 +25,93 @@ final class VariantAttributeValueDeleteService
      */
     public function deleteAttributeValue(int $valueId, ?int $attributeId = null): array
     {
-        $valueId = (int)$valueId;
-        $attributeId = $attributeId !== null ? (int)$attributeId : null;
-        if ($valueId <= 0) {
-            return ['ok' => false, 'code' => 'INVALID', 'message' => 'Datos invalidos.'];
+        if ($valueId <= 0 || ($attributeId !== null && $attributeId <= 0)) {
+            return ['ok'=>false, 'code'=>'INVALID', 'message'=>'Datos inválidos.'];
         }
 
         $repo = new VariantAttributesRepository($this->db);
-        $row = $repo->findAttributeValue($valueId);
-        if (!$row) {
-            return ['ok' => false, 'code' => 'NOT_FOUND', 'message' => 'Valor no encontrado.'];
-        }
-
-        $realAttributeId = (int)($row['attribute_id'] ?? 0);
-        $valueLabel = (string)($row['value'] ?? '');
-        if ($attributeId !== null && $attributeId > 0 && $realAttributeId !== $attributeId) {
-            return ['ok' => false, 'code' => 'MISMATCH', 'message' => 'El valor no corresponde al atributo indicado.'];
-        }
-
-        $selectedInProducts = $repo->countProductSelections($valueId);
-        $usedInVariants = $repo->countVariantUsage($valueId);
-        $usedInSets = $repo->countSetUsage($valueId);
-        $usage = [
-            'selected_in_products' => $selectedInProducts,
-            'used_in_variants' => $usedInVariants,
-            'used_in_sets' => $usedInSets,
-        ];
-
-        if ($usedInVariants > 0) {
-            return [
-                'ok' => false,
-                'code' => 'VALUE_IN_USE',
-                'message' => 'No se puede eliminar: este valor esta usado en variantes. Recomendado: renombrar o desactivar.',
-                'attribute_id' => $realAttributeId,
-                'value_id' => $valueId,
-                'value' => $valueLabel,
-                'usage' => $usage,
-            ];
-        }
-
-        if ($usedInSets > 0) {
-            return [
-                'ok' => false,
-                'code' => 'VALUE_IN_SET',
-                'message' => 'No se puede eliminar: este valor esta usado en plantillas.',
-                'attribute_id' => $realAttributeId,
-                'value_id' => $valueId,
-                'value' => $valueLabel,
-                'usage' => $usage,
-            ];
-        }
-
-        $startedTx = false;
+        $owns = !$this->db->inTransaction();
+        $savepoint = 'attributes_delete_value_guard';
+        $active = false;
         try {
-            if (!$this->db->inTransaction()) {
-                $this->db->beginTransaction();
-                $startedTx = true;
-            }
+            if ($owns) $this->db->beginTransaction();
+            else $this->db->exec('SAVEPOINT ' . $savepoint);
+            $active = true;
 
-            if ($selectedInProducts > 0) {
-                $repo->deleteProductSelections($valueId);
+            // InnoDB: FOR UPDATE bloquea la fila padre. Las FK hijas requieren
+            // un lock compatible de esa misma fila al insertar referencias.
+            $row = $repo->findAttributeValue($valueId, true);
+            if (!$row) {
+                $this->finish($owns, $savepoint);
+                return ['ok'=>false,'code'=>'NOT_FOUND','message'=>'Valor no encontrado.'];
             }
-            $repo->deleteSetItems($valueId);
-            $deleted = $repo->deleteAttributeValue($valueId, $realAttributeId);
-
-            if ($startedTx) {
-                $this->db->commit();
-            }
-
-            if (!$deleted) {
+            $actualId = (int)$row['attribute_id'];
+            $label = (string)$row['value'];
+            if ($attributeId !== null && $actualId !== $attributeId) {
+                $this->finish($owns, $savepoint);
                 return [
-                    'ok' => false,
-                    'code' => 'NOT_DELETED',
-                    'message' => 'No se pudo eliminar el valor.',
-                    'attribute_id' => $realAttributeId,
-                    'value_id' => $valueId,
-                    'value' => $valueLabel,
-                    'usage' => $usage,
+                    'ok'=>false,'code'=>'MISMATCH',
+                    'message'=>'El valor no corresponde al atributo indicado.',
+                    'attribute_id'=>$actualId,'value_id'=>$valueId,'value'=>$label
                 ];
             }
 
+            // Sin catch silenciosos: ausencia de tabla, timeout o error de SQL
+            // impiden borrar y producen rollback. Consultar después del lock.
+            $usage = [
+                'selected_in_products'=>$repo->countProductSelections($valueId),
+                'used_in_variants'=>$repo->countVariantUsage($valueId),
+                'used_in_sets'=>$repo->countSetUsage($valueId),
+            ];
+            if (array_sum($usage) > 0) {
+                $this->finish($owns, $savepoint);
+                return [
+                    'ok'=>false,'code'=>'VALUE_IN_USE',
+                    'message'=>'No se puede eliminar: el valor está vinculado a productos, variantes o plantillas.',
+                    'attribute_id'=>$actualId,'value_id'=>$valueId,'value'=>$label,'usage'=>$usage
+                ];
+            }
+
+            // Nunca DELETE de product_attribute_values ni de set_items.
+            // FK restrictiva o de cascada queda sin efecto al no existir hijos.
+            if (!$repo->deleteAttributeValue($valueId, $actualId)) {
+                $this->undo($owns, $savepoint);
+                $active = false;
+                return [
+                    'ok'=>false,'code'=>'NOT_DELETED','message'=>'No se pudo eliminar el valor.',
+                    'attribute_id'=>$actualId,'value_id'=>$valueId,'value'=>$label,'usage'=>$usage
+                ];
+            }
+
+            $this->finish($owns, $savepoint);
+            $active = false;
             return [
-                'ok' => true,
-                'code' => 'DELETED',
-                'message' => 'Valor eliminado del catalogo.',
-                'attribute_id' => $realAttributeId,
-                'value_id' => $valueId,
-                'value' => $valueLabel,
-                'usage' => $usage,
+                'ok'=>true,'code'=>'DELETED','message'=>'Valor eliminado del catálogo.',
+                'attribute_id'=>$actualId,'value_id'=>$valueId,'value'=>$label,'usage'=>$usage
             ];
         } catch (Throwable $e) {
-            if ($startedTx) {
-                try { $this->db->rollBack(); } catch (Throwable $_) {}
+            if ($active) {
+                try { $this->undo($owns, $savepoint); } catch (Throwable $_) {}
             }
-            return [
-                'ok' => false,
-                'code' => 'EXCEPTION',
-                'message' => 'No se pudo eliminar el valor.',
-                'attribute_id' => $realAttributeId,
-                'value_id' => $valueId,
-                'value' => $valueLabel,
-                'usage' => $usage,
-            ];
+            if (function_exists('log_error')) {
+                log_error('VariantAttributeValueDeleteService: '.$e->getMessage());
+            }
+            return ['ok'=>false,'code'=>'EXCEPTION','message'=>'No se pudo comprobar o eliminar el valor de forma segura.'];
+        }
+    }
+
+    private function finish(bool $owns, string $savepoint): void
+    {
+        if ($owns) $this->db->commit();
+        else $this->db->exec('RELEASE SAVEPOINT ' . $savepoint);
+    }
+
+    private function undo(bool $owns, string $savepoint): void
+    {
+        if ($owns && $this->db->inTransaction()) $this->db->rollBack();
+        elseif (!$owns) {
+            $this->db->exec('ROLLBACK TO SAVEPOINT ' . $savepoint);
+            $this->db->exec('RELEASE SAVEPOINT ' . $savepoint);
         }
     }
 }
-

@@ -1,103 +1,83 @@
 <?php
-/** @var int $set_id */
-/** @var string $set_name */
-/** @var string $csrf_token */
-/** @var array<int,array<string,mixed>> $category_options */
-/** @var array<int,array<string,mixed>> $brand_options */
-/** @var array<int,array<string,mixed>> $attribute_options */
-/** @var array<int,array<string,mixed>> $groups_prepared */
+/** Fragmento de edición AJAX; se renderiza dentro del diálogo de Atributos. */
 ?>
-<div class="av3-flow-4">
-  <div class="av3-flex av3-items-start av3-justify-between av3-gap-3">
-    <div>
-      <div class="av3-type-body av3-weight-strong">Editar plantilla</div>
-      <div class="av3-type-caption av3-text-var-admin-muted">Se guardan como <strong>Categoria + Marca</strong>. Ajusta nombre, categoria/marca y los valores incluidos.</div>
-    </div>
+<div class="av3-attributes__set-detail">
+  <div>
+    <div class="av3-attributes__set-title">Editar plantilla</div>
+    <p class="av3-attributes__set-meta">La combinación categoría + marca determina dónde se puede importar esta plantilla.</p>
   </div>
-
-  <form data-role="set-edit-form" class="av3-flow-4">
+  <form data-role="set-edit-form" class="av3-attributes__set-form">
     <input type="hidden" name="id" value="<?= (int)$set_id ?>">
     <input type="hidden" name="_csrf" value="<?= e($csrf_token) ?>">
-
-    <div class="av3-grid av3-md-grid-cols-2 av3-gap-3">
-      <div>
-        <label class="label">Nombre</label>
-        <input class="input" type="text" name="name" maxlength="120" value="<?= e($set_name) ?>" required>
-      </div>
-      <div class="av3-grid av3-grid-cols-2 av3-gap-3">
-        <div>
-          <label class="label">Categoria</label>
-          <select class="input" name="category_id" required>
-            <option value="0">Seleccionar...</option>
-            <?php foreach ($category_options as $option): ?>
-              <option value="<?= (int)$option['id'] ?>" <?= !empty($option['selected']) ? 'selected' : '' ?>><?= e((string)$option['name']) ?></option>
-            <?php endforeach; ?>
-          </select>
-        </div>
-        <div>
-          <label class="label">Marca</label>
-          <select class="input" name="brand_id" required>
-            <option value="0">Seleccionar...</option>
-            <?php foreach ($brand_options as $option): ?>
-              <option value="<?= (int)$option['id'] ?>" <?= !empty($option['selected']) ? 'selected' : '' ?>><?= e((string)$option['name']) ?></option>
-            <?php endforeach; ?>
-          </select>
-        </div>
-      </div>
-    </div>
-
-    <div class="av3-radius-xl av3-border av3-border-var-admin-border av3-bg--color-var---admin-bg av3-pad-4">
-      <div class="av3-flex av3-flex-wrap av3-items-end av3-justify-between av3-gap-3">
-        <div>
-          <div class="av3-type-body av3-weight-strong">Atributos y valores</div>
-          <div class="av3-type-caption av3-text-var-admin-muted">Marca los valores que queres incluir en esta plantilla.</div>
-        </div>
-        <div class="av3-flex av3-items-end av3-gap-2">
-          <div>
-            <label class="label">Agregar atributo</label>
-            <select class="input" name="add_attribute_id" data-role="set-add-attr-select">
-              <option value="0">Seleccionar...</option>
-              <?php foreach ($attribute_options as $option): ?>
-                <option value="<?= (int)$option['id'] ?>"><?= e((string)$option['name']) ?></option>
-              <?php endforeach; ?>
-            </select>
-          </div>
-          <button type="button" class="btn-secondary" data-role="set-add-attr">Agregar</button>
-        </div>
-      </div>
-
-      <div class="av3-space-top-4 av3-flow-4 max-h-[420px] av3-overflow-auto">
-        <?php if (empty($groups_prepared)): ?>
-          <div class="av3-type-body av3-text-var-admin-muted">No hay valores en esta plantilla todavia.</div>
-        <?php else: ?>
-          <?php foreach ($groups_prepared as $group): ?>
-            <div class="av3-radius-card av3-border av3-border-var-admin-border av3-surface-white av3-pad-3">
-              <div class="av3-type-body av3-weight-strong"><?= e((string)$group['attribute_name']) ?></div>
-              <div class="av3-space-top-2 av3-grid av3-sm-grid-cols-2 av3-md-grid-cols-3 av3-gap-2">
-                <?php foreach ((array)($group['values'] ?? []) as $value): ?>
-                  <label class="av3-inline-flex av3-items-center av3-gap-2 av3-radius-control av3-border av3-border-var-admin-border av3-surface-white av3-pad-x3 av3-pad-y2 av3-type-caption">
-                    <input type="checkbox" name="values[<?= (int)$group['attribute_id'] ?>][]" value="<?= (int)$value['id'] ?>" <?= !empty($value['checked']) ? 'checked' : '' ?>>
-                    <span><?= e((string)$value['value']) ?></span>
-                  </label>
-                <?php endforeach; ?>
-              </div>
-
-              <div class="av3-space-top-3 av3-flex av3-flex-wrap av3-items-end av3-gap-2">
-                <div class="av3-flex-1 av3-min-w--220px">
-                  <label class="label">Agregar valores (separados por coma)</label>
-                  <input class="input" type="text" placeholder="Ej: LOR, PAR, REH" data-role="set-add-values-input" data-attr-id="<?= (int)$group['attribute_id'] ?>">
-                </div>
-                <button type="button" class="btn-secondary" data-role="set-add-values" data-attr-id="<?= (int)$group['attribute_id'] ?>">Agregar</button>
-              </div>
-            </div>
+    <div class="av3-attributes__set-fields">
+      <label class="av3-ui-field av3-attributes__field">
+        <span class="av3-ui-field-label">Nombre de la plantilla</span>
+        <input class="av3-ui-control av3-attributes__input" type="text" name="name" maxlength="120" value="<?= e($set_name) ?>" required>
+      </label>
+      <label class="av3-ui-field av3-attributes__field">
+        <span class="av3-ui-field-label">Categoría</span>
+        <select class="av3-ui-control av3-attributes__input" name="category_id" required>
+          <option value="0">Seleccionar categoría</option>
+          <?php foreach ($category_options as $option): ?>
+            <option value="<?= (int)$option['id'] ?>" <?= !empty($option['selected']) ? 'selected' : '' ?>><?= e((string)$option['name']) ?></option>
           <?php endforeach; ?>
-        <?php endif; ?>
+        </select>
+      </label>
+      <label class="av3-ui-field av3-attributes__field">
+        <span class="av3-ui-field-label">Marca</span>
+        <select class="av3-ui-control av3-attributes__input" name="brand_id" required>
+          <option value="0">Seleccionar marca</option>
+          <?php foreach ($brand_options as $option): ?>
+            <option value="<?= (int)$option['id'] ?>" <?= !empty($option['selected']) ? 'selected' : '' ?>><?= e((string)$option['name']) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </label>
+    </div>
+    <div class="av3-attributes__set-group">
+      <h3>Atributos y valores</h3>
+      <p class="av3-attributes__set-meta">Seleccioná los valores reutilizables que quieras conservar en la plantilla.</p>
+      <div class="av3-attributes__set-toolbar av3-attributes__set-toolbar--top">
+        <label class="av3-ui-field av3-attributes__field">
+          <span class="av3-ui-field-label">Incorporar atributo</span>
+          <select class="av3-ui-control av3-attributes__input" name="add_attribute_id" data-role="set-add-attr-select">
+            <option value="0">Seleccionar atributo</option>
+            <?php foreach ($attribute_options as $option): ?>
+              <option value="<?= (int)$option['id'] ?>"><?= e((string)$option['name']) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </label>
+        <button class="av3-ui-btn" type="button" data-role="set-add-attr">Incorporar</button>
       </div>
     </div>
-
-    <div class="av3-flex av3-items-center av3-justify-end av3-gap-2">
-      <button type="button" class="btn-secondary" data-role="set-modal-close-2">Cancelar</button>
-      <button type="submit" class="btn-primary" data-role="set-save">Guardar cambios</button>
+    <?php if (empty($groups_prepared)): ?>
+      <div class="av3-attributes__notice">Esta plantilla todavía no tiene valores. Incorporá un atributo y seleccioná al menos un valor.</div>
+    <?php endif; ?>
+    <?php foreach ($groups_prepared as $group): ?>
+      <section class="av3-attributes__set-group" aria-label="<?= e((string)$group['attribute_name']) ?>">
+        <h3><?= e((string)$group['attribute_name']) ?></h3>
+        <input type="hidden" name="values[<?= (int)$group['attribute_id'] ?>][]" value="0">
+        <div class="av3-attributes__set-options">
+          <?php foreach (($group['values'] ?? []) as $value): ?>
+            <label class="av3-attributes__set-option">
+              <input type="checkbox" name="values[<?= (int)$group['attribute_id'] ?>][]" value="<?= (int)$value['id'] ?>" <?= !empty($value['checked']) ? 'checked' : '' ?>>
+              <span><?= e((string)$value['value']) ?></span>
+            </label>
+          <?php endforeach; ?>
+        </div>
+        <div class="av3-attributes__set-toolbar av3-attributes__set-toolbar--bottom">
+          <label class="av3-ui-field av3-attributes__field">
+            <span class="av3-ui-field-label">Agregar valores al atributo</span>
+            <input class="av3-ui-control av3-attributes__input" type="text" placeholder="Ej.: Rojo, Verde, Azul" data-role="set-add-values-input" data-attr-id="<?= (int)$group['attribute_id'] ?>">
+          </label>
+          <button class="av3-ui-btn" type="button" data-role="set-add-values" data-attr-id="<?= (int)$group['attribute_id'] ?>">Agregar valores</button>
+        </div>
+      </section>
+    <?php endforeach; ?>
+    <div class="av3-attributes__notice">Los valores nuevos se crean en el catálogo al pulsar «Agregar valores», aunque luego canceles la edición de la plantilla.</div>
+    <p class="av3-attributes__set-error" data-role="set-form-error" role="alert" hidden></p>
+    <div class="av3-ui-actions av3-attributes__set-form-actions">
+      <button type="button" class="av3-ui-btn" data-role="set-modal-close-2">Cancelar</button>
+      <button class="av3-ui-btn av3-ui-btn--primary" type="submit" data-role="set-save">Guardar cambios</button>
     </div>
   </form>
 </div>
