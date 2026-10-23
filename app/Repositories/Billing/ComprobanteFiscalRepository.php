@@ -2,6 +2,7 @@
 namespace App\Repositories\Billing;
 
 use PDO;
+use Throwable;
 
 final class ComprobanteFiscalRepository
 {
@@ -185,6 +186,9 @@ public function findPreferredInvoiceForOrder(int $orderId): ?array
         // Si existe factura (kind=invoice), la actualizamos (y reseteamos estado si estaba error)
         $existing = $this->findByOrderId($orderId);
         if ($existing) {
+            if ((string)($existing['status'] ?? '') === 'issued') {
+                throw new \RuntimeException('La factura ya está emitida y no puede volver a estado pendiente.');
+            }
             $id = (int)$existing['id'];
             $st = $this->db->prepare("UPDATE comprobantes_fiscales
                 SET status='pending', arca_env=:arca_env, pto_vta=:pto_vta, cbte_tipo=:cbte_tipo, concepto=:concepto,
@@ -192,7 +196,7 @@ public function findPreferredInvoiceForOrder(int $orderId): ?array
                     moneda_id=:moneda_id, moneda_ctz=:moneda_ctz,
                     request_json=:request_json, response_json=NULL,
                     error_code=NULL, error_message=NULL, issued_at=NULL
-                WHERE id=:id");
+                WHERE id=:id AND status <> 'issued'");
             $st->execute([
                 ':id' => $id,
                 ':arca_env' => $data['arca_env'],
@@ -208,6 +212,12 @@ public function findPreferredInvoiceForOrder(int $orderId): ?array
                 ':moneda_ctz' => (string)($data['moneda_ctz'] ?? '1.0000'),
                 ':request_json' => $data['request_json'] ?? null,
             ]);
+            if ($st->rowCount() === 0) {
+                $latest = $this->findByOrderId($orderId);
+                if ((string)($latest['status'] ?? '') === 'issued') {
+                    throw new \RuntimeException('La factura fue emitida por otra operación concurrente.');
+                }
+            }
             return $id;
         }
 

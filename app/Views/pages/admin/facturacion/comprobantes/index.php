@@ -1,5 +1,5 @@
 <?php render_partial('admin/subnav'); ?>
-<div class="av3-max-w-6xl av3-mx-auto">
+<div class="av3-fiscal-page av3-max-w-6xl av3-mx-auto">
     <?php
 ob_start(); ?>Comprobantes fiscales<?php $adminHeaderTitle=trim(html_entity_decode(strip_tags(ob_get_clean()),ENT_QUOTES|ENT_HTML5,'UTF-8'));
 ob_start(); ?>Historial de comprobantes emitidos (y errores) por pedido.<?php $adminHeaderDescription=trim(html_entity_decode(strip_tags(ob_get_clean()),ENT_QUOTES|ENT_HTML5,'UTF-8'));

@@ -7,7 +7,8 @@ final class PurchaseInvoiceRepository
 {
     public function __construct(private PDO $db) {}
 
-    public function list(array $filters = []): array
+    /** @return array{0:string,1:array<string,mixed>} */
+    private function filteredSql(array $filters): array
     {
         $from = trim((string)($filters['from'] ?? ''));
         $to   = trim((string)($filters['to'] ?? ''));
@@ -53,10 +54,33 @@ final class PurchaseInvoiceRepository
             $params[':q'] = '%' . $q . '%';
         }
 
-        $sql .= " ORDER BY pi.issued_at DESC, pi.id DESC LIMIT 500";
+        return [$sql, $params];
+    }
 
+    public function count(array $filters = []): int
+    {
+        [$sql, $params] = $this->filteredSql($filters);
+        $sql = preg_replace('/^SELECT pi\.\*,\s*s\.nombre AS supplier_nombre,\s*s\.cuit\s+AS supplier_cuit\s+FROM /s', 'SELECT COUNT(*) FROM ', $sql, 1);
         $st = $this->db->prepare($sql);
         $st->execute($params);
+        return (int)$st->fetchColumn();
+    }
+
+    public function list(array $filters = []): array
+    {
+        [$sql, $params] = $this->filteredSql($filters);
+        $page = max(1, min(100000, (int)($filters['page'] ?? 1)));
+        $perPage = max(1, min(100, (int)($filters['per_page'] ?? 25)));
+        $offset = ($page - 1) * $perPage;
+        $sql .= " ORDER BY pi.issued_at DESC, pi.id DESC LIMIT :lim OFFSET :off";
+
+        $st = $this->db->prepare($sql);
+        foreach ($params as $key => $value) {
+            $st->bindValue($key, $value);
+        }
+        $st->bindValue(':lim', $perPage, PDO::PARAM_INT);
+        $st->bindValue(':off', $offset, PDO::PARAM_INT);
+        $st->execute();
         return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
@@ -101,10 +125,11 @@ final class PurchaseInvoiceRepository
         return $r ? ['id' => (int)$r['id'], 'status' => (string)$r['status']] : null;
     }
 
-    public function setStatusValidated(int $id): void
+    public function setStatusValidated(int $id): bool
     {
-        $st = $this->db->prepare("UPDATE purchase_invoices SET status='validated', updated_at=NOW() WHERE id=:id AND status <> 'void' LIMIT 1");
+        $st = $this->db->prepare("UPDATE purchase_invoices SET status='validated', updated_at=NOW() WHERE id=:id AND status = 'loaded'");
         $st->execute([':id' => $id]);
+        return $st->rowCount() > 0;
     }
 
 
@@ -140,7 +165,7 @@ final class PurchaseInvoiceRepository
                 SET supplier_id=:supplier_id, kind=:kind, cbte_tipo=:cbte_tipo, pto_vta=:pto_vta, cbte_nro=:cbte_nro,
                     issued_at=:issued_at, imp_neto=:imp_neto, imp_iva=:imp_iva, perc_iva=:perc_iva, perc_iibb=:perc_iibb, ret_ganancias=:ret_ganancias, imp_total=:imp_total, status=:status,
                     notes=:notes, updated_at=NOW()
-                WHERE id=:id LIMIT 1";
+                WHERE id=:id AND status <> 'void'";
         $st = $this->db->prepare($sql);
         $st->execute([
             ':id' => $id,
@@ -161,10 +186,11 @@ final class PurchaseInvoiceRepository
         ]);
     }
 
-    public function void(int $id): void
+    public function void(int $id): bool
     {
-        $st = $this->db->prepare("UPDATE purchase_invoices SET status='void', voided_at=NOW(), updated_at=NOW() WHERE id=:id LIMIT 1");
+        $st = $this->db->prepare("UPDATE purchase_invoices SET status='void', voided_at=NOW(), updated_at=NOW() WHERE id=:id AND status <> 'void'");
         $st->execute([':id' => $id]);
+        return $st->rowCount() > 0;
     }
 
     /** Libro IVA Compras (por emisión). Solo comprobantes validados o cargados (según filtros). */

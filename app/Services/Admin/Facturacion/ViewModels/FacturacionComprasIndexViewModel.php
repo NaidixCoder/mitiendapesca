@@ -60,6 +60,30 @@ final class FacturacionComprasIndexViewModel
             ];
         }
 
+        $pagination = is_array($input['pagination'] ?? null) ? $input['pagination'] : [];
+        $page = max(1, (int)($pagination['page'] ?? 1));
+        $pages = max(1, (int)($pagination['pages'] ?? 1));
+        $query = array_filter([
+            'q' => (string)($filters['q'] ?? ''),
+            'from' => (string)($filters['from'] ?? ''),
+            'to' => (string)($filters['to'] ?? ''),
+            'supplier_id' => (int)($filters['supplier_id'] ?? 0),
+            'status' => (string)($filters['status'] ?? ''),
+            'kind' => (string)($filters['kind'] ?? ''),
+        ], static fn($value) => $value !== '' && $value !== 0);
+        $pageUrl = static function (int $target) use ($query): string {
+            return base_url('admin/facturacion/compras') . '?' . http_build_query($query + ['page' => $target]);
+        };
+        $pager = [
+            'page' => $page,
+            'pages' => $pages,
+            'total' => max(0, (int)($pagination['total'] ?? 0)),
+            'from' => ($page - 1) * 25 + (count($items) ? 1 : 0),
+            'to' => ($page - 1) * 25 + count($items),
+            'prev_url' => $page > 1 ? $pageUrl($page - 1) : '',
+            'next_url' => $page < $pages ? $pageUrl($page + 1) : '',
+        ];
+
         return [
             'crumbs' => [
                 ['label' => 'Admin', 'href' => base_url('admin')],
@@ -77,6 +101,7 @@ final class FacturacionComprasIndexViewModel
             'supplier_options' => $supplierOptions,
             'kind_options' => $this->kindOptions((string)($filters['kind'] ?? '')),
             'status_options' => $this->statusOptions((string)($filters['status'] ?? '')),
+            'pagination' => $pager,
             'items_prepared' => $itemsPrepared,
             'has_items' => !empty($itemsPrepared),
             'new_url' => base_url('admin/facturacion/compras/new'),

@@ -7,7 +7,7 @@
 /** @var string $open_in_docs_url */
 ?>
 
-<div class="av3-max-w-6xl av3-mx-auto">
+<div class="av3-fiscal-page av3-max-w-6xl av3-mx-auto">
   <?php
 ob_start(); ?>Comprobantes en pendiente / error<?php $adminHeaderTitle=trim(html_entity_decode(strip_tags(ob_get_clean()),ENT_QUOTES|ENT_HTML5,'UTF-8'));
 ob_start(); ?>Comprobantes creados en el período con estado pendiente o error.<?php $adminHeaderDescription=trim(html_entity_decode(strip_tags(ob_get_clean()),ENT_QUOTES|ENT_HTML5,'UTF-8'));

@@ -22,6 +22,11 @@ final class PurchaseInvoiceService
         return $this->repo->list($filters);
     }
 
+    public function count(array $filters = []): int
+    {
+        return $this->repo->count($filters);
+    }
+
     public function findById(int $id): ?array
     {
         return $this->repo->findById($id);
@@ -48,7 +53,8 @@ final class PurchaseInvoiceService
         }
 
         $issuedAt = trim((string)($input['issued_at'] ?? ''));
-        if ($issuedAt === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $issuedAt)) {
+        if ($issuedAt === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/D', $issuedAt)
+            || !self::validDate($issuedAt)) {
             $errors['issued_at'] = 'Fecha de emisión inválida.';
         }
 
@@ -77,8 +83,8 @@ final class PurchaseInvoiceService
         // total = neto + iva + perc_iva + perc_iibb - ret_ganancias
         $expectedTotal = $impNeto + $impIva + $percIva + $percIibb - $retGanancias;
 
-        if ($impTotal <= 0) {
-            // Si no lo pasaron, calculamos
+        if ($impTotal === 0) {
+            // Solo completar un total omitido; nunca convertir negativos a importes válidos.
             $impTotal = max(0, $expectedTotal);
         }
 
@@ -87,7 +93,7 @@ final class PurchaseInvoiceService
         if ($percIva < 0) $errors['perc_iva'] = 'Percepción IVA inválida.';
         if ($percIibb < 0) $errors['perc_iibb'] = 'Percepción IIBB inválida.';
         if ($retGanancias < 0) $errors['ret_ganancias'] = 'Retención Ganancias inválida.';
-        if ($impTotal < 0) $errors['imp_total'] = 'Total inválido.';
+        if ($impTotal <= 0) $errors['imp_total'] = 'El total debe ser mayor a cero.';
         // Reglas contables mínimas
 
         // Si el usuario escribió un total > 0, debe coincidir con la fórmula (tolerancia 0/1 peso por redondeo).
@@ -119,6 +125,15 @@ final class PurchaseInvoiceService
             $errors['cbte_nro'] = 'Ya existe una compra con ese comprobante para este proveedor (ID ' . (int)$dup['id'] . ').';
         }
 
+        if ($id !== null && $id > 0) {
+            $existing = $this->repo->findById($id);
+            if (!$existing) {
+                $errors['id'] = 'La compra ya no existe.';
+            } elseif ((string)($existing['status'] ?? '') === 'void') {
+                $errors['id'] = 'No se puede editar una compra anulada.';
+            }
+        }
+
         if ($errors) {
             return ['ok' => false, 'errors' => $errors];
         }
@@ -143,6 +158,10 @@ final class PurchaseInvoiceService
         try {
             if ($id && $id > 0) {
                 $this->repo->update($id, $data);
+                $persisted = $this->repo->findById($id);
+                if (!$persisted || (string)($persisted['status'] ?? '') === 'void') {
+                    return ['ok' => false, 'errors' => ['id' => 'La compra fue anulada o eliminada durante la edición.']];
+                }
                 return ['ok' => true, 'errors' => [], 'id' => $id];
             }
 
@@ -156,15 +175,21 @@ final class PurchaseInvoiceService
             throw $e;
         }
     }
-    public function validate(int $id): void
+    private static function validDate(string $value): bool
     {
-        $this->repo->setStatusValidated($id);
+        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $value);
+        return $date !== false && $date->format('Y-m-d') === $value;
+    }
+
+    public function validate(int $id): bool
+    {
+        return $id > 0 && $this->repo->setStatusValidated($id);
     }
 
 
-    public function void(int $id): void
+    public function void(int $id): bool
     {
-        $this->repo->void($id);
+        return $id > 0 && $this->repo->void($id);
     }
 }
 

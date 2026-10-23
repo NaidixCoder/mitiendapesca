@@ -1,6 +1,8 @@
 <?php
 namespace App\Controllers\Admin;
 
+use App\Services\Billing\FiscalExportGuard;
+
 use App\Services\Billing\LibroIvaService;
 use App\Services\Admin\Facturacion\ViewModels\FacturacionLibroIvaViewModel;
 
@@ -42,14 +44,22 @@ final class LibroIvaController
         if (!$from) $from = date('Y-m-01');
         if (!$to)   $to   = date('Y-m-d');
 
+        try {
+            FiscalExportGuard::requireDateRange($from, $to);
+        } catch (\InvalidArgumentException $e) {
+            http_response_code(400);
+            echo 'Rango de fechas inválido.';
+            return;
+        }
+
         $env = trim((string)($filters['arca_env'] ?? ''));
         $kind = trim((string)($filters['kind'] ?? ''));
 
         $svc = new LibroIvaService(db());
         $rows = $svc->exportRows($from, $to, $env, $kind);
 
-        $suffixEnv = $env ? ('_' . $env) : '';
-        $kindTag = $kind ? ('_' . $kind) : '';
+        $suffixEnv = $env ? ('_' . FiscalExportGuard::safeFilenamePart($env)) : '';
+        $kindTag = $kind ? ('_' . FiscalExportGuard::safeFilenamePart($kind)) : '';
         $nowTag = date('Ymd_His');
         $filename = 'libro_iva_ventas_' . $from . '_a_' . $to . $kindTag . $suffixEnv . '_' . $nowTag . '.csv';
 

@@ -1,5 +1,5 @@
 <?php render_partial('admin/subnav'); ?>
-<div class="av3-max-w-6xl av3-mx-auto av3-pad-4">
+<div class="av3-fiscal-page av3-max-w-6xl av3-mx-auto av3-pad-4">
   <?php
 ob_start(); ?>Compras<?php $adminHeaderTitle=trim(html_entity_decode(strip_tags(ob_get_clean()),ENT_QUOTES|ENT_HTML5,'UTF-8'));
 $adminHeaderDescription='';
@@ -119,6 +119,15 @@ render_partial('admin/facturacion_nav');
       </table>
     </div>
   </div>
+
+  <nav class="av3-fiscal-pager" aria-label="Paginación de compras">
+    <p>Mostrando <?= (int)($pagination['from'] ?? 0) ?>–<?= (int)($pagination['to'] ?? 0) ?> de <?= (int)($pagination['total'] ?? 0) ?> compras</p>
+    <div>
+      <?php if (!empty($pagination['prev_url'])): ?><a class="btn btn-secondary" rel="prev" href="<?= e((string)$pagination['prev_url']) ?>">Anterior</a><?php endif; ?>
+      <span>Página <?= (int)($pagination['page'] ?? 1) ?> de <?= (int)($pagination['pages'] ?? 1) ?></span>
+      <?php if (!empty($pagination['next_url'])): ?><a class="btn btn-secondary" rel="next" href="<?= e((string)$pagination['next_url']) ?>">Siguiente</a><?php endif; ?>
+    </div>
+  </nav>
 
   <p class="av3-type-caption av3-text-gray-500 av3-space-top-3">Nota: las Notas de credito se muestran en negativo (restan).</p>
 </div>

@@ -14,6 +14,7 @@ final class AccountingClosuresController extends BaseController
 {
     public function index(): void
     {
+        admin_required();
         $repo = new AccountingClosureRepository(db());
         $closures = $repo->listLatest(36);
 
@@ -37,8 +38,9 @@ final class AccountingClosuresController extends BaseController
 
     public function show(): void
     {
+        admin_required();
         $period = trim((string)($_GET['period'] ?? ''));
-        if ($period === '' || !preg_match('/^\d{4}-\d{2}$/', $period)) {
+        if ($period === '' || !preg_match('/^\d{4}-(0[1-9]|1[0-2])$/D', $period)) {
             http_response_code(400);
             render_page('errors/400', ['pageId' => 'error-400']);
             return;
@@ -62,6 +64,7 @@ final class AccountingClosuresController extends BaseController
 
     public function close(): void
     {
+        admin_required();
         header('Content-Type: application/json; charset=utf-8');
 
         try {
@@ -85,14 +88,16 @@ final class AccountingClosuresController extends BaseController
             ]);
         } catch (Throwable $e) {
             http_response_code(400);
-            echo json_encode(['ok' => false, 'message' => $e->getMessage()]);
+            error_log('[Facturacion] Error de cierre mensual: ' . $e->getMessage());
+            echo json_encode(['ok' => false, 'message' => 'No se pudo cerrar el período. Revisá los datos o consultá al administrador.']);
         }
     }
 
     public function export(): void
     {
+        admin_required();
         $period = trim((string)($_GET['period'] ?? ''));
-        if ($period === '' || !preg_match('/^\d{4}-\d{2}$/', $period)) {
+        if ($period === '' || !preg_match('/^\d{4}-(0[1-9]|1[0-2])$/D', $period)) {
             http_response_code(400);
             echo 'Período inválido.';
             return;

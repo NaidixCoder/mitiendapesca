@@ -1,5 +1,5 @@
 <?php render_partial('admin/subnav'); ?>
-<div class="av3-max-w-6xl av3-mx-auto av3-pad-4">
+<div class="av3-fiscal-page av3-max-w-6xl av3-mx-auto av3-pad-4">
   <?php
 ob_start(); ?>Reporte mensual IVA (por emision)<?php $adminHeaderTitle=trim(html_entity_decode(strip_tags(ob_get_clean()),ENT_QUOTES|ENT_HTML5,'UTF-8'));
 ob_start(); ?>Resumen por mes usando <b>issued_at</b>. Incluye facturas y notas de credito emitidas.<?php $adminHeaderDescription=trim(html_entity_decode(strip_tags(ob_get_clean()),ENT_QUOTES|ENT_HTML5,'UTF-8'));

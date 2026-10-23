@@ -6,7 +6,7 @@
 /** @var string $export_url */
 ?>
 
-<div class="av3-max-w-6xl av3-mx-auto">
+<div class="av3-fiscal-page av3-max-w-6xl av3-mx-auto">
   <?php render_partial('admin/facturacion/reportes/desvios/header', [
     'back_url' => $back_url,
     'export_url' => $export_url,

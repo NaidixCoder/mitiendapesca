@@ -1,18 +1,18 @@
 /* Source before consolidation: css/v2/pages/admin/facturacion/shared.css */
-/* Facturacion v2: shared layout/components for fiscal module pages */
+/* Facturacion Admin V3: fiscal module layout and components */
 
 .fisc-wrap {
   max-width: 1240px;
   margin: 0 auto;
   display: grid;
-  gap: var(--v2-space-4);
+  gap: var(--av3-space-4, 16px);
 }
 
 .fisc-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: var(--v2-space-4);
+  gap: var(--av3-space-4, 16px);
   flex-wrap: wrap;
 }
 
@@ -21,56 +21,56 @@
   font-size: clamp(1.55rem, 1.35rem + 0.5vw, 1.95rem);
   line-height: 1.12;
   letter-spacing: -0.01em;
-  color: var(--v2-color-text);
+  color: var(--av3-color-text);
 }
 
 .fisc-subtitle {
-  margin: var(--v2-space-2) 0 0;
-  color: var(--v2-color-text-muted);
-  font-size: var(--v2-text-sm);
+  margin: var(--av3-space-2, 8px) 0 0;
+  color: var(--av3-color-muted);
+  font-size: 14px;
 }
 
 .fisc-head-actions {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: var(--v2-space-2);
+  gap: var(--av3-space-2, 8px);
 }
 
 .fisc-btn-row {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: var(--v2-space-2);
+  gap: var(--av3-space-2, 8px);
 }
 
 .fisc-grid-main {
   display: grid;
   grid-template-columns: minmax(0, 2.1fr) minmax(0, 1fr);
-  gap: var(--v2-space-4);
+  gap: var(--av3-space-4, 16px);
   align-items: start;
 }
 
 .fisc-col {
   display: grid;
-  gap: var(--v2-space-4);
+  gap: var(--av3-space-4, 16px);
 }
 
 .fisc-card {
-  background: var(--v2-color-surface);
-  border: 1px solid var(--v2-color-border);
-  border-radius: var(--v2-radius-sm);
-  box-shadow: var(--v2-shadow-sm);
+  background: var(--av3-color-surface);
+  border: 1px solid var(--av3-color-border);
+  border-radius: var(--av3-radius-card);
+  box-shadow: 0 1px 3px rgba(24,43,57,.05);
   overflow: hidden;
 }
 
 .fisc-card-head {
-  padding: var(--v2-space-4);
+  padding: var(--av3-space-4, 16px);
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: var(--v2-space-3);
-  border-bottom: 1px solid color-mix(in srgb, var(--v2-color-border) 78%, transparent);
+  gap: var(--av3-space-3, 12px);
+  border-bottom: 1px solid color-mix(in srgb, var(--av3-color-border) 78%, transparent);
 }
 
 .fisc-card-head h2 {
@@ -80,13 +80,13 @@
 }
 
 .fisc-card-head p {
-  margin: var(--v2-space-1) 0 0;
-  font-size: var(--v2-text-sm);
-  color: var(--v2-color-text-muted);
+  margin: var(--av3-space-1, 4px) 0 0;
+  font-size: 14px;
+  color: var(--av3-color-muted);
 }
 
 .fisc-card-body {
-  padding: var(--v2-space-4);
+  padding: var(--av3-space-4, 16px);
 }
 
 .fisc-pill {
@@ -94,11 +94,11 @@
   align-items: center;
   gap: 8px;
   border-radius: 9999px;
-  border: 1px solid color-mix(in srgb, var(--v2-color-border) 84%, transparent);
-  background: color-mix(in srgb, var(--v2-color-surface) 92%, var(--v2-color-bg));
-  color: var(--v2-color-text);
+  border: 1px solid color-mix(in srgb, var(--av3-color-border) 84%, transparent);
+  background: color-mix(in srgb, var(--av3-color-surface) 92%, var(--av3-color-background));
+  color: var(--av3-color-text);
   padding: 6px 12px;
-  font-size: var(--v2-text-sm);
+  font-size: 14px;
   font-weight: 700;
   line-height: 1;
 }
@@ -107,25 +107,25 @@
   width: 8px;
   height: 8px;
   border-radius: 9999px;
-  background: var(--v2-color-info);
+  background: var(--av3-color-primary);
   flex: 0 0 auto;
 }
 
 .fisc-dot.is-warning {
-  background: var(--v2-color-warning);
+  background: var(--av3-color-warning, #a15c00);
 }
 
 .fisc-dot.is-ok {
-  background: var(--v2-color-success);
+  background: var(--av3-color-success, #087443);
 }
 
 .fisc-dot.is-danger {
-  background: var(--v2-color-danger);
+  background: var(--av3-color-danger, #b42318);
 }
 
 .fisc-table-wrap {
-  border: 1px solid color-mix(in srgb, var(--v2-color-border) 84%, transparent);
-  border-radius: var(--v2-radius-sm);
+  border: 1px solid color-mix(in srgb, var(--av3-color-border) 84%, transparent);
+  border-radius: var(--av3-radius-card);
   overflow: auto;
 }
 
@@ -134,17 +134,17 @@
   min-width: 620px;
   border-collapse: separate;
   border-spacing: 0;
-  font-size: var(--v2-text-sm);
+  font-size: 14px;
 }
 
 .fisc-table th {
   text-align: left;
-  color: color-mix(in srgb, var(--v2-color-text-muted) 88%, var(--v2-color-text));
+  color: color-mix(in srgb, var(--av3-color-muted) 88%, var(--av3-color-text));
   font-size: 11px;
   letter-spacing: 0.07em;
   text-transform: uppercase;
   font-weight: 700;
-  background: color-mix(in srgb, var(--v2-color-surface) 92%, var(--v2-color-bg));
+  background: color-mix(in srgb, var(--av3-color-surface) 92%, var(--av3-color-background));
   position: sticky;
   top: 0;
   z-index: 1;
@@ -153,7 +153,7 @@
 .fisc-table th,
 .fisc-table td {
   padding: 11px 14px;
-  border-bottom: 1px solid color-mix(in srgb, var(--v2-color-border) 72%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--av3-color-border) 72%, transparent);
 }
 
 .fisc-table tbody tr:last-child td {
@@ -171,27 +171,27 @@
 
 .fisc-quick-links {
   display: grid;
-  gap: var(--v2-space-2);
+  gap: var(--av3-space-2, 8px);
 }
 
 .fisc-mt-3 {
-  margin-top: var(--v2-space-3);
+  margin-top: var(--av3-space-3, 12px);
 }
 
 .fisc-link-card {
-  border: 1px solid color-mix(in srgb, var(--v2-color-border) 84%, transparent);
-  border-radius: var(--v2-radius-sm);
+  border: 1px solid color-mix(in srgb, var(--av3-color-border) 84%, transparent);
+  border-radius: var(--av3-radius-card);
   padding: 10px 12px;
-  color: var(--v2-color-text);
+  color: var(--av3-color-text);
   text-decoration: none;
   font-weight: 650;
-  background: color-mix(in srgb, var(--v2-color-surface) 94%, var(--v2-color-bg));
+  background: color-mix(in srgb, var(--av3-color-surface) 94%, var(--av3-color-background));
   transition: border-color .15s ease, background .15s ease, transform .15s ease;
 }
 
 .fisc-link-card:hover {
-  border-color: color-mix(in srgb, var(--v2-color-primary) 32%, var(--v2-color-border));
-  background: color-mix(in srgb, var(--v2-color-primary) 7%, var(--v2-color-surface));
+  border-color: color-mix(in srgb, var(--av3-color-primary) 32%, var(--av3-color-border));
+  background: color-mix(in srgb, var(--av3-color-primary) 7%, var(--av3-color-surface));
   transform: translateY(-1px);
 }
 
@@ -201,14 +201,14 @@
   }
 }
 
-/* Layout global admin: la facturacion comparte el gutter y offset del shell. */
+/* El shell Admin V3 administra offsets y gutters; el módulo no los duplica. */
 body[data-page^="admin"] > .fisc-wrap {
   box-sizing: border-box;
-  width: calc(100% - var(--v2-sidebar-offset));
-  max-width: none;
+  width: 100%;
+  max-width: 1240px;
   min-width: 0;
-  margin: 0 0 0 var(--v2-sidebar-offset);
-  padding: var(--v2-content-top) var(--v2-content-gutter) var(--v2-content-bottom);
+  margin-inline: auto;
+  padding: 0;
 }
 body[data-page^="admin"] > .fisc-wrap .fisc-grid-main,
 body[data-page^="admin"] > .fisc-wrap .fisc-col {
@@ -230,30 +230,30 @@ body[data-page^="admin"] > .fisc-wrap .fisc-col {
 }
 
 .fisc-nav {
-  background: var(--v2-color-surface);
-  border: 1px solid var(--v2-color-border);
-  border-radius: var(--v2-radius-sm);
-  box-shadow: var(--v2-shadow-sm);
-  padding: var(--v2-space-3);
+  background: var(--av3-color-surface);
+  border: 1px solid var(--av3-color-border);
+  border-radius: var(--av3-radius-card);
+  box-shadow: 0 1px 3px rgba(24,43,57,.05);
+  padding: var(--av3-space-3, 12px);
   display: grid;
-  gap: var(--v2-space-3);
+  gap: var(--av3-space-3, 12px);
 }
 
 .fisc-nav-groups {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: var(--v2-space-3);
+  gap: var(--av3-space-3, 12px);
   flex-wrap: wrap;
 }
 
 .fisc-nav-group {
   display: grid;
-  gap: var(--v2-space-2);
+  gap: var(--av3-space-2, 8px);
 }
 
 .fisc-nav-label {
-  color: color-mix(in srgb, var(--v2-color-text-muted) 90%, var(--v2-color-text));
+  color: color-mix(in srgb, var(--av3-color-muted) 90%, var(--av3-color-text));
   font-size: 11px;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -264,7 +264,7 @@ body[data-page^="admin"] > .fisc-wrap .fisc-col {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: var(--v2-space-2);
+  gap: var(--av3-space-2, 8px);
 }
 
 .fisc-nav-link {
@@ -272,47 +272,47 @@ body[data-page^="admin"] > .fisc-wrap .fisc-col {
   align-items: center;
   justify-content: center;
   border-radius: 9999px;
-  border: 1px solid color-mix(in srgb, var(--v2-color-border) 88%, transparent);
-  background: color-mix(in srgb, var(--v2-color-surface) 95%, var(--v2-color-bg));
-  color: color-mix(in srgb, var(--v2-color-text) 88%, var(--v2-color-text-muted));
+  border: 1px solid color-mix(in srgb, var(--av3-color-border) 88%, transparent);
+  background: color-mix(in srgb, var(--av3-color-surface) 95%, var(--av3-color-background));
+  color: color-mix(in srgb, var(--av3-color-text) 88%, var(--av3-color-muted));
   padding: 8px 12px;
   text-decoration: none;
-  font-size: var(--v2-text-sm);
+  font-size: 14px;
   font-weight: 650;
   line-height: 1;
   transition: border-color .15s ease, background .15s ease, color .15s ease, transform .15s ease;
 }
 
 .fisc-nav-link:hover {
-  border-color: color-mix(in srgb, var(--v2-color-primary) 36%, var(--v2-color-border));
-  color: var(--v2-color-primary);
+  border-color: color-mix(in srgb, var(--av3-color-primary) 36%, var(--av3-color-border));
+  color: var(--av3-color-primary);
   transform: translateY(-1px);
 }
 
 .fisc-nav-link.is-active {
-  color: var(--v2-color-primary);
-  border-color: color-mix(in srgb, var(--v2-color-primary) 34%, var(--v2-color-border));
-  background: color-mix(in srgb, var(--v2-color-primary) 10%, var(--v2-color-surface));
+  color: var(--av3-color-primary);
+  border-color: color-mix(in srgb, var(--av3-color-primary) 34%, var(--av3-color-border));
+  background: color-mix(in srgb, var(--av3-color-primary) 10%, var(--av3-color-surface));
   font-weight: 750;
 }
 
 .fisc-nav-hint {
-  color: var(--v2-color-text-muted);
-  font-size: var(--v2-text-sm);
+  color: var(--av3-color-muted);
+  font-size: 14px;
 }
 
 .fisc-nav-hint b {
-  color: var(--v2-color-text);
+  color: var(--av3-color-text);
 }
 
-/* Navegacion de facturacion: ancho y alineacion comunes a todas sus subrutas. */
+/* Navegación dentro del contenedor del shell, sin compensaciones al aside. */
 body[data-page^="admin"] > .fisc-nav-shell {
   box-sizing: border-box;
-  width: calc(100% - var(--v2-sidebar-offset));
-  max-width: none;
+  width: 100%;
+  max-width: 1240px;
   min-width: 0;
-  margin: 0 0 0 var(--v2-sidebar-offset);
-  padding: var(--v2-space-2) var(--v2-content-gutter) 0;
+  margin-inline: auto;
+  padding: 8px 0 0;
 }
 
 
@@ -320,21 +320,21 @@ body[data-page^="admin"] > .fisc-nav-shell {
 /* Facturacion v2: control fiscal dashboard page */
 
 .fisc-control .fisc-alert-box {
-  border: 1px solid color-mix(in srgb, var(--v2-color-danger) 30%, var(--v2-color-border));
-  background: color-mix(in srgb, var(--v2-color-danger) 8%, var(--v2-color-surface));
-  border-radius: var(--v2-radius-sm);
-  padding: var(--v2-space-3);
+  border: 1px solid color-mix(in srgb, var(--av3-color-danger, #b42318) 30%, var(--av3-color-border));
+  background: color-mix(in srgb, var(--av3-color-danger, #b42318) 8%, var(--av3-color-surface));
+  border-radius: var(--av3-radius-card);
+  padding: var(--av3-space-3, 12px);
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: var(--v2-space-3);
+  gap: var(--av3-space-3, 12px);
 }
 
 .fisc-control .fisc-alert-icon {
   width: 34px;
   height: 34px;
   border-radius: 10px;
-  background: var(--v2-color-danger);
-  color: var(--v2-color-white);
+  background: var(--av3-color-danger, #b42318);
+  color: var(--av3-color-surface);
   font-weight: 800;
   display: grid;
   place-items: center;
@@ -347,9 +347,9 @@ body[data-page^="admin"] > .fisc-nav-shell {
 }
 
 .fisc-control .fisc-alert-list {
-  margin: var(--v2-space-2) 0 0 18px;
+  margin: var(--av3-space-2, 8px) 0 0 18px;
   padding: 0;
-  color: color-mix(in srgb, var(--v2-color-danger) 72%, var(--v2-color-text));
+  color: color-mix(in srgb, var(--av3-color-danger, #b42318) 72%, var(--av3-color-text));
   font-weight: 650;
 }
 
@@ -358,25 +358,25 @@ body[data-page^="admin"] > .fisc-nav-shell {
 }
 
 .fisc-control .fisc-alert-actions {
-  margin-top: var(--v2-space-3);
+  margin-top: var(--av3-space-3, 12px);
 }
 
 .fisc-control .fisc-state-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--v2-space-2);
+  gap: var(--av3-space-2, 8px);
 }
 
 .fisc-control .fisc-state-item {
-  border: 1px solid color-mix(in srgb, var(--v2-color-border) 84%, transparent);
-  border-radius: var(--v2-radius-sm);
-  background: color-mix(in srgb, var(--v2-color-surface) 94%, var(--v2-color-bg));
-  padding: var(--v2-space-3);
+  border: 1px solid color-mix(in srgb, var(--av3-color-border) 84%, transparent);
+  border-radius: var(--av3-radius-card);
+  background: color-mix(in srgb, var(--av3-color-surface) 94%, var(--av3-color-background));
+  padding: var(--av3-space-3, 12px);
 }
 
 .fisc-control .fisc-state-k {
   margin: 0;
-  color: color-mix(in srgb, var(--v2-color-text-muted) 90%, var(--v2-color-text));
+  color: color-mix(in srgb, var(--av3-color-muted) 90%, var(--av3-color-text));
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-size: 11px;
@@ -384,17 +384,17 @@ body[data-page^="admin"] > .fisc-nav-shell {
 }
 
 .fisc-control .fisc-state-v {
-  margin: var(--v2-space-2) 0 0;
+  margin: var(--av3-space-2, 8px) 0 0;
   font-size: clamp(1.15rem, 1.05rem + 0.28vw, 1.45rem);
   line-height: 1.05;
   font-weight: 800;
-  color: var(--v2-color-text);
+  color: var(--av3-color-text);
 }
 
 .fisc-control .fisc-op-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--v2-space-2);
+  gap: var(--av3-space-2, 8px);
 }
 
 @media (max-width: 740px) {
@@ -403,3 +403,45 @@ body[data-page^="admin"] > .fisc-nav-shell {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Facturacion V3: shared presentation scoped to fiscal page roots. */
+.av3-fiscal-page { width:100%; min-width:0; max-width:1240px; margin-inline:auto; color:var(--av3-color-text); font-size:14px; }
+.av3-fiscal-page > * { min-width:0; }
+.av3-fiscal-page .admin-surface,
+.av3-fiscal-page .card { background:var(--av3-color-surface); border:1px solid var(--av3-color-border); border-radius:var(--av3-radius-card); box-shadow:0 1px 3px rgba(24,43,57,.04); }
+.av3-fiscal-page .admin-surface + .admin-surface,
+.av3-fiscal-page .card + .card { margin-top:16px; }
+.av3-fiscal-page .form-label,
+.av3-fiscal-page label.label { display:block; font-size:13px; font-weight:600; color:var(--av3-color-text); margin-bottom:6px; }
+.av3-fiscal-page :is(input:not([type=checkbox]):not([type=radio]), select, textarea) { max-width:100%; min-width:0; }
+.av3-fiscal-page :is(input,select,textarea):focus-visible,
+.av3-fiscal-page :is(a,button):focus-visible { outline:2px solid var(--av3-color-primary); outline-offset:2px; }
+.av3-fiscal-page :is(.btn,.av3-ui-btn) { min-height:36px; display:inline-flex; align-items:center; justify-content:center; gap:6px; font-weight:600; text-decoration:none; }
+.av3-fiscal-page :is(.btn-primary,.av3-ui-btn--primary) { background:var(--av3-color-primary); color:#fff; }
+.av3-fiscal-page :is(table) { border-collapse:collapse; width:100%; font-variant-numeric:tabular-nums; }
+.av3-fiscal-page :is(th) { text-align:left; font-size:13px; font-weight:600; color:var(--av3-color-muted); background:var(--av3-color-background); }
+.av3-fiscal-page :is(th,td) { padding:10px 12px; border-bottom:1px solid var(--av3-color-border); vertical-align:middle; }
+.av3-fiscal-page :is(tr:last-child td) { border-bottom:0; }
+.av3-fiscal-page :is(.av3-grid,.av3-flex) > * { min-width:0; }
+.av3-fiscal-page :is(.av3-overflow-auto,.av3-ui-table-scroll) { max-width:100%; overflow-x:auto; }
+.fisc-wrap, .fisc-col { min-width:0; }
+.fisc-card-head h2 { font-size:16px; font-weight:600; line-height:1.4; }
+.fisc-title { font-size:20px; font-weight:600; line-height:1.3; }
+@media (max-width:767px) {
+  .fisc-grid-main { grid-template-columns:minmax(0,1fr); }
+  .fisc-head { align-items:stretch; }
+  .av3-fiscal-page { padding-inline:0; }
+  .av3-fiscal-page .admin-surface, .av3-fiscal-page .card { max-width:100%; }
+  .av3-fiscal-page :is(.av3-ui-actions,.fisc-btn-row,.fisc-head-actions) { flex-wrap:wrap; }
+  .av3-fiscal-page :is(input,select,textarea) { width:100%; }
+}
+@media (max-width:390px) {
+  .av3-fiscal-page :is(th,td) { padding:8px; }
+}
+
+/* Navegación paginada de compras dentro del shell V3. */
+.av3-fiscal-pager{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px;font-size:13px;color:var(--av3-color-muted)}
+.av3-fiscal-pager p{margin:0}
+.av3-fiscal-pager>div{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+@media(max-width:480px){.av3-fiscal-pager{align-items:stretch;flex-direction:column}.av3-fiscal-pager>div{justify-content:space-between}}

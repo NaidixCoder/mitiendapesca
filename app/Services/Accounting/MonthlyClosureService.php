@@ -30,8 +30,12 @@ final class MonthlyClosureService
     public function closePeriod(string $period, int $userId): array
     {
         $period = trim($period);
-        if (!preg_match('/^\d{4}-\d{2}$/', $period)) {
+        if (!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/D', $period)) {
             throw new RuntimeException('Período inválido. Usá formato YYYY-MM.');
+        }
+
+        if ($userId <= 0) {
+            throw new RuntimeException('Usuario de cierre inválido.');
         }
 
         if ($this->closures->findByPeriod($period)) {

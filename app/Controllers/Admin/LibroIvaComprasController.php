@@ -1,6 +1,8 @@
 <?php
 namespace App\Controllers\Admin;
 
+use App\Services\Billing\FiscalExportGuard;
+
 use App\Services\Billing\LibroIvaComprasService;
 use App\Services\Billing\PurchaseInvoiceService;
 use App\Services\Admin\Facturacion\ViewModels\FacturacionLibroIvaComprasViewModel;
@@ -53,6 +55,14 @@ final class LibroIvaComprasController
         if (!$from) $from = date('Y-m-01');
         if (!$to)   $to   = date('Y-m-d');
 
+        try {
+            FiscalExportGuard::requireDateRange($from, $to);
+        } catch (\InvalidArgumentException $e) {
+            http_response_code(400);
+            echo 'Rango de fechas inválido.';
+            return;
+        }
+
         $svc = new LibroIvaComprasService(db());
         $rows = $svc->exportRows($from, $to, $filters);
 
@@ -78,13 +88,13 @@ final class LibroIvaComprasController
                 (int)($r['pto_vta'] ?? 0),
                 (int)($r['cbte_nro'] ?? 0),
                 (int)($r['supplier_id'] ?? 0),
-                (string)($r['supplier_nombre'] ?? ''),
-                (string)($r['supplier_cuit'] ?? ''),
+                FiscalExportGuard::safeCsvText((string)($r['supplier_nombre'] ?? '')),
+                FiscalExportGuard::safeCsvText((string)($r['supplier_cuit'] ?? '')),
                 $toArs((int)($r['imp_neto'] ?? 0)),
                 $toArs((int)($r['imp_iva'] ?? 0)),
                 $toArs((int)($r['imp_total'] ?? 0)),
                 (string)($r['status'] ?? ''),
-                (string)($r['notes'] ?? ''),
+                FiscalExportGuard::safeCsvText((string)($r['notes'] ?? '')),
             ]);
         }
 

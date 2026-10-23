@@ -42,19 +42,26 @@ final class ComprasController extends BaseController
             'supplier_id' => (int)($_GET['supplier_id'] ?? 0),
             'status' => trim((string)($_GET['status'] ?? '')),
             'kind' => trim((string)($_GET['kind'] ?? '')),
+            'page' => max(1, min(100000, (int)($_GET['page'] ?? 1))),
+            'per_page' => 25,
         ];
 
         if (!$filters['from']) $filters['from'] = date('Y-m-01');
         if (!$filters['to']) $filters['to'] = date('Y-m-d');
 
-        $items = $this->service()->list($filters);
-        $suppliers = $this->service()->suppliersForSelect();
+        $svc = $this->service();
+        $total = $svc->count($filters);
+        $pages = max(1, (int)ceil($total / $filters['per_page']));
+        $filters['page'] = min($pages, $filters['page']);
+        $items = $svc->list($filters);
+        $suppliers = $svc->suppliersForSelect();
         $vm = new FacturacionComprasIndexViewModel();
 
         $this->view('admin/facturacion/compras/index', $vm->build([
             'filters' => $filters,
             'items' => $items,
             'suppliers' => $suppliers,
+            'pagination' => ['page' => $filters['page'], 'pages' => $pages, 'total' => $total, 'per_page' => $filters['per_page']],
         ]));
     }
 
@@ -84,12 +91,18 @@ final class ComprasController extends BaseController
 
     public function save(): void
     {
+        verify_csrf_or_abort();
         try {
             $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
 
             $res = $this->service()->save($_POST, $id > 0 ? $id : null);
 
             if (!$res['ok']) {
+                if (isset($res['errors']['id'])) {
+                    flash('error', (string)$res['errors']['id']);
+                    redirect('/admin/facturacion/compras');
+                    return;
+                }
                 $suppliers = $this->service()->suppliersForSelect();
                 $this->view('admin/facturacion/compras/form', $this->buildFormViewData(
                     $id > 0 ? $this->service()->findById($id) : null,
@@ -111,6 +124,7 @@ final class ComprasController extends BaseController
     }
     public function validate(): void
     {
+        verify_csrf_or_abort();
         $id = (int)($_POST['id'] ?? 0);
         if ($id <= 0) {
             flash('error', 'Compra inválida.');
@@ -118,14 +132,15 @@ final class ComprasController extends BaseController
             return;
         }
 
-        $this->service()->validate($id);
-        flash('ok', 'Compra marcada como validada.');
+        $updated = $this->service()->validate($id);
+        flash($updated ? 'ok' : 'error', $updated ? 'Compra marcada como validada.' : 'La compra no existe, ya fue validada o está anulada.');
         redirect('/admin/facturacion/compras');
     }
 
 
     public function void(): void
     {
+        verify_csrf_or_abort();
         $id = (int)($_POST['id'] ?? 0);
         if ($id <= 0) {
             flash('error', 'Compra inválida.');
@@ -133,20 +148,26 @@ final class ComprasController extends BaseController
             return;
         }
 
-        $this->service()->void($id);
-        flash('ok', 'Compra anulada.');
+        $updated = $this->service()->void($id);
+        flash($updated ? 'ok' : 'error', $updated ? 'Compra anulada.' : 'La compra no existe o ya fue anulada.');
         redirect('/admin/facturacion/compras');
     }
     // POST /admin/facturacion/compras/adjunto/subir (id, file=attachment)
     public function uploadAttachment(): void
     {
+        verify_csrf_or_abort();
         $id = (int)($_POST['id'] ?? 0);
         if ($id <= 0) {
             flash('error', 'Compra inválida.');
             redirect('/admin/facturacion/compras');
             return;
         }
-        if (function_exists('verify_csrf_or_abort')) verify_csrf_or_abort();
+
+        if (!$this->service()->findById($id)) {
+            flash('error', 'Compra no encontrada.');
+            redirect('/admin/facturacion/compras');
+            return;
+        }
 
         $file = $_FILES['attachment'] ?? null;
         $svc = new PurchaseInvoiceAttachmentService();
@@ -162,6 +183,11 @@ final class ComprasController extends BaseController
         $file = (string)($_GET['file'] ?? '');
         if ($id <= 0 || trim($file) === '') {
             redirect('/admin/facturacion/compras');
+            return;
+        }
+
+        if (!$this->service()->findById($id)) {
+            http_response_code(404);
             return;
         }
 
@@ -197,6 +223,11 @@ final class ComprasController extends BaseController
             return;
         }
 
+        if (!$this->service()->findById($id)) {
+            http_response_code(404);
+            return;
+        }
+
         $svc = new PurchaseInvoiceAttachmentService();
         $path = $svc->resolvePath($id, $file);
         if (!$path) {
@@ -217,6 +248,7 @@ final class ComprasController extends BaseController
     // POST /admin/facturacion/compras/adjunto/eliminar (id, file)
     public function deleteAttachment(): void
     {
+        verify_csrf_or_abort();
         $id = (int)($_POST['id'] ?? 0);
         $file = (string)($_POST['file'] ?? '');
         if ($id <= 0 || trim($file) === '') {
@@ -224,7 +256,12 @@ final class ComprasController extends BaseController
             redirect('/admin/facturacion/compras');
             return;
         }
-        if (function_exists('verify_csrf_or_abort')) verify_csrf_or_abort();
+
+        if (!$this->service()->findById($id)) {
+            flash('error', 'Compra no encontrada.');
+            redirect('/admin/facturacion/compras');
+            return;
+        }
 
         $svc = new PurchaseInvoiceAttachmentService();
         $ok = $svc->delete($id, $file);

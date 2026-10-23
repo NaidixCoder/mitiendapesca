@@ -1,6 +1,8 @@
 <?php
 namespace App\Controllers\Admin;
 
+use App\Services\Billing\FiscalExportGuard;
+
 use App\Services\Billing\ReportesFiscalesService;
 use App\Services\Admin\Facturacion\ViewModels\FacturacionReportesDesviosViewModel;
 use App\Services\Admin\Facturacion\ViewModels\FacturacionReportesResumenViewModel;
@@ -189,6 +191,15 @@ final class ReportesFiscalesController
         admin_required();
 
         $filters = $this->normalizeFilters($_GET);
+        $filters['from'] = trim((string)($filters['from'] ?? '')) ?: date('Y-m-01');
+        $filters['to'] = trim((string)($filters['to'] ?? '')) ?: date('Y-m-d');
+        try {
+            FiscalExportGuard::requireDateRange($filters['from'], $filters['to']);
+        } catch (\InvalidArgumentException $e) {
+            http_response_code(400);
+            echo 'Rango de fechas inválido.';
+            return;
+        }
         $mode = trim((string)($_GET['mode'] ?? 'period'));
         $kind = trim((string)($_GET['kind'] ?? ''));
 
@@ -209,7 +220,7 @@ final class ReportesFiscalesController
             $out = fopen('php://output', 'w');
             // BOM para Excel
             fwrite($out, "\xEF\xBB\xBF");
-            fputcsv($out, [
+            FiscalExportGuard::writeCsv($out, [
                 'id','issued_at','kind','pto_vta','cbte_tipo','cbte_nro',
                 'order_id','doc_tipo','doc_nro',
                 'imp_total','imp_neto','imp_iva',
@@ -219,7 +230,7 @@ final class ReportesFiscalesController
             $repo = new \App\Repositories\Billing\ReportesFiscalesRepository(db());
             $rows = $repo->issuedComprobantesDetailed($from, $to, $env, $kind);
             foreach ($rows as $row) {
-                fputcsv($out, [
+                FiscalExportGuard::writeCsv($out, [
                     $row['id'] ?? null,
                     $row['issued_at'] ?? null,
                     $row['kind'] ?? null,
@@ -256,9 +267,9 @@ final class ReportesFiscalesController
             $out = fopen('php://output', 'w');
             // BOM para Excel
             fwrite($out, "\xEF\xBB\xBF");
-            fputcsv($out, ['order_id', 'created_at', 'order_status', 'total', 'customer_tax_condition', 'customer_cuit', 'comprobante_id', 'cf_status']);
+            FiscalExportGuard::writeCsv($out, ['order_id', 'created_at', 'order_status', 'total', 'customer_tax_condition', 'customer_cuit', 'comprobante_id', 'cf_status']);
             foreach ($rows as $r) {
-                fputcsv($out, [
+                FiscalExportGuard::writeCsv($out, [
                     (int)($r['order_id'] ?? 0),
                     (string)($r['created_at'] ?? ''),
                     order_status_label_admin((string)($r['order_status'] ?? '')),
@@ -283,9 +294,9 @@ final class ReportesFiscalesController
             $out = fopen('php://output', 'w');
             // BOM para Excel
             fwrite($out, "\xEF\xBB\xBF");
-            fputcsv($out, ['id', 'created_at', 'order_id', 'kind', 'pto_vta', 'cbte_tipo', 'cbte_nro', 'status', 'arca_env']);
+            FiscalExportGuard::writeCsv($out, ['id', 'created_at', 'order_id', 'kind', 'pto_vta', 'cbte_tipo', 'cbte_nro', 'status', 'arca_env']);
             foreach ($rows as $r) {
-                fputcsv($out, [
+                FiscalExportGuard::writeCsv($out, [
                     (int)($r['id'] ?? 0),
                     (string)($r['created_at'] ?? ''),
                     (int)($r['order_id'] ?? 0),
@@ -310,9 +321,9 @@ if ($mode === 'conciliacion_desvios') {
     $rows = (array)($data['conciliation']['deviations'] ?? []);
 
     $out = fopen('php://output', 'w');
-    fputcsv($out, ['order_id','order_status','order_total','invoices_total','credit_total','net_issued','resultado','env_min','env_max','last_issued_at']);
+    FiscalExportGuard::writeCsv($out, ['order_id','order_status','order_total','invoices_total','credit_total','net_issued','resultado','env_min','env_max','last_issued_at']);
     foreach ($rows as $r) {
-        fputcsv($out, [
+        FiscalExportGuard::writeCsv($out, [
             (int)($r['order_id'] ?? 0),
             order_status_label_admin((string)($r['order_status'] ?? '')),
             (int)($r['order_total'] ?? 0),
@@ -335,14 +346,14 @@ if ($mode === 'conciliacion_desvios') {
             header('Content-Type: text/csv; charset=utf-8');
             header('Content-Disposition: attachment; filename="'.$filename.'"');
 
-            $rows = (array)($data['conciliation']['duplicates_exact_issued'] ?? []);
+            $rows = (array)($data['conciliation']['duplicates_exact'] ?? []);
 
             $out = fopen('php://output', 'w');
             // BOM para Excel
             fwrite($out, "\xEF\xBB\xBF");
-            fputcsv($out, ['doc_tipo', 'doc_nro', 'pto_vta', 'cbte_tipo', 'cbte_nro', 'issued_at_min', 'issued_at_max', 'cantidad']);
+            FiscalExportGuard::writeCsv($out, ['doc_tipo', 'doc_nro', 'pto_vta', 'cbte_tipo', 'cbte_nro', 'issued_at_min', 'issued_at_max', 'cantidad']);
             foreach ($rows as $r) {
-                fputcsv($out, [
+                FiscalExportGuard::writeCsv($out, [
                     (int)($r['doc_tipo'] ?? 0),
                     (string)($r['doc_nro'] ?? ''),
                     (int)($r['pto_vta'] ?? 0),
@@ -362,14 +373,14 @@ if ($mode === 'conciliacion_desvios') {
             header('Content-Type: text/csv; charset=utf-8');
             header('Content-Disposition: attachment; filename="'.$filename.'"');
 
-            $rows = (array)($data['conciliation']['non_billable_orders_with_invoice_issued'] ?? []);
+            $rows = (array)($data['conciliation']['non_billable_with_invoice'] ?? []);
 
             $out = fopen('php://output', 'w');
             // BOM para Excel
             fwrite($out, "\xEF\xBB\xBF");
-            fputcsv($out, ['order_id', 'created_at', 'order_status', 'total', 'comprobante_id', 'cf_status', 'issued_at']);
+            FiscalExportGuard::writeCsv($out, ['order_id', 'created_at', 'order_status', 'total', 'comprobante_id', 'cf_status', 'issued_at']);
             foreach ($rows as $r) {
-                fputcsv($out, [
+                FiscalExportGuard::writeCsv($out, [
                     (int)($r['order_id'] ?? 0),
                     (string)($r['created_at'] ?? ''),
                     order_status_label_admin((string)($r['order_status'] ?? '')),
@@ -390,12 +401,12 @@ if ($mode === 'conciliacion_desvios') {
         header('Content-Disposition: attachment; filename="'.$filename.'"');
 
         $out = fopen('php://output', 'w');
-        fputcsv($out, ['periodo','facturas_cantidad','facturas_total','nc_cantidad','nc_total','neto']);
+        FiscalExportGuard::writeCsv($out, ['periodo','facturas_cantidad','facturas_total','nc_cantidad','nc_total','neto']);
 
         foreach (($data['series'] ?? []) as $row) {
             $invTotal = (int)($row['invoices_total'] ?? 0);
             $cnTotal  = (int)($row['credit_notes_total'] ?? 0);
-            fputcsv($out, [
+            FiscalExportGuard::writeCsv($out, [
                 (string)($row['period'] ?? ''),
                 (int)($row['invoices_count'] ?? 0),
                 $invTotal,

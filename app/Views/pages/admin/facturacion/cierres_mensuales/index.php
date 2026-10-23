@@ -1,4 +1,4 @@
-<div class="av3-container av3-max-w-6xl av3-mx-auto av3-pad-4">
+<div class="av3-fiscal-page av3-container av3-max-w-6xl av3-mx-auto av3-pad-4">
   <?php render_partial('admin/subnav'); ?>
   <?php render_partial('admin/facturacion/cierres_mensuales/index/header', [
     'is_ri' => !empty($is_ri),

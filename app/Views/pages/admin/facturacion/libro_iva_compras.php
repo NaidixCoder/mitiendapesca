@@ -1,6 +1,6 @@
 <?php render_partial('admin/subnav'); ?>
 <?php if (empty($is_ri)): ?>
-  <div class="av3-max-w-6xl av3-mx-auto av3-space-bottom-4">
+  <div class="av3-fiscal-page av3-max-w-6xl av3-mx-auto av3-space-bottom-4">
     <div class="alert-info">Este reporte aplica a <b>Responsable Inscripto</b>. En <b>Monotributo</b> normalmente no se usa Libro IVA.</div>
   </div>
 <?php endif; ?>

@@ -9,7 +9,7 @@ $crumbs = [
 ?>
 
 <?php render_partial('admin/subnav'); ?>
-<div class="av3-max-w-6xl av3-mx-auto">
+<div class="av3-fiscal-page av3-max-w-6xl av3-mx-auto">
   <div class="admin-surface av3-pad-6">
     <?php
 ob_start(); ?>Reportes<?php $adminHeaderTitle=trim(html_entity_decode(strip_tags(ob_get_clean()),ENT_QUOTES|ENT_HTML5,'UTF-8'));

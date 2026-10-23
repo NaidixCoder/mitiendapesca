@@ -11,7 +11,7 @@
 ?>
 
 <?php render_partial('admin/subnav'); ?>
-<div class="av3-width-max-4xl av3-mx-auto av3-pad-4">
+<div class="av3-fiscal-page av3-width-max-4xl av3-mx-auto av3-pad-4">
   <?php render_partial('admin/facturacion/compras/form/header', [
     'is_edit' => $is_edit,
   ]); ?>

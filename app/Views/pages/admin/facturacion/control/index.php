@@ -18,7 +18,7 @@ $crumbs = is_array($crumbs ?? null) ? $crumbs : admin_crumbs('facturacion.contro
 ?>
 
 <?php render_partial('admin/subnav'); ?>
-<section class="fisc-wrap fisc-control">
+<section class="av3-fiscal-page fisc-wrap fisc-control">
   <?php require BASE_PATH . '/app/Views/partials/admin/facturacion/control/header.php'; ?>
 
   <div class="fisc-grid-main">

@@ -90,8 +90,9 @@ final class PurchaseInvoiceAttachmentService
         if (!str_ends_with(strtolower($name), '.' . $ext)) $name .= '.' . $ext;
 
         $dest = $dir . '/' . $name;
-        if (!@move_uploaded_file($tmp, $dest)) {
-            if (!@copy($tmp, $dest)) return [false, 'No se pudo mover el archivo', null];
+        // Nunca aceptar rutas locales arbitrarias: debe provenir de una subida HTTP válida.
+        if (!is_uploaded_file($tmp) || !@move_uploaded_file($tmp, $dest)) {
+            return [false, 'No se pudo validar o mover el archivo subido', null];
         }
 
         return [true, 'Adjunto guardado.', $name];

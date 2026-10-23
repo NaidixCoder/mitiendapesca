@@ -1,5 +1,5 @@
 <?php render_partial('admin/subnav'); ?>
-<div class="av3-max-w-6xl av3-mx-auto av3-pad-x4 av3-pad-y6">
+<div class="av3-fiscal-page av3-max-w-6xl av3-mx-auto av3-pad-x4 av3-pad-y6">
   <?php render_partial('admin/facturacion/reportes/saldo_iva/header_filters', [
     'filters' => $filters ?? [],
     'env_options' => $env_options ?? [],
