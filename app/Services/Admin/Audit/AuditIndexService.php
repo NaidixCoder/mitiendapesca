@@ -29,24 +29,27 @@ final class AuditIndexService
         $hasRequestId = $this->repo->hasRequestIdColumn();
 
         // Vista de grupo (request_id)
-        $rid = trim((string)($query['rid'] ?? ''));
+        $rid = substr(trim((string)($query['rid'] ?? '')), 0, 128);
+        if ($rid !== '' && !preg_match('/^[a-zA-Z0-9_-]+$/D', $rid)) $rid = '';
         if ($rid !== '') {
             return $this->buildGroupViewData($db, $rid, $hasRequestId, (int)($query['open'] ?? 0));
         }
 
-        $pageNum = max(1, (int)($query['page'] ?? 1));
+        $pageNum = min(100000, max(1, (int)($query['page'] ?? 1)));
         $perPage = (int)($query['per_page'] ?? $query['perPage'] ?? 25);
         if (!in_array($perPage, [25, 50, 100], true)) $perPage = 25;
         $offset = ($pageNum - 1) * $perPage;
 
         $tipo   = (string)($query['tipo'] ?? $query['type'] ?? 'todos');
-        $action = (string)($query['action'] ?? $query['accion'] ?? '');
+        $action = substr((string)($query['action'] ?? $query['accion'] ?? ''), 0, 100);
         $range  = (string)($query['range'] ?? $query['rango'] ?? '7');
-        $q      = trim((string)($query['q'] ?? $query['buscar'] ?? ''));
-        $actor  = trim((string)($query['actor'] ?? $query['actor_q'] ?? ''));
+        $q      = substr(trim((string)($query['q'] ?? $query['buscar'] ?? '')), 0, 150);
+        $actor  = substr(trim((string)($query['actor'] ?? $query['actor_q'] ?? '')), 0, 150);
         $entityIdRaw = trim((string)($query['entity_id'] ?? $query['entidad_id'] ?? ''));
         $dateFromRaw = trim((string)($query['from'] ?? $query['desde'] ?? ''));
+        if ($dateFromRaw !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/D', $dateFromRaw)) $dateFromRaw = '';
         $dateToRaw   = trim((string)($query['to'] ?? $query['hasta'] ?? ''));
+        if ($dateToRaw !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/D', $dateToRaw)) $dateToRaw = '';
 
         if ($q === '' && isset($query['usuario'])) {
             $q = trim((string)$query['usuario']);

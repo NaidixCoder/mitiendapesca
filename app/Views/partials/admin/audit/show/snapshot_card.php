@@ -1,5 +1,5 @@
 <?php if ($snapshotEnabled): ?>
-  <div class="card" style="padding: 16px; margin-top: 14px;">
+  <div class="av3-ui-card av3-audit-detail">
     <div style="font-size:14px; font-weight:700; margin-bottom:10px;">Estado actual de la entidad</div>
 
     <?php if ($snapshotState === 'not_found'): ?>

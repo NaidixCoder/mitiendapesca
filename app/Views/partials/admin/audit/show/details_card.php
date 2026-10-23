@@ -1,4 +1,4 @@
-<div class="card" style="padding: 16px; margin-top: 14px;">
+<div class="av3-ui-card av3-audit-detail">
   <?php if (!empty($bizEvents)): ?>
 
     <?php if ($bizBucket === 'created'): ?>
@@ -171,6 +171,6 @@
 
   <details class="audit-json" style="margin-top: 12px;">
     <summary class="audit-json__btn">Ver JSON</summary>
-    <pre><?= htmlspecialchars($metaJsonPretty) ?></pre>
+    <pre class="av3-audit-json"><?= htmlspecialchars($metaJsonPretty) ?></pre>
   </details>
 </div>

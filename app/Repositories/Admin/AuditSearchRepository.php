@@ -116,7 +116,7 @@ final class AuditSearchRepository
               SELECT a.id AS sort_id
               {$fromJoin}
               {$whereSqlAnd2}
-              AND a.action = 'stock_updated'
+              AND (a.action = 'stock_updated' OR a.request_id IS NULL)
             ) t
         ";
 
@@ -169,7 +169,7 @@ final class AuditSearchRepository
               SELECT 'event' AS row_type, a.id AS sort_id, a.request_id AS request_id
               {$fromJoin}
               {$whereSqlAnd2}
-              AND a.action = 'stock_updated'
+              AND (a.action = 'stock_updated' OR a.request_id IS NULL)
             ) t
             INNER JOIN admin_audit_log a2 ON a2.id = t.sort_id
             LEFT JOIN users u2 ON u2.id = a2.user_id

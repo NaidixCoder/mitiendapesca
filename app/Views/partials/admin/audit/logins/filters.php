@@ -1,4 +1,4 @@
-<div class="av3-card av3-p-0 av3-space-bottom-4">
+<div class="av3-ui-card av3-p-0 av3-space-bottom-4">
   <div class="av3-tabs">
     <a class="av3-tab" href="<?= base_url('/admin/audit') ?>">Actividad</a>
     <a class="av3-tab active" href="<?= base_url('/admin/audit/logins') ?>">Logins</a>
@@ -57,8 +57,8 @@
     </div>
   </form>
 
-  <div class="av3-filters" style="border-top:1px solid rgba(0,0,0,.06);">
-    <div class="av3-filters__row" style="align-items:flex-end;">
+  <div class="av3-filters av3-audit-maintenance">
+    <div class="av3-filters__row">
       <div class="av3-field av3-field--grow">
         <span>Mantenimiento</span>
         <div class="muted small">
@@ -66,16 +66,16 @@
         </div>
       </div>
 
-      <form method="post" action="<?= base_url('/admin/audit/logins/cleanup') ?>" style="display:flex; gap:10px; align-items:center;">
+      <form class="av3-audit-cleanup" method="post" action="<?= base_url('/admin/audit/logins/cleanup') ?>">
         <?php csrf_field(); ?>
         <input type="hidden" name="_back" value="<?= h($currentUri) ?>">
-        <label class="av3-field" style="margin:0;">
+        <div class="av3-field">
           <span>&nbsp;</span>
-          <label style="display:flex; gap:8px; align-items:center; font-size:13px;" class="muted">
+          <label class="muted">
             <input type="checkbox" name="confirm" value="1" required>
-            Entiendo que esto borra registros
+            Confirmo la eliminación irreversible de eventos de acceso anteriores a los plazos de retención
           </label>
-        </label>
+        </div>
         <button class="btn btn-danger" type="submit">Ejecutar limpieza</button>
       </form>
     </div>

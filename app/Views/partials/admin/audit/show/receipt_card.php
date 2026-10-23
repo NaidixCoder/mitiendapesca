@@ -1,5 +1,5 @@
 <?php if (!empty($receipt['show'])): ?>
-  <div class="card" style="padding: 16px; margin-top: 14px;">
+  <div class="av3-ui-card av3-audit-detail">
     <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px;">
       <div>
         <div style="font-size:14px; font-weight:700;">Comprobante adjunto</div>
@@ -19,7 +19,7 @@
     <?php if (!empty($receipt['preview_url'])): ?>
       <div style="margin-top:12px; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; background:#fff;">
         <?php if (!empty($receipt['is_pdf'])): ?>
-          <iframe src="<?= htmlspecialchars((string)$receipt['preview_url']) ?>" style="width:100%; height:520px; border:0;"></iframe>
+          <iframe title="Vista previa del comprobante" loading="lazy" src="<?= htmlspecialchars((string)$receipt['preview_url']) ?>" style="width:100%; height:520px; border:0;"></iframe>
         <?php else: ?>
           <img src="<?= htmlspecialchars((string)$receipt['preview_url']) ?>" alt="Comprobante" style="width:100%; display:block;" />
         <?php endif; ?>

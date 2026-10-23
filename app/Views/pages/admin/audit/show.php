@@ -6,9 +6,9 @@ $auditShowView = is_array($audit_show_view ?? null) ? $audit_show_view : [];
 extract($auditShowView, EXTR_SKIP);
 ?>
 
-<section class="admin-surface">
+<section class="admin-surface av3-audit">
   <div class="av3-wrap">
-    <div class="audit-show" style="max-width: 980px; margin: 0 auto;">
+    <div class="audit-show">
       <?php
       $adminHeaderTitle='Detalle de auditoría';
       $adminHeaderDescription='';

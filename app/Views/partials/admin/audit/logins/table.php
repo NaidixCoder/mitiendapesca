@@ -1,4 +1,4 @@
-<div class="av3-card av3-p-0">
+<div class="av3-ui-card av3-p-0">
   <div class="av3-table-wrap">
     <table class="av3-table">
       <thead>

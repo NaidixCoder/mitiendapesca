@@ -1,4 +1,4 @@
-<div class="audit-hero av3-card">
+<div class="audit-hero av3-ui-card">
   <div class="av3-tabs">
     <a class="av3-tab active" href="<?= base_url('/admin/audit') ?>">Actividad</a>
     <a class="av3-tab" href="<?= base_url('/admin/audit/logins') ?>">Logins</a>

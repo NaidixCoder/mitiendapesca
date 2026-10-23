@@ -28,6 +28,7 @@ final class AuditController extends BaseController
 
         $view = $svc->buildViewData($db, $_GET);
         $view = array_merge($view, $presenter->presentIndex($view, $_SERVER));
+        $view['extraHead'] = $this->auditCss();
         render_page('admin/audit/index', $view);
     }
 
@@ -40,6 +41,7 @@ final class AuditController extends BaseController
         $view = $svc->buildViewData($db, $_GET);
         $view = array_merge($view, $presenter->presentLogins($view));
         $vm = (new AuditLoginsViewModel())->build($view);
+        $view['extraHead'] = $this->auditCss();
 
         render_page('admin/audit/logins', array_merge($view, $vm));
     }
@@ -58,9 +60,12 @@ final class AuditController extends BaseController
             return;
         }
 
-        if (function_exists('verify_csrf_or_abort')) {
-            verify_csrf_or_abort();
+        if (!function_exists('verify_csrf_or_abort')) {
+            http_response_code(403);
+            echo 'Protección CSRF no disponible.';
+            return;
         }
+        verify_csrf_or_abort();
 
         // En producción NO ofrecemos simulación: sólo ejecución real (borra registros).
         if ((string)($_POST['dry_run'] ?? '') === '1') {
@@ -91,7 +96,7 @@ final class AuditController extends BaseController
         }
 
         $back = (string)($_POST['_back'] ?? '/admin/audit/logins');
-        if ($back === '' || !str_starts_with($back, '/')) {
+        if (!preg_match('~^/admin/audit(?:/logins)?(?:\?[a-zA-Z0-9_=&%+.-]*)?$~D', $back)) {
             $back = '/admin/audit/logins';
         }
         redirect($back);
@@ -99,7 +104,8 @@ final class AuditController extends BaseController
 
     public function show(): void
     {
-        $id = (int)($_GET['id'] ?? 0);
+        $rawId = $_GET['id'] ?? null;
+        $id = (is_scalar($rawId) && ctype_digit((string)$rawId)) ? (int)$rawId : 0;
         if ($id <= 0) {
             http_response_code(404);
             echo 'No encontrado';
@@ -128,7 +134,15 @@ final class AuditController extends BaseController
 
         $view = array_merge($view, $presenter->presentShow($view));
         $vm = (new AuditShowViewModel())->build($view);
+        $view['extraHead'] = $this->auditCss();
         render_page('admin/audit/show', array_merge($view, $vm));
+    }
+
+    private function auditCss(): string
+    {
+        $basePath = rtrim((string)(parse_url(base_url(), PHP_URL_PATH) ?: ''), '/');
+        $href = $basePath . '/assets/css/admin-v3/pages/audit.css';
+        return '<link rel="stylesheet" href="' . htmlspecialchars($href, ENT_QUOTES, 'UTF-8') . '?v=' . (int)filemtime(BASE_PATH . '/public_html/assets/css/admin-v3/pages/audit.css') . '">';
     }
 
     private function sanitizeBackUrl(string $back): string
@@ -142,7 +156,7 @@ final class AuditController extends BaseController
         }
 
         // Aceptamos solo volver a auditoría (listado o tabs)
-        if (str_contains($back, '/admin/audit') === false) {
+        if (!preg_match('~^/admin/audit(?:/logins)?(?:\?[a-zA-Z0-9_=&%+.-]*)?$~D', $back)) {
             return base_url('/admin/audit');
         }
 

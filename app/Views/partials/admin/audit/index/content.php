@@ -23,7 +23,7 @@ $hasAdvancedFilters = (bool)($hasAdvancedFilters ?? false);
 $itemsPrepared = is_array($items_prepared ?? null) ? $items_prepared : [];
 $pager = is_array($pager ?? null) ? $pager : ['prev_disabled' => true, 'next_disabled' => true, 'prev_url' => '#', 'next_url' => '#'];
 ?>
-<section class="admin-surface">
+<section class="admin-surface av3-audit">
   <div class="av3-wrap">
     <?php
     $adminHeaderTitle='Auditoría';

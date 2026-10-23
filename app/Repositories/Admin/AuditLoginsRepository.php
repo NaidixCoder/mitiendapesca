@@ -27,7 +27,7 @@ final class AuditLoginsRepository
                 FROM auth_login_events e
                 LEFT JOIN users u ON u.id = e.user_id
                 {$whereSql}
-                ORDER BY e.created_at DESC
+                ORDER BY e.created_at DESC, e.id DESC
                 LIMIT :limit OFFSET :offset";
         $st = $this->db->prepare($sql);
         foreach ($params as $k => $v) {

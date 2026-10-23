@@ -1,4 +1,4 @@
-<div class="audit-feed av3-card">
+<div class="audit-feed av3-ui-card">
   <div class="audit-feed__head">
     <div class="audit-feed__meta">
       <?php if ($total): ?>
@@ -61,8 +61,8 @@
   <?php endif; ?>
 
   <div class="audit-pager">
-    <a class="audit-page" aria-disabled="<?= !empty($pager['prev_disabled']) ? 'true' : 'false' ?>" href="<?= htmlspecialchars((string)($pager['prev_url'] ?? '#')) ?>">Anterior</a>
+    <a class="audit-page" aria-disabled="<?= !empty($pager['prev_disabled']) ? 'true' : 'false' ?>" <?= !empty($pager['prev_disabled']) ? 'tabindex="-1"' : '' ?> href="<?= htmlspecialchars((string)($pager['prev_url'] ?? '#')) ?>">Anterior</a>
     <div class="audit-pager__mid">Pagina <?= (int)$page ?> de <?= (int)$pages ?> <span class="audit-muted">(<?= (int)$total ?>)</span></div>
-    <a class="audit-page" aria-disabled="<?= !empty($pager['next_disabled']) ? 'true' : 'false' ?>" href="<?= htmlspecialchars((string)($pager['next_url'] ?? '#')) ?>">Siguiente</a>
+    <a class="audit-page" aria-disabled="<?= !empty($pager['next_disabled']) ? 'true' : 'false' ?>" <?= !empty($pager['next_disabled']) ? 'tabindex="-1"' : '' ?> href="<?= htmlspecialchars((string)($pager['next_url'] ?? '#')) ?>">Siguiente</a>
   </div>
 </div>

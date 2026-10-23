@@ -10,7 +10,7 @@ final class AuditLoginsService
 {
     public function buildViewData(PDO $db, array $query): array
     {
-        $pageNum = max(1, (int)($query['page'] ?? 1));
+        $pageNum = min(100000, max(1, (int)($query['page'] ?? 1)));
         $perPage = (int)($query['per_page'] ?? $query['perPage'] ?? 25);
         if (!in_array($perPage, [25,50,100], true)) $perPage = 25;
         $offset = ($pageNum - 1) * $perPage;
@@ -18,7 +18,7 @@ final class AuditLoginsService
         $event  = (string)($query['event'] ?? 'todos');
         $method = (string)($query['method'] ?? 'todos');
         $range  = (string)($query['range'] ?? '7');
-        $q      = trim((string)($query['q'] ?? ''));
+        $q      = substr(trim((string)($query['q'] ?? '')), 0, 150);
 
         $where = [];
         $params = [];
@@ -102,9 +102,9 @@ final class AuditLoginsService
         $successDays = (int)($post['success_days'] ?? 0);
         $failedDays  = (int)($post['failed_days'] ?? 0);
         $logoutDays  = (int)($post['logout_days'] ?? 0);
-        if ($successDays > 0) $retention['login_success'] = max(7, $successDays);
-        if ($failedDays  > 0) $retention['login_failed']  = max(7, $failedDays);
-        if ($logoutDays  > 0) $retention['logout']        = max(7, $logoutDays);
+        if ($successDays > 0) $retention['login_success'] = max($retention['login_success'], $successDays);
+        if ($failedDays  > 0) $retention['login_failed']  = max($retention['login_failed'], $failedDays);
+        if ($logoutDays  > 0) $retention['logout']        = max($retention['logout'], $logoutDays);
 
         $res = AuthLoginEventsMaintenanceService::cleanup($db, $retention, false);
 
