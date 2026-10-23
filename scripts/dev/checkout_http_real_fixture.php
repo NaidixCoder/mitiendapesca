@@ -8,7 +8,7 @@ $user=(string)getenv('MI_QA_DB_USER');
 $pass=(string)getenv('MI_QA_DB_PASS');
 $mode=$argv[1]??'';
 if($host!=='127.0.0.1'||$port!==18997||$name!=='mi_checkout_http_private_qa'
-   ||$user!=='root'||$pass===''||!in_array($mode,['seed','snapshot','session','hide','show','stock_low','stock_restore','cart_restore'],true)){
+   ||$user!=='root'||$pass===''||!in_array($mode,['seed','snapshot','session','hide','show','stock_low','stock_restore','cart_restore','race_reset'],true)){
     fwrite(STDERR,"REFUSED: private QA identity invalid\n");exit(2);
 }
 $db=new PDO("mysql:host=$host;port=$port;dbname=$name;charset=utf8mb4",$user,$pass,[
@@ -20,8 +20,17 @@ $actual=str_replace('\\','/',strtolower(rtrim((string)$meta['datadir'],"\\/")));
 if($meta['db']!==$name||(int)$meta['port']!==$port||rtrim($actual,'/')!==rtrim($expected,'/')){
     fwrite(STDERR,"REFUSED: MariaDB datadir or identity mismatched\n");exit(2);
 }
-if(in_array($mode,['hide','show','stock_low','stock_restore','cart_restore'],true)){
-    if($mode==='cart_restore'){
+if(in_array($mode,['hide','show','stock_low','stock_restore','cart_restore','race_reset'],true)){
+    if($mode==='race_reset'){
+        $db->beginTransaction();
+        try {
+            $db->exec('DELETE FROM order_items WHERE product_id=197');
+            $db->exec('DELETE FROM orders WHERE user_id=197');
+            $db->exec('UPDATE inventory SET stock=5 WHERE product_id=197');
+            $db->exec('INSERT INTO cart_items(cart_id,product_id,quantity) VALUES(197,197,2) ON DUPLICATE KEY UPDATE quantity=2');
+            $db->commit();
+        }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
+    }elseif($mode==='cart_restore'){
         $db->exec('UPDATE cart_items SET quantity=2 WHERE cart_id=197 AND product_id=197');
     }elseif($mode==='hide'||$mode==='show'){
         $db->prepare('UPDATE products SET is_active=? WHERE id=197')->execute([$mode==='show'?1:0]);

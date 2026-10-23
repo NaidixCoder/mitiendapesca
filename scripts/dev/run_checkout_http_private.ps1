@@ -16,6 +16,8 @@ $schema=Join-Path $repo 'database\schema.sql'
 $log=Join-Path $repo 'docs\QA_CHECKOUT_HTTP_PRIVATE_RESULT.log'
 $privateDb=$null
 $privateHttp=$null
+$privateHttpB=$null
+$httpPortB=18896
 $created=$false
 $success=$false
 $cleanup=$false
@@ -33,7 +35,7 @@ try {
  Require ((Canon $repo) -ieq (Canon 'C:\xampp\htdocs\mi-pesca')) 'wrong repo'
  foreach($f in @($php,$mysql,$bootstrap,$mysqld,$schema)){Require (Test-Path $f -PathType Leaf) "file missing $f"}
  Require (-not(Test-Path -LiteralPath $base)) 'private test directory already exists; review manually'
- Require (-not(TestPort $port) -and -not(TestPort $httpPort)) 'private port busy'
+ Require (-not(TestPort $port) -and -not(TestPort $httpPort) -and -not(TestPort $httpPortB)) 'private port busy'
  $rng=[Security.Cryptography.RandomNumberGenerator]::Create()
  $bytes=New-Object byte[] 24;$rng.GetBytes($bytes);$rng.Dispose()
  $secret=[BitConverter]::ToString($bytes).Replace('-','').ToLowerInvariant()
@@ -104,8 +106,9 @@ try {
  $router=Join-Path $base 'http_router.php'
  [IO.File]::WriteAllText($router, '<?php $p=parse_url($_SERVER["REQUEST_URI"],PHP_URL_PATH);$f=__DIR__."/site/public_html".$p;if($p!=="/" && is_file($f)){return false;}$_SERVER["SCRIPT_NAME"]="/index.php";require __DIR__."/site/public_html/index.php";', (New-Object Text.UTF8Encoding($false)))
  $privateHttp=Start-Process -FilePath $php -ArgumentList @('-d','SMTP=127.0.0.1','-d','smtp_port=1','-d',"session.save_path=$qaSessions",'-S',"127.0.0.1:$httpPort",'-t',"$site\public_html",$router) -PassThru -RedirectStandardOutput (Join-Path $base 'php.out') -RedirectStandardError (Join-Path $base 'php.err')
+ $privateHttpB=Start-Process -FilePath $php -ArgumentList @('-d','SMTP=127.0.0.1','-d','smtp_port=1','-d',"session.save_path=$qaSessions",'-S',"127.0.0.1:$httpPortB",'-t',"$site\public_html",$router) -PassThru -RedirectStandardOutput (Join-Path $base 'php_b.out') -RedirectStandardError (Join-Path $base 'php_b.err')
  Start-Sleep -Seconds 1
- Require (-not $privateHttp.HasExited) 'PHP private server failed'
+ Require (-not $privateHttp.HasExited -and -not $privateHttpB.HasExited) 'PHP private servers failed'
  $get=Invoke-WebRequest -Uri "http://127.0.0.1:$httpPort/login" -UseBasicParsing -MaximumRedirection 0 -TimeoutSec 15
  Require ($get.StatusCode -eq 200) 'GET login HTTP failed'
  Write-Host '[QA] Real app GET /login 200.'
@@ -121,12 +124,22 @@ try {
  if($errorText){Write-Warning $errorText}
  Require ($pyProc.ExitCode -eq 0) 'HTTP authenticated E2E failed; consult private QA log'
  Require ($result -match 'CHECKOUT_AUTHENTIC_HTTP_MARIADB_PASS') 'HTTP E2E PASS marker missing'
+ $raceTest=Join-Path $repo 'scripts\dev\checkout_http_real_concurrent.py'
+ Require (Test-Path $raceTest -PathType Leaf) 'concurrency QA missing'
+ $raceOut=Join-Path $base 'race_http.out'
+ $raceErr=Join-Path $base 'race_http.err'
+ $raceProc=Start-Process -FilePath 'python' -ArgumentList @([char]34+$raceTest+[char]34) -Wait -PassThru -RedirectStandardOutput $raceOut -RedirectStandardError $raceErr
+ $raceResult=Get-Content -LiteralPath $raceOut -Raw -ErrorAction SilentlyContinue
+ $raceError=Get-Content -LiteralPath $raceErr -Raw -ErrorAction SilentlyContinue
+ if($raceResult){Write-Host $raceResult}
+ if($raceError){Write-Warning $raceError}
+ Require ($raceProc.ExitCode -eq 0 -and $raceResult -match 'CHECKOUT_REAL_HTTP_CONCURRENCY_PASS 3') 'parallel HTTP checkout failed'
  $success=$true
- [IO.File]::WriteAllText($log,("PRIVATE AUTHENTIC HTTP E2E PASS`n"+$result),(New-Object Text.UTF8Encoding($false)))
+ [IO.File]::WriteAllText($log,("PRIVATE AUTHENTIC HTTP E2E PASS`n"+$result+"`n"+$raceResult),(New-Object Text.UTF8Encoding($false)))
 } catch {
  Write-Warning ("[QA] FAIL: "+$_.Exception.Message)
  $diag=@("PRIVATE AUTHENTIC HTTP E2E FAILED: "+$_.Exception.Message)
- foreach($file in @('qa_http.out','qa_http.err','schema.err','php.err')){
+ foreach($file in @('qa_http.out','qa_http.err','race_http.out','race_http.err','schema.err','php.err','php_b.err')){
   $candidate=Join-Path $base $file
   if(Test-Path -LiteralPath $candidate -PathType Leaf){
    $diag+=("--- "+$file+" ---")
@@ -135,17 +148,17 @@ try {
  }
  [IO.File]::WriteAllText($log,($diag -join [Environment]::NewLine),(New-Object Text.UTF8Encoding($false)))
 } finally {
- foreach($proc in @($privateHttp,$privateDb)){
+ foreach($proc in @($privateHttp,$privateHttpB,$privateDb)){
   if($null -ne $proc){
    $p=Get-CimInstance Win32_Process -Filter "ProcessId = $($proc.Id)" -ErrorAction SilentlyContinue
-   if($null -ne $p -and $p.Name -in @('php.exe','mysqld.exe') -and $p.CommandLine -match '18897|18997|mi_checkout_http_private_qa'){
+   if($null -ne $p -and $p.Name -in @('php.exe','mysqld.exe') -and $p.CommandLine -match '18897|18896|18997|mi_checkout_http_private_qa'){
     Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
    }
   }
  }
  Start-Sleep -Milliseconds 900
  try {
-  Require (-not(TestPort $port) -and -not(TestPort $httpPort)) 'private port still occupied'
+  Require (-not(TestPort $port) -and -not(TestPort $httpPort) -and -not(TestPort $httpPortB)) 'private port still occupied'
   if($created){
    Require ((Canon $base) -ieq (Canon (Join-Path $env:TEMP 'mi_checkout_http_private_qa'))) 'cleanup path mismatch'
    Remove-Item -LiteralPath $base -Recurse -Force
