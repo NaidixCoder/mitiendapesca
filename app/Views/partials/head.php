@@ -1,7 +1,14 @@
+<?php
+// Las vistas del panel ya están en español; impedir sugerencias automáticas
+// de traducción sobre el administrador sin afectar al sitio público.
+$isAdminDocument = str_starts_with((string)(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?? ''), '/admin/')
+    || str_starts_with((string)($pageId ?? ''), 'admin-');
+?>
 <!doctype html>
-<html lang="es">
+<html lang="es-AR"<?= $isAdminDocument ? ' translate="no" class="notranslate"' : '' ?>>
 <head>
   <meta charset="utf-8">
+  <?php if ($isAdminDocument): ?><meta name="google" content="notranslate"><?php endif; ?>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <?php
