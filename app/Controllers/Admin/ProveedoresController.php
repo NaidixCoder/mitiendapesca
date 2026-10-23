@@ -13,88 +13,89 @@ final class ProveedoresController extends BaseController
         return new ProveedorService(new ProveedorRepository(db()));
     }
 
-    /**
-     * @param array<string,mixed>|null $item
-     * @param array<string,mixed> $errors
-     * @param array<string,mixed> $old
-     * @return array<string,mixed>
-     */
     private function buildFormViewData(?array $item, array $errors, array $old): array
     {
-        return (new ProveedoresFormViewModel())->build([
-            'item' => $item,
-            'errors' => $errors,
-            'old' => $old,
-        ]);
+        return (new ProveedoresFormViewModel())->build(['item' => $item, 'errors' => $errors, 'old' => $old]);
     }
 
     public function index(): void
     {
-        $q = trim((string)($_GET['q'] ?? ''));
-        $items = $this->service()->list([
-            'q' => $q,
-            'limit' => 200,
-        ]);
-
-        $this->view('admin/proveedores/index', [
-            'q' => $q,
-            'items' => $items,
-        ]);
+        $q = mb_substr(trim((string)($_GET['q'] ?? '')), 0, 100);
+        $status = (string)($_GET['status'] ?? 'active');
+        if (!in_array($status, ['active', 'inactive', 'all'], true)) $status = 'active';
+        $per = (int)($_GET['per'] ?? 25);
+        if (!in_array($per, [25, 50], true)) $per = 25;
+        $page = max(1, min(100000, (int)($_GET['page'] ?? 1)));
+        $service = $this->service();
+        $filters = ['q' => $q, 'status' => $status];
+        $total = $service->count($filters);
+        $pages = max(1, (int)ceil($total / $per));
+        $page = min($page, $pages);
+        $items = $service->list($filters + ['limit' => $per, 'offset' => ($page - 1) * $per]);
+        $baseQuery = ['q' => $q, 'status' => $status, 'per' => $per];
+        $prevUrl = url('/admin/proveedores?' . http_build_query($baseQuery + ['page' => max(1, $page - 1)]));
+        $nextUrl = url('/admin/proveedores?' . http_build_query($baseQuery + ['page' => min($pages, $page + 1)]));
+        $this->view('admin/proveedores/index', compact('q', 'status', 'per', 'page', 'pages', 'total', 'items', 'prevUrl', 'nextUrl'));
     }
 
     public function form(): void
     {
         $id = (int)($_GET['id'] ?? 0);
-        $item = null;
-        if ($id > 0) {
-            $item = $this->service()->findById($id);
-            if (!$item) {
-                flash('error', 'Proveedor no encontrado.');
-                redirect('/admin/proveedores');
-                return;
-            }
+        $item = $id > 0 ? $this->service()->findById($id) : null;
+        if ($id > 0 && !$item) {
+            flash('error', 'Proveedor no encontrado.');
+            redirect('/admin/proveedores');
+            return;
         }
-
         $this->view('admin/proveedores/form', $this->buildFormViewData($item, [], []));
     }
 
     public function save(): void
     {
+        verify_csrf_or_abort();
+        $id = (int)($_POST['id'] ?? 0);
         try {
-            $id = isset($_POST['id']) ? (int)$_POST['id'] : null;
-
-            $res = $this->service()->save($_POST, $id && $id > 0 ? $id : null);
-
+            $service = $this->service();
+            $item = $id > 0 ? $service->findById($id) : null;
+            if ($id > 0 && !$item) {
+                flash('error', 'Proveedor no encontrado.');
+                redirect('/admin/proveedores');
+                return;
+            }
+            $res = $service->save($_POST, $id > 0 ? $id : null);
             if (!$res['ok']) {
                 $this->view('admin/proveedores/form', $this->buildFormViewData(
-                    $id ? $this->service()->findById((int)$id) : null,
+                    $item,
                     is_array($res['errors'] ?? null) ? $res['errors'] : [],
-                    is_array($_POST) ? $_POST : []
+                    $_POST
                 ));
                 return;
             }
-
-            flash('ok', $id ? 'Proveedor actualizado.' : 'Proveedor creado.');
+            flash('ok', $id > 0 ? 'Proveedor actualizado.' : 'Proveedor creado.');
             redirect('/admin/proveedores');
         } catch (Throwable $e) {
-            error_log($e);
-            flash('error', 'No se pudo guardar el proveedor.');
+            error_log((string)$e);
+            flash('error', 'No se pudo guardar el proveedor. Verificá que el CUIT no esté duplicado.');
             redirect('/admin/proveedores');
         }
     }
 
     public function delete(): void
     {
+        verify_csrf_or_abort();
         $id = (int)($_POST['id'] ?? 0);
         if ($id <= 0) {
             flash('error', 'Proveedor inválido.');
             redirect('/admin/proveedores');
             return;
         }
-
-        $this->service()->delete($id);
-        flash('ok', 'Proveedor eliminado.');
+        try {
+            $changed = $this->service()->delete($id);
+            flash($changed ? 'ok' : 'error', $changed ? 'Proveedor desactivado.' : 'El proveedor ya estaba inactivo o no existe.');
+        } catch (Throwable $e) {
+            error_log((string)$e);
+            flash('error', 'No se pudo desactivar el proveedor.');
+        }
         redirect('/admin/proveedores');
     }
 }
-
