@@ -2,8 +2,8 @@
 /** @var array<int,array<string,mixed>> $rows_prepared */
 /** @var bool $has_rows */
 ?>
-<div class="card av3-pad-4 av3-overflow-auto" style="max-height: 520px;">
-  <table class="table av3-width-full">
+<section class="av3-fiscal-panel card av3-pad-4 av3-overflow-auto" style="max-height: 520px;">
+  <table class="av3-fiscal-data-table av3-fiscal-data-table--cards table av3-width-full">
     <thead class="av3-sticky top-0 av3-surface-white">
       <tr>
         <th>Periodo</th>
@@ -19,14 +19,14 @@
     <tbody>
       <?php foreach ($rows_prepared as $row): ?>
         <tr>
-          <td><?= e((string)($row['ym'] ?? '')) ?></td>
-          <td class="av3-text-right">$ <?= e((string)($row['ventas_iva_label'] ?? '0,00')) ?></td>
-          <td class="av3-text-right">$ <?= e((string)($row['compras_iva_label'] ?? '0,00')) ?></td>
-          <td class="av3-text-right">$ <?= e((string)($row['saldo_label'] ?? '0,00')) ?></td>
-          <td class="av3-text-right">$ <?= e((string)($row['ventas_total_label'] ?? '0,00')) ?></td>
-          <td class="av3-text-right">$ <?= e((string)($row['compras_total_label'] ?? '0,00')) ?></td>
-          <td class="av3-text-right"><?= (int)($row['ventas_comprobantes'] ?? 0) ?></td>
-          <td class="av3-text-right"><?= (int)($row['compras_comprobantes'] ?? 0) ?></td>
+          <td data-label="Periodo"><?= e((string)($row['ym'] ?? '')) ?></td>
+          <td data-label="IVA Ventas" class="av3-text-right">$ <?= e((string)($row['ventas_iva_label'] ?? '0,00')) ?></td>
+          <td data-label="IVA Compras" class="av3-text-right">$ <?= e((string)($row['compras_iva_label'] ?? '0,00')) ?></td>
+          <td data-label="Saldo IVA" class="av3-text-right">$ <?= e((string)($row['saldo_label'] ?? '0,00')) ?></td>
+          <td data-label="Ventas Total" class="av3-text-right">$ <?= e((string)($row['ventas_total_label'] ?? '0,00')) ?></td>
+          <td data-label="Compras Total" class="av3-text-right">$ <?= e((string)($row['compras_total_label'] ?? '0,00')) ?></td>
+          <td data-label="Comp. Ventas" class="av3-text-right"><?= (int)($row['ventas_comprobantes'] ?? 0) ?></td>
+          <td data-label="Comp. Compras" class="av3-text-right"><?= (int)($row['compras_comprobantes'] ?? 0) ?></td>
         </tr>
       <?php endforeach; ?>
       <?php if (!$has_rows): ?>
@@ -34,4 +34,4 @@
       <?php endif; ?>
     </tbody>
   </table>
-</div>
+</section>

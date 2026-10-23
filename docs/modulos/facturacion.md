@@ -139,3 +139,12 @@ Para completar una *nueva* homologación fiscal el MAIN CHAT deberá coordinar, 
 ### Entrega para integración
 
 Sin commit ni push, reservado a MAIN CHAT. Modificaciones nuevas: `app/Repositories/Billing/PurchaseInvoiceRepository.php`, `app/Services/Billing/PurchaseInvoiceService.php`, `app/Controllers/Admin/ComprasController.php`, `app/Services/Admin/Facturacion/ViewModels/FacturacionComprasIndexViewModel.php`, `app/Views/pages/admin/facturacion/compras/index.php`, `public_html/assets/css/admin-v3/pages/billing.css`, `scripts/dev/facturacion_domain_smoke_private.php` y esta documentación. Se preservan las modificaciones de otros especialistas.
+
+
+### Adenda MAIN CHAT — recuperación y cierre QA visual, 23/10/2026
+
+- MAIN CHAT recuperó el acceso remoto, el ejecutor `scripts/dev/facturacion_visual_realviews_edge.mjs` y las evidencias bajo `docs/evidencias/facturacion_v3/`.
+- Primera repetición del ejecutor completo: **93/95**, dos desbordamientos en `reportes/comprobantes_pendientes` a 363 y 390 px.
+- Se corrigió el agrupamiento de tres acciones del encabezado de esa vista permitiendo ajuste de línea (`av3-flex-wrap`), sin alterar rutas ni reglas fiscales.
+- Repetición posterior: **FACTURACION_REALVIEW_SHELL 95/95 PAGES 19 ISSUES 0**, Edge headless, vistas PHP reales con layout/sidebar Admin V3 y datos sintéticos. Resoluciones: 363, 390, 768, 1024 y 1600 px. Salida **PRIVATE_BROWSER_TEMP_CLEAN** y exit 0.
+- Esta verificación es visual integrada de plantillas con datos sintéticos; **no equivale a HTTP fiscal autenticado ni homologación de concurrencia/ARCA**. Sigue pendiente esa homologación y la aprobación estética del propietario.

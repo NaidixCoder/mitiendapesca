@@ -37,8 +37,8 @@ require BASE_PATH.'/app/Views/partials/admin/page_header.php';
 render_partial('admin/facturacion_nav');
 ?>
 
-  <div class="admin-surface av3-pad-4 av3-space-bottom-4">
-    <form method="get" action="<?= e($apply_url) ?>" class="av3-grid av3-grid-cols-1 av3-md-grid-cols-5 av3-gap-3">
+  <section class="av3-fiscal-panel admin-surface av3-pad-4 av3-space-bottom-4">
+    <header class="av3-fiscal-panel-heading"><h2>Filtrar resultados</h2><p>Ajustá los criterios para consultar registros.</p></header><form method="get" action="<?= e($apply_url) ?>" class="av3-grid av3-grid-cols-1 av3-md-grid-cols-5 av3-gap-3">
       <div>
         <label class="form-label">Desde</label>
         <input type="date" name="from" value="<?= e((string)($filters['from'] ?? '')) ?>" class="input av3-width-full" />
@@ -69,7 +69,7 @@ render_partial('admin/facturacion_nav');
         <a class="btn btn-secondary" href="<?= e($reset_url) ?>">Hoy / mes</a>
       </div>
     </form>
-  </div>
+  </section>
 
   <div class="av3-flex av3-items-center av3-gap-2 av3-space-bottom-3">
     <a class="btn <?= $tab ==='resumen' ? 'btn-primary' : 'btn-secondary' ?>" href="<?= e($tab_resumen_url) ?>">Resumen</a>
@@ -79,7 +79,7 @@ render_partial('admin/facturacion_nav');
   <?php if ($tab === 'conciliacion'): ?>
 
     <div class="av3-grid av3-grid-cols-1 av3-lg-grid-cols-2 av3-gap-4">
-      <div class="admin-surface av3-pad-4">
+      <section class="av3-fiscal-panel admin-surface av3-pad-4">
         <h2 class="av3-type-base av3-weight-strong av3-space-bottom-1">Pedidos sin factura emitida</h2>
         <p class="av3-type-body av3-text-slate-600 av3-space-bottom-3">Heurística: pedidos en estados facturables dentro del período que no tienen comprobante <span class="av3-weight-medium">emitido</span>.</p>
         <div class="av3-flex av3-items-center av3-justify-between av3-space-bottom-3">
@@ -90,7 +90,7 @@ render_partial('admin/facturacion_nav');
           </div>
         </div>
         <div class="max-h-[420px] av3-overflow-auto av3-radius-sm av3-border av3-border-slate-200">
-          <table class="av3-min-w-full av3-type-body">
+          <table class="av3-fiscal-data-table av3-fiscal-data-table--cards av3-min-w-full av3-type-body">
             <thead class="av3-sticky top-0 av3-surface-white">
               <tr class="av3-text-left av3-border-bottom">
                 <th class="av3-pad-2">Pedido</th>
@@ -106,20 +106,20 @@ render_partial('admin/facturacion_nav');
               <?php else: ?>
                 <?php foreach ($conc_orders_missing_invoice['rows'] as $row): ?>
                   <tr class="av3-border-bottom">
-                    <td class="av3-pad-2 av3-weight-medium">#<?= (int)$row['order_id'] ?></td>
-                    <td class="av3-pad-2 av3-text-slate-600"><?= e((string)$row['created_at']) ?></td>
-                    <td class="av3-pad-2"><?= e((string)$row['order_status_label']) ?></td>
-                    <td class="av3-pad-2"><?= e((string)$row['total_label']) ?></td>
-                    <td class="av3-pad-2"><a class="underline" href="<?= e((string)$row['order_url']) ?>">Abrir pedido</a></td>
+                    <td data-label="Pedido" class="av3-pad-2 av3-weight-medium">#<?= (int)$row['order_id'] ?></td>
+                    <td data-label="Fecha" class="av3-pad-2 av3-text-slate-600"><?= e((string)$row['created_at']) ?></td>
+                    <td data-label="Estado" class="av3-pad-2"><?= e((string)$row['order_status_label']) ?></td>
+                    <td data-label="Total" class="av3-pad-2"><?= e((string)$row['total_label']) ?></td>
+                    <td data-label="Acciones" class="av3-pad-2"><a class="underline" href="<?= e((string)$row['order_url']) ?>">Abrir pedido</a></td>
                   </tr>
                 <?php endforeach; ?>
               <?php endif; ?>
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
 
-      <div class="admin-surface av3-pad-4">
+      <section class="av3-fiscal-panel admin-surface av3-pad-4">
         <h2 class="av3-type-base av3-weight-strong av3-space-bottom-1">Comprobantes en pendiente / error</h2>
         <p class="av3-type-body av3-text-slate-600 av3-space-bottom-3">Comprobantes creados en el período con estado <span class="av3-weight-medium">pendiente</span> o <span class="av3-weight-medium">error</span>.</p>
         <div class="av3-flex av3-items-center av3-justify-between av3-space-bottom-3">
@@ -130,7 +130,7 @@ render_partial('admin/facturacion_nav');
           </div>
         </div>
         <div class="max-h-[420px] av3-overflow-auto av3-radius-sm av3-border av3-border-slate-200">
-          <table class="av3-min-w-full av3-type-body">
+          <table class="av3-fiscal-data-table av3-fiscal-data-table--cards av3-min-w-full av3-type-body">
             <thead class="av3-sticky top-0 av3-surface-white">
               <tr class="av3-text-left av3-border-bottom">
                 <th class="av3-pad-2">ID</th>
@@ -147,12 +147,12 @@ render_partial('admin/facturacion_nav');
               <?php else: ?>
                 <?php foreach ($conc_comprobantes_not_issued['rows'] as $row): ?>
                   <tr class="av3-border-bottom">
-                    <td class="av3-pad-2 av3-weight-medium">#<?= (int)$row['id'] ?></td>
-                    <td class="av3-pad-2">#<?= (int)$row['order_id'] ?></td>
-                    <td class="av3-pad-2"><?= e((string)$row['kind_label']) ?></td>
-                    <td class="av3-pad-2"><?= e((string)$row['status_label']) ?></td>
-                    <td class="av3-pad-2"><?= e((string)$row['total_label']) ?></td>
-                    <td class="av3-pad-2">
+                    <td data-label="ID" class="av3-pad-2 av3-weight-medium">#<?= (int)$row['id'] ?></td>
+                    <td data-label="Pedido" class="av3-pad-2">#<?= (int)$row['order_id'] ?></td>
+                    <td data-label="Tipo" class="av3-pad-2"><?= e((string)$row['kind_label']) ?></td>
+                    <td data-label="Estado" class="av3-pad-2"><?= e((string)$row['status_label']) ?></td>
+                    <td data-label="Total" class="av3-pad-2"><?= e((string)$row['total_label']) ?></td>
+                    <td data-label="Acciones" class="av3-pad-2">
                       <a class="underline" href="<?= e((string)$row['doc_url']) ?>">Abrir</a>
                       <a class="underline av3-ml-2" href="<?= e((string)$row['order_url']) ?>">Pedido</a>
                     </td>
@@ -162,14 +162,14 @@ render_partial('admin/facturacion_nav');
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
     </div>
 
   <?php else: ?>
 
     <div class="av3-grid av3-grid-cols-1 av3-md-grid-cols-3 av3-gap-4 av3-space-bottom-4">
       <?php foreach ($summary_cards as $card): ?>
-        <div class="admin-surface av3-pad-4">
+        <section class="av3-fiscal-panel admin-surface av3-pad-4">
           <div class="av3-type-body av3-text-slate-600"><?= e((string)$card['title']) ?></div>
           <div class="av3-type-2xl av3-weight-strong av3-space-top-1">
             <?php if (!empty($card['count_url'])): ?>
@@ -183,17 +183,17 @@ render_partial('admin/facturacion_nav');
           <?php else: ?>
             <div class="av3-type-caption av3-text-slate-500 av3-space-top-2">(Facturas âˆ’ Notas de crédito)</div>
           <?php endif; ?>
-        </div>
+        </section>
       <?php endforeach; ?>
     </div>
 
-    <div class="admin-surface av3-pad-4">
+    <section class="av3-fiscal-panel admin-surface av3-pad-4">
       <div class="av3-flex av3-items-center av3-justify-between av3-gap-3 av3-space-bottom-3">
         <h2 class="av3-type-base av3-weight-strong">Detalle por período</h2>
         <div class="av3-type-body av3-text-slate-600">Mostrando <span class="av3-weight-medium"><?= (int)$series_count ?></span> filas</div>
       </div>
       <div class="max-h-[520px] av3-overflow-auto av3-radius-sm av3-border av3-border-slate-200">
-        <table class="av3-min-w-full av3-type-body">
+        <table class="av3-fiscal-data-table av3-fiscal-data-table--cards av3-min-w-full av3-type-body">
           <thead class="av3-sticky top-0 av3-surface-white">
             <tr class="av3-text-left av3-border-bottom">
               <th class="av3-pad-2">Período</th>
@@ -210,12 +210,12 @@ render_partial('admin/facturacion_nav');
             <?php else: ?>
               <?php foreach ($series_rows as $row): ?>
                 <tr class="av3-border-bottom">
-                  <td class="av3-pad-2 av3-weight-medium"><a class="underline" href="<?= e((string)$row['period_url']) ?>"><?= e((string)$row['period']) ?></a></td>
-                  <td class="av3-pad-2"><a class="underline" href="<?= e((string)$row['invoices_count_url']) ?>"><?= (int)$row['invoices_count'] ?></a></td>
-                  <td class="av3-pad-2"><?= e((string)$row['invoices_total_label']) ?></td>
-                  <td class="av3-pad-2"><a class="underline" href="<?= e((string)$row['credit_notes_count_url']) ?>"><?= (int)$row['credit_notes_count'] ?></a></td>
-                  <td class="av3-pad-2"><?= e((string)$row['credit_notes_total_label']) ?></td>
-                  <td class="av3-pad-2 av3-weight-medium"><?= e((string)$row['net_label']) ?></td>
+                  <td data-label="Período" class="av3-pad-2 av3-weight-medium"><a class="underline" href="<?= e((string)$row['period_url']) ?>"><?= e((string)$row['period']) ?></a></td>
+                  <td data-label="Facturas" class="av3-pad-2"><a class="underline" href="<?= e((string)$row['invoices_count_url']) ?>"><?= (int)$row['invoices_count'] ?></a></td>
+                  <td data-label="Total facturado" class="av3-pad-2"><?= e((string)$row['invoices_total_label']) ?></td>
+                  <td data-label="NC" class="av3-pad-2"><a class="underline" href="<?= e((string)$row['credit_notes_count_url']) ?>"><?= (int)$row['credit_notes_count'] ?></a></td>
+                  <td data-label="Total NC" class="av3-pad-2"><?= e((string)$row['credit_notes_total_label']) ?></td>
+                  <td data-label="Neto" class="av3-pad-2 av3-weight-medium"><?= e((string)$row['net_label']) ?></td>
                 </tr>
               <?php endforeach; ?>
             <?php endif; ?>
@@ -225,9 +225,9 @@ render_partial('admin/facturacion_nav');
       <div class="av3-type-caption av3-text-slate-500 av3-space-top-3">
         * Los totales se calculan desde <span class="av3-weight-medium">issued_at</span> y sólo incluyen comprobantes con estado <span class="av3-weight-medium">emitido</span>.
       </div>
-    </div>
+    </section>
 
-    <div class="admin-surface av3-pad-4 av3-space-top-4">
+    <section class="av3-fiscal-panel admin-surface av3-pad-4 av3-space-top-4">
       <h2 class="av3-type-base av3-weight-strong av3-space-bottom-1">Pedidos con resultado fiscal relevante</h2>
       <p class="av3-type-body av3-text-slate-600 av3-space-bottom-3">
         Muestra pedidos donde el <span class="av3-weight-medium">resultado final en ARCA</span> es relevante para revisar:
@@ -241,7 +241,7 @@ render_partial('admin/facturacion_nav');
         </div>
       </div>
       <div class="max-h-[520px] av3-overflow-auto av3-radius-sm av3-border av3-border-slate-200">
-        <table class="av3-min-w-full av3-type-body">
+        <table class="av3-fiscal-data-table av3-min-w-full av3-type-body">
           <thead class="av3-sticky top-0 av3-surface-white">
             <tr class="av3-text-left av3-border-bottom">
               <th class="av3-pad-2">Pedido</th>
@@ -281,10 +281,10 @@ render_partial('admin/facturacion_nav');
       <div class="av3-type-caption av3-text-slate-500 av3-space-top-3">
         * “Neto ARCA” = <span class="av3-weight-medium">facturas emitidas - NC emitidas</span> del pedido en el período (por <span class="av3-weight-medium">issued_at</span>).
       </div>
-    </div>
+    </section>
 
     <div class="av3-grid av3-grid-cols-1 av3-lg-grid-cols-2 av3-gap-4 av3-space-top-4">
-      <div class="admin-surface av3-pad-4">
+      <section class="av3-fiscal-panel admin-surface av3-pad-4">
         <h2 class="av3-type-base av3-weight-strong av3-space-bottom-1">Duplicados exactos (emitidos)</h2>
         <p class="av3-type-body av3-text-slate-600 av3-space-bottom-3">Mismo <span class="av3-weight-medium">PV + tipo + nro</span>. Sirve para detectar errores de numeración/duplicación.</p>
         <div class="av3-flex av3-items-center av3-justify-between av3-space-bottom-3">
@@ -295,7 +295,7 @@ render_partial('admin/facturacion_nav');
           </div>
         </div>
         <div class="max-h-[420px] av3-overflow-auto av3-radius-sm av3-border av3-border-slate-200">
-          <table class="av3-min-w-full av3-type-body">
+          <table class="av3-fiscal-data-table av3-fiscal-data-table--cards av3-min-w-full av3-type-body">
             <thead class="av3-sticky top-0 av3-surface-white">
               <tr class="av3-text-left av3-border-bottom">
                 <th class="av3-pad-2">Entorno</th>
@@ -312,21 +312,21 @@ render_partial('admin/facturacion_nav');
               <?php else: ?>
                 <?php foreach ($conc_duplicates_exact['rows'] as $row): ?>
                   <tr class="av3-border-bottom align-top">
-                    <td class="av3-pad-2"><?= e((string)$row['env_text']) ?></td>
-                    <td class="av3-pad-2"><?= e((string)$row['kind_text']) ?></td>
-                    <td class="av3-pad-2"><?= (int)$row['pto'] ?></td>
-                    <td class="av3-pad-2"><?= e((string)$row['cbte']) ?></td>
-                    <td class="av3-pad-2 av3-weight-medium"><?= (int)$row['count'] ?></td>
-                    <td class="av3-pad-2"><a class="underline" href="<?= e((string)$row['comprobantes_url']) ?>">Ver en comprobantes</a></td>
+                    <td data-label="Entorno" class="av3-pad-2"><?= e((string)$row['env_text']) ?></td>
+                    <td data-label="Tipo" class="av3-pad-2"><?= e((string)$row['kind_text']) ?></td>
+                    <td data-label="PV" class="av3-pad-2"><?= (int)$row['pto'] ?></td>
+                    <td data-label="Cbte" class="av3-pad-2"><?= e((string)$row['cbte']) ?></td>
+                    <td data-label="Cantidad" class="av3-pad-2 av3-weight-medium"><?= (int)$row['count'] ?></td>
+                    <td data-label="Acción" class="av3-pad-2"><a class="underline" href="<?= e((string)$row['comprobantes_url']) ?>">Ver en comprobantes</a></td>
                   </tr>
                 <?php endforeach; ?>
               <?php endif; ?>
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
 
-      <div class="admin-surface av3-pad-4">
+      <section class="av3-fiscal-panel admin-surface av3-pad-4">
         <h2 class="av3-type-base av3-weight-strong av3-space-bottom-1">Pedidos no facturables con factura</h2>
         <p class="av3-type-body av3-text-slate-600 av3-space-bottom-3">Pedidos en estados no facturables que igual tienen <span class="av3-weight-medium">Factura emitida</span> en el período.</p>
         <div class="av3-flex av3-items-center av3-justify-between av3-space-bottom-3">
@@ -337,7 +337,7 @@ render_partial('admin/facturacion_nav');
           </div>
         </div>
         <div class="max-h-[420px] av3-overflow-auto av3-radius-sm av3-border av3-border-slate-200">
-          <table class="av3-min-w-full av3-type-body">
+          <table class="av3-fiscal-data-table av3-fiscal-data-table--cards av3-min-w-full av3-type-body">
             <thead class="av3-sticky top-0 av3-surface-white">
               <tr class="av3-text-left av3-border-bottom">
                 <th class="av3-pad-2">Pedido</th>
@@ -353,11 +353,11 @@ render_partial('admin/facturacion_nav');
               <?php else: ?>
                 <?php foreach ($conc_non_billable_with_invoice['rows'] as $row): ?>
                   <tr class="av3-border-bottom align-top">
-                    <td class="av3-pad-2"><a class="underline" href="<?= e((string)$row['order_url']) ?>">#<?= (int)$row['order_id'] ?></a></td>
-                    <td class="av3-pad-2"><?= e((string)$row['order_status_label']) ?></td>
-                    <td class="av3-pad-2"><?= e((string)$row['issued_at']) ?></td>
-                    <td class="av3-pad-2"><?= e((string)$row['cbte']) ?></td>
-                    <td class="av3-pad-2">
+                    <td data-label="Pedido" class="av3-pad-2"><a class="underline" href="<?= e((string)$row['order_url']) ?>">#<?= (int)$row['order_id'] ?></a></td>
+                    <td data-label="Estado" class="av3-pad-2"><?= e((string)$row['order_status_label']) ?></td>
+                    <td data-label="Fecha emisión" class="av3-pad-2"><?= e((string)$row['issued_at']) ?></td>
+                    <td data-label="Cbte" class="av3-pad-2"><?= e((string)$row['cbte']) ?></td>
+                    <td data-label="Acción" class="av3-pad-2">
                       <a class="underline" href="<?= e((string)$row['comprobantes_url']) ?>">Ver comprobantes</a>
                       <?php if ((string)$row['doc_url'] !== ''): ?>
                         <span class="av3-text-slate-400">·</span>
@@ -370,7 +370,7 @@ render_partial('admin/facturacion_nav');
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
     </div>
   <?php endif; ?>
 </div>

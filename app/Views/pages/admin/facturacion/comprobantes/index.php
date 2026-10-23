@@ -1,5 +1,5 @@
 <?php render_partial('admin/subnav'); ?>
-<div class="av3-fiscal-page av3-max-w-6xl av3-mx-auto">
+<main class="av3-fiscal-page av3-max-w-6xl av3-mx-auto">
     <?php
 ob_start(); ?>Comprobantes fiscales<?php $adminHeaderTitle=trim(html_entity_decode(strip_tags(ob_get_clean()),ENT_QUOTES|ENT_HTML5,'UTF-8'));
 ob_start(); ?>Historial de comprobantes emitidos (y errores) por pedido.<?php $adminHeaderDescription=trim(html_entity_decode(strip_tags(ob_get_clean()),ENT_QUOTES|ENT_HTML5,'UTF-8'));
@@ -9,8 +9,8 @@ require BASE_PATH.'/app/Views/partials/admin/page_header.php';
 render_partial('admin/facturacion_nav');
 ?>
 
-    <div class="admin-surface av3-pad-4 av3-space-bottom-4">
-        <form method="get" action="<?= e((string)($apply_url ?? '')) ?>" class="av3-grid av3-grid-cols-1 av3-md-grid-cols-4 av3-gap-3">
+    <section class="av3-fiscal-panel admin-surface av3-pad-4 av3-space-bottom-4">
+        <header class="av3-fiscal-panel-heading"><h2>Filtrar resultados</h2><p>Ajustá los criterios para consultar registros.</p></header><form method="get" action="<?= e((string)($apply_url ?? '')) ?>" class="av3-grid av3-grid-cols-1 av3-md-grid-cols-4 av3-gap-3">
             <div>
                 <label class="form-label">Estado</label>
                 <select name="status" class="form-select">
@@ -50,15 +50,15 @@ render_partial('admin/facturacion_nav');
                 <a class="btn btn-secondary" href="<?= e((string)($reset_url ?? '')) ?>">Limpiar</a>
             </div>
         </form>
-    </div>
+    </section>
 
-    <div class="admin-surface av3-pad-4">
+    <section class="av3-fiscal-panel admin-surface av3-pad-4">
         <div class="av3-flex av3-items-center av3-justify-between av3-gap-2 av3-space-bottom-3">
             <div class="av3-type-body av3-text-slate-600">Total: <span class="av3-weight-strong av3-text-slate-900"><?= (int)($total ?? 0) ?></span></div>
         </div>
 
         <div class="max-h-[520px] av3-overflow-auto av3-radius-card av3-border av3-border-slate-200">
-            <table class="av3-width-full av3-type-body">
+            <table class="av3-fiscal-data-table av3-fiscal-data-table--cards av3-width-full av3-type-body">
                 <thead class="av3-sticky top-0 av3-surface-white av3-z-10">
                     <tr class="av3-text-left av3-border-bottom av3-border-slate-200 av3-type-caption uppercase av3-tracking-wide av3-text-slate-500">
                         <th class="av3-pad-y3 av3-pad-x3">ID</th>
@@ -79,30 +79,30 @@ render_partial('admin/facturacion_nav');
                 <?php else: ?>
                     <?php foreach (($rows_prepared ?? []) as $row): ?>
                         <tr class="av3-border-bottom av3-border-slate-100 av3-hover-bg-slate-50">
-                            <td class="av3-pad-3 av3-weight-medium">#<?= (int)($row['id'] ?? 0) ?></td>
-                            <td class="av3-pad-y3 av3-pad-x3">
+                            <td data-label="ID" class="av3-pad-3 av3-weight-medium">#<?= (int)($row['id'] ?? 0) ?></td>
+                            <td data-label="Pedido" class="av3-pad-y3 av3-pad-x3">
                                 <?php if ((int)($row['order_id'] ?? 0) > 0): ?>
                                     <a class="underline" href="<?= e((string)($row['order_url'] ?? '')) ?>">#<?= (int)$row['order_id'] ?></a>
                                 <?php else: ?>
                                     -
                                 <?php endif; ?>
                             </td>
-                            <td class="av3-pad-y3 av3-pad-x3">
+                            <td data-label="Estado" class="av3-pad-y3 av3-pad-x3">
                                 <span class="av3-inline-flex av3-items-center av3-pad-x2 av3-pad-y1 av3-radius-control av3-type-caption av3-border <?= e((string)($row['status_badge_class'] ?? '')) ?>">
                                     <?= e((string)($row['status_label'] ?? '')) ?>
                                 </span>
                             </td>
-                            <td class="av3-pad-y3 av3-pad-x3">
+                            <td data-label="Pto/Cbte" class="av3-pad-y3 av3-pad-x3">
                                 <div class="av3-flex av3-flex-wrap av3-items-center av3-gap-2">
                                   <span class="av3-inline-flex av3-items-center av3-pad-x2 av3-pad-y1 av3-radius-control av3-type-caption av3-border <?= e((string)($row['kind_badge_class'] ?? '')) ?>"><?= e((string)($row['kind_label'] ?? '')) ?></span>
                                   <span class="av3-text-slate-800">PV <?= (int)($row['pto_vta'] ?? 0) ?> � <?= e((string)($row['cbte_label'] ?? '')) ?> � N� <?= (int)($row['cbte_nro'] ?? 0) ?></span>
                                 </div>
                                 <div class="av3-type-caption av3-text-slate-500 av3-space-top-1">Tipo ARCA: <?= (int)($row['cbte_tipo'] ?? 0) ?></div>
                             </td>
-                            <td class="av3-pad-y3 av3-pad-x3"><?= e((string)(($row['cae'] ?? '') !== '' ? $row['cae'] : '-')) ?></td>
-                            <td class="av3-pad-y3 av3-pad-x3"><?= e((string)($row['imp_total_label'] ?? '$ 0')) ?></td>
-                            <td class="av3-pad-3 av3-text-slate-600"><?= e((string)($row['created_at'] ?? '')) ?></td>
-                            <td class="av3-pad-y3 av3-pad-x3"><a class="btn btn-secondary btn-sm" href="<?= e((string)($row['open_url'] ?? '')) ?>">Abrir</a></td>
+                            <td data-label="CAE" class="av3-pad-y3 av3-pad-x3"><?= e((string)(($row['cae'] ?? '') !== '' ? $row['cae'] : '-')) ?></td>
+                            <td data-label="Total" class="av3-pad-y3 av3-pad-x3"><?= e((string)($row['imp_total_label'] ?? '$ 0')) ?></td>
+                            <td data-label="Creado" class="av3-pad-3 av3-text-slate-600"><?= e((string)($row['created_at'] ?? '')) ?></td>
+                            <td data-label="Acciones" class="av3-pad-y3 av3-pad-x3"><a class="btn btn-secondary btn-sm" href="<?= e((string)($row['open_url'] ?? '')) ?>">Abrir</a></td>
                         </tr>
                     <?php endforeach; ?>
                 <?php endif; ?>
@@ -123,5 +123,5 @@ render_partial('admin/facturacion_nav');
                 </div>
             </div>
         <?php endif; ?>
-    </div>
-</div>
+    </section>
+</main>

@@ -1,11 +1,11 @@
 <?php render_partial('admin/subnav'); ?>
 <?php if (empty($is_ri)): ?>
-  <div class="av3-fiscal-page av3-max-w-6xl av3-mx-auto av3-space-bottom-4">
-    <div class="alert-info">Este reporte aplica a <b>Responsable Inscripto</b>. En <b>Monotributo</b> normalmente no se usa Libro IVA.</div>
+  <aside class="av3-fiscal-explainer av3-max-w-6xl av3-mx-auto av3-space-bottom-4">
+    <div class="alert-info">Este reporte aplica a <b>Responsable Inscripto</b>. En <b>Monotributo</b> normalmente no se usa Libro IVA.</aside>
   </div>
 <?php endif; ?>
 
-<div class="av3-max-w-6xl av3-mx-auto av3-pad-4">
+<main class="av3-fiscal-page av3-max-w-6xl av3-mx-auto">
   <?php
 ob_start(); ?>Libro IVA Compras (por emision)<?php $adminHeaderTitle=trim(html_entity_decode(strip_tags(ob_get_clean()),ENT_QUOTES|ENT_HTML5,'UTF-8'));
 $adminHeaderDescription='';
@@ -20,8 +20,8 @@ require BASE_PATH.'/app/Views/partials/admin/page_header.php';
 render_partial('admin/facturacion_nav');
 ?>
 
-  <div class="card av3-pad-4 av3-space-bottom-4">
-    <form method="get" action="<?= e((string)($apply_url ?? '')) ?>" class="av3-grid av3-grid-cols-1 av3-md-grid-cols-5 av3-gap-3">
+  <section class="av3-fiscal-panel card av3-pad-4 av3-space-bottom-4">
+    <header class="av3-fiscal-panel-heading"><h2>Filtrar resultados</h2><p>Ajustá los criterios para consultar registros.</p></header><form method="get" action="<?= e((string)($apply_url ?? '')) ?>" class="av3-grid av3-grid-cols-1 av3-md-grid-cols-5 av3-gap-3">
       <div>
         <label class="label">Desde</label>
         <input class="input" type="date" name="from" value="<?= e((string)(($filters['from'] ?? ''))) ?>">
@@ -59,26 +59,26 @@ render_partial('admin/facturacion_nav');
         <a class="btn btn-secondary" href="<?= e((string)($reset_url ?? '')) ?>">Limpiar</a>
       </div>
     </form>
-  </div>
+  </section>
 
   <div class="av3-grid av3-grid-cols-1 av3-md-grid-cols-3 av3-gap-3 av3-space-bottom-4">
-    <div class="card av3-pad-4">
+    <section class="av3-fiscal-panel card av3-pad-4">
       <div class="av3-type-body av3-text-gray-500">Neto</div>
       <div class="av3-type-xl av3-weight-strong"><?= e((string)($totals['neto_label'] ?? '$ 0,00')) ?></div>
-    </div>
-    <div class="card av3-pad-4">
+    </section>
+    <section class="av3-fiscal-panel card av3-pad-4">
       <div class="av3-type-body av3-text-gray-500">IVA</div>
       <div class="av3-type-xl av3-weight-strong"><?= e((string)($totals['iva_label'] ?? '$ 0,00')) ?></div>
-    </div>
-    <div class="card av3-pad-4">
+    </section>
+    <section class="av3-fiscal-panel card av3-pad-4">
       <div class="av3-type-body av3-text-gray-500">Total</div>
       <div class="av3-type-xl av3-weight-strong"><?= e((string)($totals['total_label'] ?? '$ 0,00')) ?></div>
-    </div>
+    </section>
   </div>
 
-  <div class="card av3-p-0 av3-overflow-hidden av3-space-bottom-4">
+  <section class="av3-fiscal-panel card av3-p-0 av3-overflow-hidden av3-space-bottom-4">
     <div class="max-h-[40vh] av3-overflow-auto">
-      <table class="table av3-width-full">
+      <table class="av3-fiscal-data-table av3-fiscal-data-table--cards table av3-width-full">
         <thead class="av3-sticky top-0 av3-surface-white av3-z-10">
           <tr>
             <th>Tipo</th>
@@ -93,20 +93,20 @@ render_partial('admin/facturacion_nav');
           <?php endif; ?>
           <?php foreach (($rows_by_type_prepared ?? []) as $row): ?>
             <tr class="<?= !empty($row['is_nc']) ? 'av3-bg-amber-50' : '' ?>">
-              <td class="whitespace-nowrap"><?= e((string)($row['kind_label'] ?? '')) ?> (<?= (int)($row['cbte_tipo'] ?? 0) ?>)</td>
-              <td class="av3-text-right"><?= e((string)($row['neto_label'] ?? '$ 0,00')) ?></td>
-              <td class="av3-text-right"><?= e((string)($row['iva_label'] ?? '$ 0,00')) ?></td>
-              <td class="av3-text-right"><?= e((string)($row['total_label'] ?? '$ 0,00')) ?></td>
+              <td data-label="Tipo" class="whitespace-nowrap"><?= e((string)($row['kind_label'] ?? '')) ?> (<?= (int)($row['cbte_tipo'] ?? 0) ?>)</td>
+              <td data-label="Neto" class="av3-text-right"><?= e((string)($row['neto_label'] ?? '$ 0,00')) ?></td>
+              <td data-label="IVA" class="av3-text-right"><?= e((string)($row['iva_label'] ?? '$ 0,00')) ?></td>
+              <td data-label="Total" class="av3-text-right"><?= e((string)($row['total_label'] ?? '$ 0,00')) ?></td>
             </tr>
           <?php endforeach; ?>
         </tbody>
       </table>
     </div>
-  </div>
+  </section>
 
-  <div class="card av3-p-0 av3-overflow-hidden">
+  <section class="av3-fiscal-panel card av3-p-0 av3-overflow-hidden">
     <div class="max-h-[70vh] av3-overflow-auto">
-      <table class="table av3-width-full">
+      <table class="av3-fiscal-data-table av3-fiscal-data-table--cards table av3-width-full">
         <thead class="av3-sticky top-0 av3-surface-white av3-z-10">
           <tr>
             <th>Fecha</th>
@@ -125,22 +125,22 @@ render_partial('admin/facturacion_nav');
 
           <?php foreach (($rows_prepared ?? []) as $row): ?>
             <tr class="<?= !empty($row['is_nc']) ? 'av3-bg-amber-50' : '' ?>">
-              <td class="whitespace-nowrap"><?= e((string)($row['issued_at'] ?? '')) ?></td>
-              <td>
+              <td data-label="Fecha" class="whitespace-nowrap"><?= e((string)($row['issued_at'] ?? '')) ?></td>
+              <td data-label="Proveedor">
                 <div class="av3-weight-medium"><?= e((string)($row['supplier_nombre'] ?? '')) ?></div>
                 <div class="av3-type-caption av3-text-gray-500"><?= e((string)($row['supplier_cuit'] ?? '')) ?></div>
               </td>
-              <td class="whitespace-nowrap">Tipo <?= (int)($row['cbte_tipo'] ?? 0) ?> � PV <?= (int)($row['pto_vta'] ?? 0) ?> � N� <?= (int)($row['cbte_nro'] ?? 0) ?></td>
-              <td class="av3-text-right"><?= e((string)($row['neto_label'] ?? '$ 0,00')) ?></td>
-              <td class="av3-text-right"><?= e((string)($row['iva_label'] ?? '$ 0,00')) ?></td>
-              <td class="av3-text-right"><?= e((string)($row['total_label'] ?? '$ 0,00')) ?></td>
-              <td class="whitespace-nowrap"><span class="badge <?= e((string)($row['status_badge_class'] ?? 'badge-secondary')) ?>"><?= e((string)($row['status_label'] ?? '')) ?></span></td>
+              <td data-label="Comprobante" class="whitespace-nowrap">Tipo <?= (int)($row['cbte_tipo'] ?? 0) ?> � PV <?= (int)($row['pto_vta'] ?? 0) ?> � N� <?= (int)($row['cbte_nro'] ?? 0) ?></td>
+              <td data-label="Neto" class="av3-text-right"><?= e((string)($row['neto_label'] ?? '$ 0,00')) ?></td>
+              <td data-label="IVA" class="av3-text-right"><?= e((string)($row['iva_label'] ?? '$ 0,00')) ?></td>
+              <td data-label="Total" class="av3-text-right"><?= e((string)($row['total_label'] ?? '$ 0,00')) ?></td>
+              <td data-label="Estado" class="whitespace-nowrap"><span class="badge <?= e((string)($row['status_badge_class'] ?? 'badge-secondary')) ?>"><?= e((string)($row['status_label'] ?? '')) ?></span></td>
             </tr>
           <?php endforeach; ?>
         </tbody>
       </table>
     </div>
-  </div>
+  </section>
 
   <p class="av3-type-caption av3-text-gray-500 av3-space-top-3">Nota: las Notas de credito se muestran en negativo (restan).</p>
-</div>
+</main>

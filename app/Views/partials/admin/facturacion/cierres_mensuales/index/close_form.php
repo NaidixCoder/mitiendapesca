@@ -3,7 +3,7 @@
 /** @var string $close_url */
 /** @var string $csrf */
 ?>
-<div class="card av3-pad-4 av3-space-bottom-4">
+<section class="av3-fiscal-panel card av3-pad-4 av3-space-bottom-4">
   <div class="av3-grid av3-grid-cols-1 av3-md-grid-cols-3 av3-gap-3">
     <div>
       <label class="label">Periodo a cerrar</label>
@@ -27,4 +27,4 @@
     </div>
   </div>
   <input type="hidden" id="csrf" value="<?= e($csrf) ?>">
-</div>
+</section>

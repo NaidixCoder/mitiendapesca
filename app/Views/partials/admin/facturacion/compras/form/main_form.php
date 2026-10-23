@@ -7,7 +7,7 @@
 /** @var array<int,array<string,mixed>> $cbte_options */
 /** @var array<int,array<string,mixed>> $status_options */
 ?>
-<div class="card av3-pad-4">
+<section class="av3-fiscal-panel card av3-pad-4">
   <form method="post" action="<?= e(base_url('admin/facturacion/compras/save')) ?>" class="av3-grid av3-grid-cols-1 av3-md-grid-cols-2 av3-gap-4">
     <?= csrf_field() ?>
     <?php if ($is_edit): ?>
@@ -114,4 +114,4 @@
       <a class="btn btn-secondary" href="<?= e(base_url('admin/facturacion/compras')) ?>">Cancelar</a>
     </div>
   </form>
-</div>
+</section>

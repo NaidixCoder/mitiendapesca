@@ -2,7 +2,7 @@
 /** @var array<int,array<string,mixed>> $rows_prepared */
 ?>
 <div class="max-h-[700px] av3-overflow-auto av3-radius-sm av3-border av3-border-slate-200">
-  <table class="av3-min-w-full av3-type-body">
+  <table class="av3-fiscal-data-table av3-min-w-full av3-type-body">
     <thead class="av3-sticky top-0 av3-surface-white">
       <tr class="av3-text-left av3-border-bottom">
         <th class="av3-pad-2">Pedido</th>

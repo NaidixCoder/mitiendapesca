@@ -8,7 +8,7 @@
   </header>
   <div class="fisc-card-body">
     <div class="fisc-table-wrap">
-      <table class="fisc-table">
+      <table class="av3-fiscal-data-table av3-fiscal-data-table--cards fisc-table">
         <thead>
           <tr>
             <th>Periodo</th>
@@ -25,10 +25,10 @@
           <?php else: ?>
             <?php foreach ($latestClosures as $r): ?>
               <tr>
-                <td class="is-strong"><?= e((string)($r['period'] ?? '')) ?></td>
-                <td class="is-right"><?= e(money((int)($r['iva_ventas'] ?? 0))) ?></td>
-                <td class="is-right"><?= e(money((int)($r['iva_compras'] ?? 0))) ?></td>
-                <td class="is-right is-strong"><?= e(money((int)($r['saldo_iva'] ?? 0))) ?></td>
+                <td data-label="Periodo" class="is-strong"><?= e((string)($r['period'] ?? '')) ?></td>
+                <td data-label="IVA ventas" class="is-right"><?= e(money((int)($r['iva_ventas'] ?? 0))) ?></td>
+                <td data-label="IVA compras" class="is-right"><?= e(money((int)($r['iva_compras'] ?? 0))) ?></td>
+                <td data-label="Saldo" class="is-right is-strong"><?= e(money((int)($r['saldo_iva'] ?? 0))) ?></td>
               </tr>
             <?php endforeach; ?>
           <?php endif; ?>

@@ -7,7 +7,7 @@
 ?>
 
 <?php render_partial('admin/subnav'); ?>
-<div class="av3-fiscal-page av3-max-w-6xl av3-mx-auto">
+<main class="av3-fiscal-page av3-max-w-6xl av3-mx-auto">
   <?php
 ob_start(); ?>Pedidos sin factura emitida<?php $adminHeaderTitle=trim(html_entity_decode(strip_tags(ob_get_clean()),ENT_QUOTES|ENT_HTML5,'UTF-8'));
 ob_start(); ?>Heurística M2: pedidos facturables en el período sin comprobante emitido.<?php $adminHeaderDescription=trim(html_entity_decode(strip_tags(ob_get_clean()),ENT_QUOTES|ENT_HTML5,'UTF-8'));
@@ -23,13 +23,13 @@ require BASE_PATH.'/app/Views/partials/admin/page_header.php';
 render_partial('admin/facturacion_nav');
 ?>
 
-  <div class="admin-surface av3-pad-4">
+  <section class="av3-fiscal-panel admin-surface av3-pad-4">
     <div class="av3-flex av3-items-center av3-justify-between av3-gap-3 av3-space-bottom-3">
       <div class="av3-type-body av3-text-slate-600">Mostrando <span class="av3-weight-medium"><?= (int)$rows_count ?></span> filas</div>
     </div>
 
     <div class="max-h-[620px] av3-overflow-auto av3-radius-sm av3-border av3-border-slate-200">
-      <table class="av3-min-w-full av3-type-body">
+      <table class="av3-fiscal-data-table av3-fiscal-data-table--cards av3-min-w-full av3-type-body">
         <thead class="av3-sticky top-0 av3-surface-white">
           <tr class="av3-text-left av3-border-bottom">
             <th class="av3-pad-2">Pedido</th>
@@ -48,20 +48,19 @@ render_partial('admin/facturacion_nav');
           <?php else: ?>
             <?php foreach ($rows_prepared as $row): ?>
               <tr class="av3-border-bottom">
-                <td class="av3-pad-2 av3-weight-medium">#<?= (int)$row['order_id'] ?></td>
-                <td class="av3-pad-2 av3-text-slate-600"><?= e((string)$row['created_at']) ?></td>
-                <td class="av3-pad-2"><?= e((string)$row['order_status_label']) ?></td>
-                <td class="av3-pad-2"><?= e((string)$row['total_label']) ?></td>
-                <td class="av3-pad-2"><?= e((string)$row['tax_condition']) ?></td>
-                <td class="av3-pad-2"><?= e((string)$row['cuit']) ?></td>
-                <td class="av3-pad-2"><?= e((string)$row['comprobante_text']) ?></td>
-                <td class="av3-pad-2"><a class="underline" href="<?= e((string)$row['order_url']) ?>">Abrir pedido</a></td>
+                <td data-label="Pedido" class="av3-pad-2 av3-weight-medium">#<?= (int)$row['order_id'] ?></td>
+                <td data-label="Fecha" class="av3-pad-2 av3-text-slate-600"><?= e((string)$row['created_at']) ?></td>
+                <td data-label="Estado" class="av3-pad-2"><?= e((string)$row['order_status_label']) ?></td>
+                <td data-label="Total" class="av3-pad-2"><?= e((string)$row['total_label']) ?></td>
+                <td data-label="Condición IVA" class="av3-pad-2"><?= e((string)$row['tax_condition']) ?></td>
+                <td data-label="CUIT" class="av3-pad-2"><?= e((string)$row['cuit']) ?></td>
+                <td data-label="Comprobante" class="av3-pad-2"><?= e((string)$row['comprobante_text']) ?></td>
+                <td data-label="Acciones" class="av3-pad-2"><a class="underline" href="<?= e((string)$row['order_url']) ?>">Abrir pedido</a></td>
               </tr>
             <?php endforeach; ?>
           <?php endif; ?>
         </tbody>
       </table>
     </div>
-  </div>
-</div>
-
+  </section>
+</main>

@@ -18,5 +18,5 @@ require BASE_PATH.'/app/Views/partials/admin/page_header.php';
 render_partial('admin/facturacion_nav');
 ?>
 
-<div class="admin-surface av3-pad-4">
+<section class="av3-fiscal-panel admin-surface av3-pad-4">
   <div class="av3-type-body av3-text-slate-600 av3-space-bottom-3">Mostrando <span class="av3-weight-medium"><?= (int)$rows_count ?></span> filas</div>

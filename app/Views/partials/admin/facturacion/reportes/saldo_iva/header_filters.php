@@ -14,8 +14,8 @@ require BASE_PATH.'/app/Views/partials/admin/page_header.php';
 render_partial('admin/facturacion_nav');
 ?>
 
-<div class="card av3-pad-4 av3-space-bottom-4">
-  <form method="get" action="<?= e($apply_url) ?>" class="av3-grid av3-grid-cols-1 av3-md-grid-cols-12 av3-gap-3 av3-items-end">
+<section class="av3-fiscal-panel card av3-pad-4 av3-space-bottom-4">
+  <header class="av3-fiscal-panel-heading"><h2>Filtrar resultados</h2><p>Ajustá los criterios para consultar registros.</p></header><form method="get" action="<?= e($apply_url) ?>" class="av3-grid av3-grid-cols-1 av3-md-grid-cols-12 av3-gap-3 av3-items-end">
     <div class="av3-md-col-span-3">
       <label class="label">Desde (mes)</label>
       <input class="input" type="month" name="from_month" value="<?= e((string)($filters['from_month'] ?? '')) ?>">
@@ -43,4 +43,4 @@ render_partial('admin/facturacion_nav');
   <div class="av3-type-caption av3-text-slate-600 av3-space-top-3">
     Rango: <strong><?= e((string)($filters['from_date'] ?? '')) ?></strong> -> <strong><?= e((string)($filters['to_date'] ?? '')) ?></strong>
   </div>
-</div>
+</section>

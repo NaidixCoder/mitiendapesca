@@ -16,7 +16,7 @@
 
 <?php render_partial('admin/subnav'); ?>
 <?php if (!$is_ri): ?>
-  <div class="av3-fiscal-page av3-max-w-6xl av3-mx-auto av3-space-bottom-4">
+  <main class="av3-fiscal-page av3-max-w-6xl av3-mx-auto av3-space-bottom-4">
     <div class="alert-info">Este reporte aplica a <b>Responsable Inscripto</b>. En <b>Monotributo</b> normalmente no se usa Libro IVA.</div>
   </div>
 <?php endif; ?>
@@ -74,27 +74,27 @@ render_partial('admin/facturacion_nav');
   </form>
 
   <div class="av3-grid av3-grid-cols-1 av3-md-grid-cols-3 av3-gap-3 av3-space-bottom-4">
-    <div class="card av3-pad-4">
+    <section class="av3-fiscal-panel card av3-pad-4">
       <div class="av3-type-body av3-text-gray-500">Neto gravado</div>
       <div class="av3-type-xl av3-weight-strong"><?= e($total_neto) ?></div>
-    </div>
-    <div class="card av3-pad-4">
+    </section>
+    <section class="av3-fiscal-panel card av3-pad-4">
       <div class="av3-type-body av3-text-gray-500">IVA</div>
       <div class="av3-type-xl av3-weight-strong"><?= e($total_iva) ?></div>
-    </div>
-    <div class="card av3-pad-4">
+    </section>
+    <section class="av3-fiscal-panel card av3-pad-4">
       <div class="av3-type-body av3-text-gray-500">Total</div>
       <div class="av3-type-xl av3-weight-strong"><?= e($total_total) ?></div>
-    </div>
+    </section>
   </div>
 
-  <div class="card av3-pad-4 av3-space-bottom-4">
+  <section class="av3-fiscal-panel card av3-pad-4 av3-space-bottom-4">
     <div class="av3-flex av3-items-center av3-justify-between av3-gap-3 av3-space-bottom-2">
       <h2 class="av3-weight-strong">Totales por tipo</h2>
       <div class="av3-type-body av3-text-gray-500"><?= (int)$totals_by_type_count ?> filas</div>
     </div>
     <div class="max-h-64 av3-overflow-auto av3-border av3-radius-card">
-      <table class="table av3-width-full">
+      <table class="av3-fiscal-data-table av3-fiscal-data-table--cards table av3-width-full">
         <thead class="av3-sticky top-0 av3-surface-white">
           <tr>
             <th>Tipo</th>
@@ -108,12 +108,12 @@ render_partial('admin/facturacion_nav');
         <tbody>
           <?php foreach ($totals_by_type_rows as $row): ?>
             <tr>
-              <td><?= e((string)$row['cbte_label']) ?></td>
-              <td><?= e((string)$row['kind_label']) ?></td>
-              <td class="av3-text-right"><?= (int)$row['count'] ?></td>
-              <td class="av3-text-right"><?= e((string)$row['neto']) ?></td>
-              <td class="av3-text-right"><?= e((string)$row['iva']) ?></td>
-              <td class="av3-text-right"><?= e((string)$row['total']) ?></td>
+              <td data-label="Tipo"><?= e((string)$row['cbte_label']) ?></td>
+              <td data-label="Clase"><?= e((string)$row['kind_label']) ?></td>
+              <td data-label="Cantidad" class="av3-text-right"><?= (int)$row['count'] ?></td>
+              <td data-label="Neto" class="av3-text-right"><?= e((string)$row['neto']) ?></td>
+              <td data-label="IVA" class="av3-text-right"><?= e((string)$row['iva']) ?></td>
+              <td data-label="Total" class="av3-text-right"><?= e((string)$row['total']) ?></td>
             </tr>
           <?php endforeach; ?>
           <?php if (empty($totals_by_type_rows)): ?>
@@ -122,16 +122,16 @@ render_partial('admin/facturacion_nav');
         </tbody>
       </table>
     </div>
-  </div>
+  </section>
 
-  <div class="card av3-pad-4">
+  <section class="av3-fiscal-panel card av3-pad-4">
     <div class="av3-flex av3-items-center av3-justify-between av3-gap-3 av3-space-bottom-2">
       <h2 class="av3-weight-strong">Comprobantes emitidos</h2>
       <div class="av3-type-body av3-text-gray-500">Total: <?= (int)$rows_count ?></div>
     </div>
 
     <div class="max-h-[520px] av3-overflow-auto av3-border av3-radius-card">
-      <table class="table av3-width-full">
+      <table class="av3-fiscal-data-table av3-fiscal-data-table--cards table av3-width-full">
         <thead class="av3-sticky top-0 av3-surface-white">
           <tr>
             <th>Emisión</th>
@@ -149,16 +149,16 @@ render_partial('admin/facturacion_nav');
         <tbody>
           <?php foreach ($rows_prepared as $row): ?>
             <tr>
-              <td class="whitespace-nowrap"><?= e((string)$row['issued_at']) ?></td>
-              <td><a class="link" href="<?= e((string)$row['order_url']) ?>">#<?= (int)$row['order_id'] ?></a></td>
-              <td><?= e((string)$row['cbte_label']) ?></td>
-              <td class="whitespace-nowrap"><?= e((string)$row['pv_nro']) ?></td>
-              <td class="whitespace-nowrap"><?= e((string)$row['doc_value']) ?></td>
-              <td class="av3-text-right"><?= e((string)$row['imp_neto']) ?></td>
-              <td class="av3-text-right"><?= e((string)$row['imp_iva']) ?></td>
-              <td class="av3-text-right"><?= e((string)$row['imp_total']) ?></td>
-              <td class="whitespace-nowrap"><?= e((string)$row['cae']) ?></td>
-              <td class="av3-text-right">
+              <td data-label="Emisión" class="whitespace-nowrap"><?= e((string)$row['issued_at']) ?></td>
+              <td data-label="Pedido"><a class="link" href="<?= e((string)$row['order_url']) ?>">#<?= (int)$row['order_id'] ?></a></td>
+              <td data-label="Tipo"><?= e((string)$row['cbte_label']) ?></td>
+              <td data-label="PV / N°" class="whitespace-nowrap"><?= e((string)$row['pv_nro']) ?></td>
+              <td data-label="Doc" class="whitespace-nowrap"><?= e((string)$row['doc_value']) ?></td>
+              <td data-label="Neto" class="av3-text-right"><?= e((string)$row['imp_neto']) ?></td>
+              <td data-label="IVA" class="av3-text-right"><?= e((string)$row['imp_iva']) ?></td>
+              <td data-label="Total" class="av3-text-right"><?= e((string)$row['imp_total']) ?></td>
+              <td data-label="CAE" class="whitespace-nowrap"><?= e((string)$row['cae']) ?></td>
+              <td data-label="Abrir" class="av3-text-right">
                 <a class="btn btn-sm btn-outline" href="<?= e((string)$row['show_url']) ?>">Abrir</a>
               </td>
             </tr>
@@ -169,6 +169,5 @@ render_partial('admin/facturacion_nav');
         </tbody>
       </table>
     </div>
-  </div>
-</div>
-
+  </section>
+</main>

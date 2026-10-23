@@ -6,7 +6,7 @@
 /** @var string $export_url */
 ?>
 
-<div class="av3-fiscal-page av3-max-w-6xl av3-mx-auto">
+<main class="av3-fiscal-page av3-max-w-6xl av3-mx-auto">
   <?php
 ob_start(); ?>Duplicados exactos (emitidos)<?php $adminHeaderTitle=trim(html_entity_decode(strip_tags(ob_get_clean()),ENT_QUOTES|ENT_HTML5,'UTF-8'));
 ob_start(); ?>Mismo PV + tipo + nro dentro del período (por fecha de emisión).<?php $adminHeaderDescription=trim(html_entity_decode(strip_tags(ob_get_clean()),ENT_QUOTES|ENT_HTML5,'UTF-8'));
@@ -22,11 +22,11 @@ require BASE_PATH.'/app/Views/partials/admin/page_header.php';
 render_partial('admin/facturacion_nav');
 ?>
 
-  <div class="admin-surface av3-pad-4">
+  <section class="av3-fiscal-panel admin-surface av3-pad-4">
     <div class="av3-type-body av3-text-slate-600 av3-space-bottom-3">Mostrando <span class="av3-weight-medium"><?= (int)$rows_count ?></span> filas (máx 200).</div>
 
     <div class="max-h-[640px] av3-overflow-auto av3-radius-sm av3-border av3-border-slate-200">
-      <table class="av3-min-w-full av3-type-body">
+      <table class="av3-fiscal-data-table av3-fiscal-data-table--cards av3-min-w-full av3-type-body">
         <thead class="av3-sticky top-0 av3-surface-white">
           <tr class="av3-text-left av3-border-bottom">
             <th class="av3-pad-2">Entorno</th>
@@ -45,20 +45,19 @@ render_partial('admin/facturacion_nav');
           <?php else: ?>
             <?php foreach ($rows_prepared as $row): ?>
               <tr class="av3-border-bottom align-top">
-                <td class="av3-pad-2"><?= e((string)$row['env_text']) ?></td>
-                <td class="av3-pad-2"><?= e((string)$row['kind_text']) ?></td>
-                <td class="av3-pad-2"><?= (int)$row['pto'] ?></td>
-                <td class="av3-pad-2"><?= e((string)$row['cbte']) ?></td>
-                <td class="av3-pad-2 av3-weight-medium"><?= (int)$row['count'] ?></td>
-                <td class="av3-pad-2"><?= e((string)$row['first_issued_at']) ?></td>
-                <td class="av3-pad-2"><?= e((string)$row['last_issued_at']) ?></td>
-                <td class="av3-pad-2"><a class="underline" href="<?= e((string)$row['comprobantes_url']) ?>">Ver en comprobantes</a></td>
+                <td data-label="Entorno" class="av3-pad-2"><?= e((string)$row['env_text']) ?></td>
+                <td data-label="Tipo" class="av3-pad-2"><?= e((string)$row['kind_text']) ?></td>
+                <td data-label="PV" class="av3-pad-2"><?= (int)$row['pto'] ?></td>
+                <td data-label="Cbte" class="av3-pad-2"><?= e((string)$row['cbte']) ?></td>
+                <td data-label="Cantidad" class="av3-pad-2 av3-weight-medium"><?= (int)$row['count'] ?></td>
+                <td data-label="Primera emisión" class="av3-pad-2"><?= e((string)$row['first_issued_at']) ?></td>
+                <td data-label="Última emisión" class="av3-pad-2"><?= e((string)$row['last_issued_at']) ?></td>
+                <td data-label="Acción" class="av3-pad-2"><a class="underline" href="<?= e((string)$row['comprobantes_url']) ?>">Ver en comprobantes</a></td>
               </tr>
             <?php endforeach; ?>
           <?php endif; ?>
         </tbody>
       </table>
     </div>
-  </div>
-</div>
-
+  </section>
+</main>

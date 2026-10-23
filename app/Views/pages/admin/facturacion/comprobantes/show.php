@@ -1,5 +1,5 @@
 <?php render_partial('admin/subnav'); ?>
-<div class="av3-fiscal-page av3-max-w-6xl av3-mx-auto">
+<main class="av3-fiscal-page av3-max-w-6xl av3-mx-auto">
   <?php
 ob_start(); ?><?= e((string)($title ?? 'Detalle comprobante')) ?><?php $adminHeaderTitle=trim(html_entity_decode(strip_tags(ob_get_clean()),ENT_QUOTES|ENT_HTML5,'UTF-8'));
 ob_start(); ?>Comprobante fiscal asociado al pedido.<?php $adminHeaderDescription=trim(html_entity_decode(strip_tags(ob_get_clean()),ENT_QUOTES|ENT_HTML5,'UTF-8'));
@@ -18,7 +18,7 @@ require BASE_PATH.'/app/Views/partials/admin/page_header.php';
 render_partial('admin/facturacion_nav');
 ?>
 
-  <div class="admin-surface av3-pad-4 av3-space-bottom-4">
+  <section class="av3-fiscal-panel admin-surface av3-pad-4 av3-space-bottom-4">
     <div class="av3-flex av3-flex-wrap av3-items-center av3-gap-2 av3-space-bottom-4">
       <span class="av3-inline-flex av3-items-center av3-px-2_5 av3-pad-y1 av3-radius-full av3-type-caption av3-border <?= e((string)($status_badge_class ??'')) ?>">Estado: <?= e((string)($status_label ?? '')) ?></span>
       <span class="av3-inline-flex av3-items-center av3-px-2_5 av3-pad-y1 av3-radius-full av3-type-caption av3-border av3-bg-slate-50 av3-text-slate-800 av3-border-slate-200">Entorno: <?= e((string)($env_label ?? '-')) ?></span>
@@ -92,9 +92,9 @@ render_partial('admin/facturacion_nav');
         </form>
       <?php endif; ?>
     </div>
-  </div>
+  </section>
 
-  <div class="admin-surface av3-pad-4">
+  <section class="av3-fiscal-panel admin-surface av3-pad-4">
     <div class="av3-flex av3-items-center av3-justify-between av3-gap-2">
       <div>
         <h2 class="av3-type-body av3-weight-strong">Detalle tecnico (ARCA)</h2>
@@ -119,5 +119,5 @@ render_partial('admin/facturacion_nav');
         </div>
       </div>
     </details>
-  </div>
-</div>
+  </section>
+</main>

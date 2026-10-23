@@ -1,5 +1,5 @@
 <?php render_partial('admin/subnav'); ?>
-<div class="av3-fiscal-page av3-max-w-6xl av3-mx-auto av3-pad-4">
+<main class="av3-fiscal-page av3-max-w-6xl av3-mx-auto av3-pad-4">
   <?php
 ob_start(); ?>Compras<?php $adminHeaderTitle=trim(html_entity_decode(strip_tags(ob_get_clean()),ENT_QUOTES|ENT_HTML5,'UTF-8'));
 $adminHeaderDescription='';
@@ -14,8 +14,8 @@ require BASE_PATH.'/app/Views/partials/admin/page_header.php';
 render_partial('admin/facturacion_nav');
 ?>
 
-  <div class="card av3-pad-4 av3-space-bottom-4">
-    <form method="get" action="<?= e((string)($apply_url ?? '')) ?>" class="av3-grid av3-grid-cols-1 av3-md-grid-cols-6 av3-gap-3">
+  <section class="av3-fiscal-panel card av3-pad-4 av3-space-bottom-4">
+    <header class="av3-fiscal-panel-heading"><h2>Filtrar resultados</h2><p>Ajustá los criterios para consultar registros.</p></header><form method="get" action="<?= e((string)($apply_url ?? '')) ?>" class="av3-grid av3-grid-cols-1 av3-md-grid-cols-6 av3-gap-3">
       <div>
         <label class="label">Desde</label>
         <input class="input" type="date" name="from" value="<?= e((string)($filters['from'] ?? '')) ?>">
@@ -59,11 +59,11 @@ render_partial('admin/facturacion_nav');
         <a class="btn btn-secondary av3-width-full" href="<?= e((string)($reset_url ?? '')) ?>">Limpiar</a>
       </div>
     </form>
-  </div>
+  </section>
 
-  <div class="card av3-p-0 av3-overflow-hidden">
+  <section class="av3-fiscal-panel card av3-p-0 av3-overflow-hidden">
     <div class="max-h-[70vh] av3-overflow-auto">
-      <table class="table av3-width-full">
+      <table class="av3-fiscal-data-table av3-fiscal-data-table--cards table av3-width-full">
         <thead class="av3-sticky top-0 av3-surface-white av3-z-10">
           <tr>
             <th>Fecha</th>
@@ -83,20 +83,20 @@ render_partial('admin/facturacion_nav');
 
           <?php foreach (($items_prepared ?? []) as $row): ?>
             <tr class="<?= !empty($row['is_nc']) ? 'av3-bg-amber-50' : '' ?>">
-              <td class="whitespace-nowrap"><?= e((string)($row['issued_at'] ?? '')) ?></td>
-              <td>
+              <td data-label="Fecha" class="whitespace-nowrap"><?= e((string)($row['issued_at'] ?? '')) ?></td>
+              <td data-label="Proveedor">
                 <div class="av3-weight-medium"><?= e((string)($row['supplier_nombre'] ?? '')) ?></div>
                 <div class="av3-type-caption av3-text-gray-500"><?= e((string)($row['supplier_cuit'] ?? '')) ?></div>
               </td>
-              <td class="whitespace-nowrap">
+              <td data-label="Comprobante" class="whitespace-nowrap">
                 <div class="av3-type-body">Tipo <?= (int)($row['cbte_tipo'] ?? 0) ?> � PV <?= (int)($row['pto_vta'] ?? 0) ?> � N� <?= (int)($row['cbte_nro'] ?? 0) ?></div>
                 <div class="av3-type-caption av3-text-gray-500"><?= e((string)($row['kind_label'] ?? '')) ?></div>
               </td>
-              <td class="av3-text-right"><?= e((string)($row['neto_label'] ?? '$ 0,00')) ?></td>
-              <td class="av3-text-right"><?= e((string)($row['iva_label'] ?? '$ 0,00')) ?></td>
-              <td class="av3-text-right"><?= e((string)($row['total_label'] ?? '$ 0,00')) ?></td>
-              <td class="whitespace-nowrap"><span class="badge <?= e((string)($row['status_badge_class'] ?? 'badge-secondary')) ?>"><?= e((string)($row['status_label'] ?? '')) ?></span></td>
-              <td class="av3-text-right whitespace-nowrap">
+              <td data-label="Neto" class="av3-text-right"><?= e((string)($row['neto_label'] ?? '$ 0,00')) ?></td>
+              <td data-label="IVA" class="av3-text-right"><?= e((string)($row['iva_label'] ?? '$ 0,00')) ?></td>
+              <td data-label="Total" class="av3-text-right"><?= e((string)($row['total_label'] ?? '$ 0,00')) ?></td>
+              <td data-label="Estado" class="whitespace-nowrap"><span class="badge <?= e((string)($row['status_badge_class'] ?? 'badge-secondary')) ?>"><?= e((string)($row['status_label'] ?? '')) ?></span></td>
+              <td data-label="Acciones" class="av3-text-right whitespace-nowrap">
                 <a class="btn btn-secondary btn-sm" href="<?= e((string)($row['edit_url'] ?? '')) ?>">Editar</a>
                 <?php if (!empty($row['show_validate'])): ?>
                   <form method="post" action="<?= e((string)($row['validate_url'] ?? '')) ?>" class="av3-inline">
@@ -118,7 +118,7 @@ render_partial('admin/facturacion_nav');
         </tbody>
       </table>
     </div>
-  </div>
+  </section>
 
   <nav class="av3-fiscal-pager" aria-label="Paginación de compras">
     <p>Mostrando <?= (int)($pagination['from'] ?? 0) ?>–<?= (int)($pagination['to'] ?? 0) ?> de <?= (int)($pagination['total'] ?? 0) ?> compras</p>
@@ -130,4 +130,4 @@ render_partial('admin/facturacion_nav');
   </nav>
 
   <p class="av3-type-caption av3-text-gray-500 av3-space-top-3">Nota: las Notas de credito se muestran en negativo (restan).</p>
-</div>
+</main>
