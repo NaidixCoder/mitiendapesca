@@ -1,4 +1,4 @@
-<section class="av3-card av3-flow-3">
+<section id="ajustes-suscripciones" class="av3-ui-card av3-settings-detail__panel av3-flow-3">
   <h2 class="av3-type-base av3-weight-strong">Suscripciones</h2>
   <label class="av3-flex av3-items-start av3-gap-3">
     <input type="checkbox" name="double_optin" value="1" class="av3-space-top-1" <?= !empty($doubleOptChecked) ? 'checked' : '' ?>>

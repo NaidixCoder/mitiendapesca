@@ -10,7 +10,8 @@ $sectionProductsByKey = is_array($sectionProductsByKey ?? null) ? $sectionProduc
 $youtubeProducts = is_array($youtubeProducts ?? null) ? $youtubeProducts : [];
 $youtubeAvatarFallbackUrl = trim((string)($youtubeAvatarFallbackUrl ?? ''));
 ?>
-<section class="admin-surface">
+<link rel="stylesheet" href="<?= e(url('/assets/css/admin-v3/pages/settings.css')) ?>">
+<section class="admin-surface av3-settings-detail av3-settings-detail--home-sections">
   <div class="av3-wrap av3-flow-4" data-home-sections-settings>
     <?php if ($m = flash('ok')): ?>
       <div class="av3-card av3-pad-3"><?= e((string)$m) ?></div>
@@ -28,6 +29,12 @@ require BASE_PATH.'/app/Views/partials/admin/page_header.php';
 
     <input type="hidden" data-home-sections-products-search-url value="<?= e(url('/admin/marketing/email/products/search')) ?>">
 
+
+    <nav class="av3-settings-detail__toc" aria-label="Ir a una sección">
+      <a href="#ajustes-secciones">Secciones</a>
+      <a href="#ajustes-youtube">Contenido de inicio</a>
+    </nav>
+<div id="ajustes-secciones" class="av3-settings-detail__anchor"></div>
     <form method="post" action="<?= e(url('/admin/settings/design/home-sections')) ?>" class="av3-flow-4" enctype="multipart/form-data">
       <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
 
@@ -158,6 +165,7 @@ require BASE_PATH.'/app/Views/partials/admin/page_header.php';
       </div>
     </form>
 
+    <div id="ajustes-youtube" class="av3-settings-detail__anchor"></div>
     <template data-home-section-template>
       <section class="av3-card av3-pad-4 av3-flow-3" data-home-section data-home-section-key="">
         <div class="av3-flex av3-items-center av3-justify-between av3-gap-2">

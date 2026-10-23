@@ -1,4 +1,4 @@
-<section class="av3-card av3-flow-3">
+<section id="ajustes-automatizaciones" class="av3-ui-card av3-settings-detail__panel av3-flow-3">
   <div class="av3-flex av3-items-center av3-justify-between av3-gap-3">
     <h2 class="av3-type-base av3-weight-strong">Cuándo se manda cada mensaje</h2>
     <p class="av3-type-caption av3-text-var-muted">Se aplica a mensajes futuros.</p>

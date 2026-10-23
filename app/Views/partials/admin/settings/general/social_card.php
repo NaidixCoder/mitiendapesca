@@ -1,5 +1,5 @@
-<div class="av3-flow-3">
-  <div class="av3-weight-strong">Contacto y redes sociales</div>
+<section id="ajustes-contacto" class="av3-ui-card av3-settings-detail__panel av3-flow-3">
+  <h2 class="av3-settings-detail__heading">Contacto y redes sociales</h2>
 
   <label class="av3-block">
     <div class="av3-type-body av3-weight-medium av3-space-bottom-1">Email de contacto</div>
@@ -61,4 +61,4 @@
   <p class="av3-type-body av3-text-var-muted">
     Estas URLs se usan en los iconos del footer. Si dejas un campo vacio, ese icono quedara visible pero no sera clickeable.
   </p>
-</div>
+</section>

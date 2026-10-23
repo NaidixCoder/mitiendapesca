@@ -1,0 +1,53 @@
+/* Ajustes Admin V3: un solo sistema visual, sin reglas globales ni Tailwind adicional. */
+.av3-settings-center { min-width: 0; }
+.av3-settings-center__grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-top: 16px; }
+.av3-settings-center__card { min-width: 0; }
+.av3-settings-center__card .av3-ui-card-body { display: grid; align-content: start; gap: 14px; }
+.av3-settings-center__links { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.av3-settings-center__links a { text-decoration: none; max-width: 100%; white-space: normal; }
+.av3-settings-detail, .av3-settings-detail * { box-sizing: border-box; }
+.av3-settings-detail { min-width: 0; overflow-wrap: anywhere; }
+.av3-settings-detail .av3-wrap { min-width: 0; }
+.av3-settings-detail__toc { display: flex; flex-wrap: nowrap; gap: 8px; overflow-x: auto; padding: 2px 0 12px; margin: 8px 0 14px; scrollbar-width: thin; }
+.av3-settings-detail__toc a { color: var(--av3-color-text); background: var(--av3-color-surface); border: 1px solid var(--av3-color-border); border-radius: var(--av3-radius-card); display: inline-flex; align-items: center; min-height: 36px; padding: 7px 12px; font-size: 13px; text-decoration: none; white-space: nowrap; flex: 0 0 auto; }
+.av3-settings-detail__toc a:hover, .av3-settings-detail__toc a:focus-visible { border-color: var(--av3-color-primary); color: var(--av3-color-primary); outline-offset: 2px; }
+.av3-settings-detail__form { display: grid; gap: 16px; min-width: 0; }
+.av3-settings-detail__panel { min-width: 0; padding: 16px; border: 1px solid var(--av3-color-border); border-radius: var(--av3-radius-card); background: var(--av3-color-surface); }
+.av3-settings-detail__heading { font-size: 16px; font-weight: 600; margin: 0; line-height: 1.4; }
+.av3-settings-detail__field-grid { display: grid; grid-template-columns: minmax(0,1fr); gap: 14px; margin: 4px 0 18px; }
+.av3-settings-detail__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; padding-top: 10px; border-top: 1px solid var(--av3-color-border); }
+.av3-settings-detail :where(input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]),select,textarea) { width: 100%; min-width: 0; max-width: 100%; min-height: 40px; border-radius: 8px; }
+.av3-settings-detail textarea { resize: vertical; }
+.av3-settings-detail label { min-width: 0; }
+.av3-settings-detail label:has(>input:not([type="checkbox"]):not([type="radio"])) { display: grid; gap: 6px; }
+.av3-settings-detail :where(input, select, textarea, button, a):focus-visible { outline: 2px solid var(--av3-color-primary); outline-offset: 2px; }
+.av3-settings-detail :where(.av3-grid, .av3-flex) { min-width: 0; }
+.av3-settings-detail .av3-grid { grid-template-columns: minmax(0, 1fr); }
+.av3-settings-detail .av3-settings-detail__form > .av3-card { min-width: 0; }
+.av3-settings-detail .av3-settings-detail__form > .av3-flex:last-child { padding: 14px 0; border-top: 1px solid var(--av3-color-border); }
+.av3-settings-detail .av3-settings-detail__form > .av3-flex:last-child button { min-height: 40px; }
+.av3-settings-detail__anchor { height: 1px; scroll-margin-top: 24px; }
+.av3-settings-detail [id^="ajustes-"] { scroll-margin-top: 18px; }
+.av3-settings-detail :where(.av3-ui-card, .av3-card, section, form) { max-width: 100%; }
+.av3-settings-detail [data-home-section-list], .av3-settings-detail [data-hero-product-picker], .av3-settings-detail [data-home-sections-picker] { min-width: 0; }
+.av3-settings-detail [data-home-sections-picker] [data-home-sections-picker-results],
+.av3-settings-detail [data-hero-product-picker] [data-hero-picker-results] { max-width: 100%; overflow-x: auto; }
+.av3-settings-detail [data-home-section-list] img, .av3-settings-detail [data-home-hero-settings] img { max-width: 100%; height: auto; }
+@media (min-width: 640px) {
+  .av3-settings-detail__field-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .av3-settings-detail__panel { padding: 18px; }
+}
+@media (min-width: 768px) {
+  .av3-settings-detail .av3-md-grid-cols-2 { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .av3-settings-detail .av3-md-grid-cols-3 { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .av3-settings-center__grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (min-width: 1450px) {
+  .av3-settings-center__grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+}
+@media (max-width: 430px) {
+  .av3-settings-detail__panel { padding: 14px; }
+  .av3-settings-detail .av3-flex.av3-items-center:has(button) { flex-wrap: wrap; }
+  .av3-settings-detail .av3-flex.av3-items-center:has(button) > button { min-width: 0; }
+  .av3-settings-detail .av3-settings-detail__actions > button { width: 100%; }
+}

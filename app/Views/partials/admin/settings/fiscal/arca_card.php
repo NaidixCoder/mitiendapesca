@@ -1,4 +1,4 @@
-<section class="av3-card av3-flow-3">
+<section id="ajustes-arca" class="av3-ui-card av3-settings-detail__panel av3-flow-3">
   <h2 class="av3-type-base av3-weight-strong">ARCA (facturacion electronica)</h2>
   <p class="av3-type-body av3-text-var-muted">Esta configuracion habilita la emision de comprobantes por <strong>WSFEv1</strong>. Los secretos (certificado/clave y CUIT emisor) se configuran por <code>.env</code>.</p>
 

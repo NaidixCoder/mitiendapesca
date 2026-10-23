@@ -1,4 +1,4 @@
-<section class="av3-card av3-flow-3">
+<section id="ajustes-regimen" class="av3-ui-card av3-settings-detail__panel av3-flow-3">
   <h2 class="av3-type-base av3-weight-strong">Regimen del vendedor</h2>
   <p class="av3-type-body av3-text-var-muted">Regimen actual: <strong><?= e($regimeLabel) ?></strong>. Puedes cambiarlo cuando sea necesario: los pedidos anteriores mantienen su registro (snapshot por pedido).</p>
 

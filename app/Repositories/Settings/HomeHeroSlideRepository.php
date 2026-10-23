@@ -45,7 +45,8 @@ final class HomeHeroSlideRepository
     /** @param array<int,array<string,mixed>> $rows */
     public function replaceAll(array $rows): void
     {
-        $this->db->beginTransaction();
+        $ownsTransaction = !$this->db->inTransaction();
+        if ($ownsTransaction) $this->db->beginTransaction();
         try {
             $this->db->exec('DELETE FROM home_hero_slides');
 
@@ -70,9 +71,9 @@ final class HomeHeroSlideRepository
                 }
             }
 
-            $this->db->commit();
+            if ($ownsTransaction) $this->db->commit();
         } catch (\Throwable $e) {
-            if ($this->db->inTransaction()) {
+            if ($ownsTransaction && $this->db->inTransaction()) {
                 $this->db->rollBack();
             }
             throw $e;

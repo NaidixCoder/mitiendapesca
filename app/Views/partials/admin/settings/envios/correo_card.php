@@ -1,4 +1,4 @@
-<section class="av3-card av3-flow-3">
+<section id="ajustes-correo" class="av3-ui-card av3-settings-detail__panel av3-flow-3">
   <h2 class="av3-type-base av3-weight-strong">Correo Argentino</h2>
 
   <div class="av3-grid av3-grid-cols-1 av3-md-grid-cols-2 av3-gap-3">

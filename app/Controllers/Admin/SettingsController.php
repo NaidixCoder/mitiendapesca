@@ -145,13 +145,13 @@ class SettingsController extends BaseController {
         }
 
         usort($rows, static fn(array $a, array $b): int => ($a['sort_order'] <=> $b['sort_order']));
-        try {
-            $settings->set('home_hero_title', $heroTitle);
-            $settings->set('home_hero_description', $heroDescription);
-            $repo->replaceAll($rows);
+        $writer = new \App\Services\Admin\Settings\SettingsAtomicWriter($db, $settings);
+        $writer->set('home_hero_title', $heroTitle);
+        $writer->set('home_hero_description', $heroDescription);
+        if ($writer->commit(static function () use ($repo, $rows): void { $repo->replaceAll($rows); })) {
             flash('ok', 'Hero del home actualizado.');
-        } catch (\Throwable $e) {
-            flash('error', 'No se pudo guardar el hero. Verifica migraciones de base de datos.');
+        } else {
+            flash('error', 'No se pudo guardar el hero. No se aplicaron cambios.');
         }
         redirect(url('/admin/settings/design/home-hero'));
     }
@@ -286,7 +286,7 @@ class SettingsController extends BaseController {
                 break;
             }
         }
-        if (!$allowed) return;
+        if (!$allowed || str_contains($path, '..') || str_contains($path, '\\') || str_contains($path, "\0")) return;
 
         $full = base_path('public_html' . str_replace('/', DIRECTORY_SEPARATOR, $path));
         if (is_file($full)) {
@@ -315,15 +315,14 @@ class SettingsController extends BaseController {
         $currentYoutube = is_array($current['youtube'] ?? null) ? $current['youtube'] : [];
         $currentYoutubeAvatarFallback = $configService->sanitizeAssetUrl($currentYoutube['avatar_fallback_url'] ?? '');
 
+        $newAvatarUpload = '';
         if (!empty($_FILES['youtube_avatar_fallback']) && is_array($_FILES['youtube_avatar_fallback'])) {
             $file = $_FILES['youtube_avatar_fallback'];
             $uploadErr = (int)($file['error'] ?? UPLOAD_ERR_NO_FILE);
             if ($uploadErr !== UPLOAD_ERR_NO_FILE) {
                 try {
                     $youtubeAvatarFallbackUrl = $this->uploadHomeSectionsImage($file, 'youtube');
-                    if ($currentYoutubeAvatarFallback !== '' && $currentYoutubeAvatarFallback !== $youtubeAvatarFallbackUrl) {
-                        $this->deleteLocalUploadIfManaged($currentYoutubeAvatarFallback);
-                    }
+                    $newAvatarUpload = $youtubeAvatarFallbackUrl;
                     $removeYoutubeAvatarFallback = false;
                 } catch (\Throwable $e) {
                     flash('error', $e->getMessage());
@@ -337,9 +336,6 @@ class SettingsController extends BaseController {
             $youtubeAvatarFallbackUrl = $currentYoutubeAvatarFallback;
         }
         if ($removeYoutubeAvatarFallback) {
-            if ($currentYoutubeAvatarFallback !== '') {
-                $this->deleteLocalUploadIfManaged($currentYoutubeAvatarFallback);
-            }
             $youtubeAvatarFallbackUrl = '';
         }
 
@@ -383,6 +379,7 @@ class SettingsController extends BaseController {
 
         $json = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         if (!is_string($json) || $json === '') {
+            if ($newAvatarUpload !== '') $this->deleteLocalUploadIfManaged($newAvatarUpload);
             flash('error', 'No se pudo serializar la configuracion.');
             redirect(url('/admin/settings/design/home-sections'));
             return;
@@ -390,11 +387,15 @@ class SettingsController extends BaseController {
 
         $ok = $settings->set('home_sections_config', $json);
         if (!$ok) {
+            if ($newAvatarUpload !== '') $this->deleteLocalUploadIfManaged($newAvatarUpload);
             flash('error', 'No se pudo guardar la configuracion de secciones.');
             redirect(url('/admin/settings/design/home-sections'));
             return;
         }
 
+        if ($currentYoutubeAvatarFallback !== '' && $currentYoutubeAvatarFallback !== $youtubeAvatarFallbackUrl) {
+            $this->deleteLocalUploadIfManaged($currentYoutubeAvatarFallback);
+        }
         flash('ok', 'Secciones del Home actualizadas.');
         redirect(url('/admin/settings/design/home-sections'));
     }
@@ -480,7 +481,7 @@ class SettingsController extends BaseController {
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode([
             'ok' => true,
-            'url' => url('/uploads/home-hero/' . $name),
+            'url' => rtrim(str_replace('\\/', '/', (string)url('/')), '/') . '/uploads/home-hero/' . $name,
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         exit;
     }
@@ -494,7 +495,7 @@ class SettingsController extends BaseController {
             exit;
         }
 
-        $raw = trim((string)($_POST['url'] ?? ''));
+        $raw = str_replace('\\/', '/', trim((string)($_POST['url'] ?? '')));
         if ($raw === '') {
             http_response_code(422);
             header('Content-Type: application/json; charset=utf-8');
@@ -516,16 +517,27 @@ class SettingsController extends BaseController {
         }
 
         $allowed = (
-            str_starts_with($path, '/uploads/home-hero/') ||
-            str_starts_with($path, '/uploads/email/')
+            str_starts_with($path, '/uploads/home-hero/')
         );
-        if (!$allowed) {
+        if (!$allowed || str_contains($path, '..') || str_contains($path, '\\') || str_contains($path, "\0")) {
             http_response_code(422);
             header('Content-Type: application/json; charset=utf-8');
             echo json_encode(['ok' => false, 'error' => 'Solo se pueden eliminar imagenes de uploads'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             exit;
         }
 
+        $slides = (new HomeHeroSlideRepository(db()))->listAll();
+        foreach ($slides as $slide) {
+            foreach (['image_desktop', 'image_mobile'] as $field) {
+                $used = (string)(parse_url(str_replace('\\/', '/', (string)($slide[$field] ?? '')), PHP_URL_PATH) ?? '');
+                if ($used === $path || str_ends_with($used, $path)) {
+                    http_response_code(409);
+                    header('Content-Type: application/json; charset=utf-8');
+                    echo json_encode(['ok' => false, 'error' => 'La imagen sigue en uso. Guardá el hero antes de eliminarla.']);
+                    return;
+                }
+            }
+        }
         $full = base_path('public_html' . str_replace('/', DIRECTORY_SEPARATOR, $path));
         $deleted = false;
         if (is_file($full)) {
@@ -542,9 +554,9 @@ class SettingsController extends BaseController {
     }
 
     public function index(){
-        $tab = (string)($_GET['tab'] ?? 'email-marketing');
+        $tab = (string)($_GET['tab'] ?? 'index');
         $tab = trim($tab);
-        if ($tab === '') $tab = 'email-marketing';
+        if ($tab === '') $tab = 'index';
 
         if ($tab === 'email-marketing') {
             $db = db();
@@ -568,7 +580,8 @@ class SettingsController extends BaseController {
                 'cap_per_week' => $settings->get('email_marketing_cap_per_week', ''),
                 // Etapa 5 (fallback): runner vía web con token
                 'web_runner_enabled' => $settings->get('email_marketing_web_runner_enabled', '0'),
-                'web_runner_token'   => $settings->get('email_marketing_web_runner_token', ''),
+                'web_runner_token'   => '', // El token no debe revelarse en el formulario
+                'web_runner_configured' => (string)$settings->get('email_marketing_web_runner_token', '') !== '',
             ];
 
             $emailMarketingPayload = (new SettingsEmailMarketingViewModel())->build($cfg, $rows);
@@ -688,9 +701,9 @@ if ($tab === 'envios') {
 
                 // Si NO usan env (no recomendado), se guardan en app_settings.
                 'correo_api_username' => $settings->get('correo_api_username', ''),
-                'correo_api_password' => $settings->get('correo_api_password', ''),
+                'correo_api_password' => '', // Nunca renderizar secretos persistidos
                 'correo_user_email' => $settings->get('correo_user_email', ''),
-                'correo_user_password' => $settings->get('correo_user_password', ''),
+                'correo_user_password' => '', // Nunca renderizar secretos persistidos
 
                 // Cache operativo
                 'correo_customer_id' => $settings->get('correo_customer_id', ''),
@@ -777,7 +790,9 @@ if ($tab === 'envios') {
     public function save(): void
     {
         verify_csrf_or_abort();
-        $tab = (string)($_GET['tab'] ?? $_POST['tab'] ?? 'email-marketing');
+        $db = db();
+        $writer = new \App\Services\Admin\Settings\SettingsAtomicWriter($db, new AppSettingsRepository($db));
+        $tab = (string)($_GET['tab'] ?? $_POST['tab'] ?? '');
         $tab = trim($tab);
 
         if ($tab === 'general') {
@@ -792,21 +807,23 @@ if ($tab === 'envios') {
 
             $prevAllowWithoutImages = ((string)($settings->get('catalog_allow_publish_without_images', '0') ?? '0') === '1');
             $val = isset($_POST['catalog_hide_inactive_category_products']) ? '1' : '0';
-            $settings->set('catalog_hide_inactive_category_products', $val);
+            $writer->set('catalog_hide_inactive_category_products', $val);
             $newAllowWithoutImages = isset($_POST['catalog_allow_publish_without_images']);
-            $settings->set('catalog_allow_publish_without_images', $newAllowWithoutImages ? '1' : '0');
-            $settings->set('catalog_show_empty_categories', isset($_POST['catalog_show_empty_categories']) ? '1' : '0');
-            $settings->set('catalog_show_empty_brands', isset($_POST['catalog_show_empty_brands']) ? '1' : '0');
-            $settings->set('contact_support_email', trim((string)($_POST['contact_support_email'] ?? '')));
-            $settings->set('social_instagram_url', $normalizeUrl($_POST['social_instagram_url'] ?? ''));
-            $settings->set('social_facebook_url', $normalizeUrl($_POST['social_facebook_url'] ?? ''));
-            $settings->set('social_youtube_url', $normalizeUrl($_POST['social_youtube_url'] ?? ''));
-            $settings->set('social_whatsapp_url', $normalizeUrl($_POST['social_whatsapp_url'] ?? ''));
+            $writer->set('catalog_allow_publish_without_images', $newAllowWithoutImages ? '1' : '0');
+            $writer->set('catalog_show_empty_categories', isset($_POST['catalog_show_empty_categories']) ? '1' : '0');
+            $writer->set('catalog_show_empty_brands', isset($_POST['catalog_show_empty_brands']) ? '1' : '0');
+            $writer->set('contact_support_email', trim((string)($_POST['contact_support_email'] ?? '')));
+            $writer->set('social_instagram_url', $normalizeUrl($_POST['social_instagram_url'] ?? ''));
+            $writer->set('social_facebook_url', $normalizeUrl($_POST['social_facebook_url'] ?? ''));
+            $writer->set('social_youtube_url', $normalizeUrl($_POST['social_youtube_url'] ?? ''));
+            $writer->set('social_whatsapp_url', $normalizeUrl($_POST['social_whatsapp_url'] ?? ''));
 
-            if ($prevAllowWithoutImages !== $newAllowWithoutImages) {
+            $publicationChange = $prevAllowWithoutImages !== $newAllowWithoutImages;
+            $publicationCallback = $publicationChange ? static function () use ($db, $newAllowWithoutImages): void {
                 (new ProductPublicationSyncService($db))->reconcileAll($newAllowWithoutImages);
-            }
+            } : null;
 
+            if (!$writer->commit($publicationCallback)) { flash('error', 'No se pudieron guardar los ajustes.'); redirect(url('/admin/settings?tab=' . urlencode($tab))); return; }
             flash('success', 'Ajustes guardados.');
             redirect(url('/admin/settings?tab=general'));
             return;
@@ -816,28 +833,29 @@ if ($tab === 'envios') {
             $db = db();
             $settings = new AppSettingsRepository($db);
 
-            $settings->set('pricing_installments_enabled', isset($_POST['pricing_installments_enabled']) ? '1' : '0');
+            $writer->set('pricing_installments_enabled', isset($_POST['pricing_installments_enabled']) ? '1' : '0');
 
             $count = (int)($_POST['pricing_installments_count'] ?? 3);
             if ($count < 2) $count = 3;
             if ($count > 24) $count = 24;
-            $settings->set('pricing_installments_count', (string)$count);
+            $writer->set('pricing_installments_count', (string)$count);
 
             $rate = trim((string)($_POST['pricing_interest_rate_percent'] ?? '0'));
             $rate = str_replace(',', '.', $rate);
             $rateFloat = max(0, (float)$rate);
-            $settings->set('pricing_interest_rate_percent', rtrim(rtrim(number_format($rateFloat, 2, '.', ''), '0'), '.'));
+            $writer->set('pricing_interest_rate_percent', rtrim(rtrim(number_format($rateFloat, 2, '.', ''), '0'), '.'));
 
             $debitDiscount = trim((string)($_POST['pricing_debit_discount_percent'] ?? '0'));
             $debitDiscount = str_replace(',', '.', $debitDiscount);
             $debitDiscountFloat = max(0, min(100, (float)$debitDiscount));
-            $settings->set('pricing_debit_discount_percent', rtrim(rtrim(number_format($debitDiscountFloat, 2, '.', ''), '0'), '.'));
+            $writer->set('pricing_debit_discount_percent', rtrim(rtrim(number_format($debitDiscountFloat, 2, '.', ''), '0'), '.'));
 
             $reservationHours = (int)($_POST['payments_transfer_reservation_hours'] ?? 24);
             if ($reservationHours < 1) $reservationHours = 24;
             if ($reservationHours > 720) $reservationHours = 720;
-            $settings->set('payments_transfer_reservation_hours', (string)$reservationHours);
+            $writer->set('payments_transfer_reservation_hours', (string)$reservationHours);
 
+            if (!$writer->commit()) { flash('error', 'No se pudieron guardar los ajustes.'); redirect(url('/admin/settings?tab=' . urlencode($tab))); return; }
             flash('success', 'Ajustes guardados.');
             redirect(url('/admin/settings?tab=pagos'));
             return;
@@ -861,10 +879,10 @@ if ($tab === 'envios') {
             $name = trim((string)($_POST['seller_business_name'] ?? ''));
             $addr = trim((string)($_POST['seller_fiscal_address'] ?? ''));
 
-            $settings->set('fiscal_seller_tax_regime', $regime);
-            $settings->set('fiscal_seller_cuit', $cuit);
-            $settings->set('fiscal_seller_business_name', $name);
-            $settings->set('fiscal_seller_fiscal_address', $addr);
+            $writer->set('fiscal_seller_tax_regime', $regime);
+            $writer->set('fiscal_seller_cuit', $cuit);
+            $writer->set('fiscal_seller_business_name', $name);
+            $writer->set('fiscal_seller_fiscal_address', $addr);
 
             // ARCA (facturación electrónica) — no guardamos secretos aquí
             $arcaEnv = strtolower(trim((string)($_POST['arca_env'] ?? 'homologacion')));
@@ -913,27 +931,18 @@ if ($tab === 'envios') {
             $noArr = array_values(array_diff($noArr, $factArr));
             $noFacturableCsv = implode(',', $noArr);
 
-            $settings->set('arca_env', $arcaEnv);
-            $settings->set('arca_pto_vta', (string)$ptoVta);
-            $settings->set('arca_auto_emit', $autoEmit);
-            $settings->set('arca_auto_emit_trigger', $trigger);
-            $settings->set('arca_ws_service', $wsService);
+            $writer->set('arca_env', $arcaEnv);
+            $writer->set('arca_pto_vta', (string)$ptoVta);
+            $writer->set('arca_auto_emit', $autoEmit);
+            $writer->set('arca_auto_emit_trigger', $trigger);
+            $writer->set('arca_ws_service', $wsService);
 
-            $settings->set('arca_facturable_statuses', $facturableCsv);
-            $settings->set('arca_non_facturable_statuses', $noFacturableCsv);
+            $writer->set('arca_facturable_statuses', $facturableCsv);
+            $writer->set('arca_non_facturable_statuses', $noFacturableCsv);
 
-            // Checkout / Cotización (FIX516)
-            $settings->set('shipping_origin_postal_code', trim((string)($_POST['shipping_origin_postal_code'] ?? '')));
+            // Los parámetros de cotización y paquetes se administran exclusivamente desde Envíos.
 
-            $freeMin = preg_replace('/[^0-9]/', '', (string)($_POST['shipping_free_min_amount'] ?? '0'));
-            if ($freeMin === '') $freeMin = '0';
-            $settings->set('shipping_free_min_amount', (string)((int)$freeMin));
-
-            $settings->set('shipping_default_weight', (string)max(1, (int)($_POST['shipping_default_weight'] ?? 1000)));
-            $settings->set('shipping_default_height', (string)max(1, (int)($_POST['shipping_default_height'] ?? 10)));
-            $settings->set('shipping_default_width',  (string)max(1, (int)($_POST['shipping_default_width'] ?? 10)));
-            $settings->set('shipping_default_length', (string)max(1, (int)($_POST['shipping_default_length'] ?? 10)));
-
+            if (!$writer->commit()) { flash('error', 'No se pudieron guardar los ajustes.'); redirect(url('/admin/settings?tab=fiscal')); return; }
             flash('ok', 'Ajustes fiscales guardados.');
             redirect('/admin/settings?tab=fiscal');
             return;
@@ -976,12 +985,12 @@ if ($tab === 'envios') {
             if (!in_array($roundMode, ['round','ceil','floor'], true)) $roundMode = 'round';
 
             $ok = true;
-            $ok = $ok && $settings->set('wh_enabled', $enabled);
-            $ok = $ok && $settings->set('wh1_discount_percent', $wh1n);
-            $ok = $ok && $settings->set('wh2_discount_percent', $wh2n);
-            $ok = $ok && $settings->set('wh_round_enabled', $roundEnabled);
-            $ok = $ok && $settings->set('wh_round_to', (string)$roundTo);
-            $ok = $ok && $settings->set('wh_round_mode', $roundMode);
+            $ok = $ok && $writer->set('wh_enabled', $enabled);
+            $ok = $ok && $writer->set('wh1_discount_percent', $wh1n);
+            $ok = $ok && $writer->set('wh2_discount_percent', $wh2n);
+            $ok = $ok && $writer->set('wh_round_enabled', $roundEnabled);
+            $ok = $ok && $writer->set('wh_round_to', (string)$roundTo);
+            $ok = $ok && $writer->set('wh_round_mode', $roundMode);
 
             if (!$ok) {
                 flash('error', 'No se pudieron guardar los ajustes de mayoristas.');
@@ -989,6 +998,7 @@ if ($tab === 'envios') {
                 return;
             }
 
+            if (!$writer->commit()) { flash('error', 'No se pudieron guardar los ajustes.'); redirect(url('/admin/settings?tab=mayoristas')); return; }
             flash('ok', 'Ajustes de mayoristas guardados.');
             redirect('/admin/settings?tab=mayoristas');
             return;
@@ -1006,82 +1016,86 @@ if ($tab === 'envios') {
 
             $useEnv = isset($_POST['correo_use_env']) ? '1' : '0';
 
-            $settings->set('correo_enabled', $enabled);
-            $settings->set('correo_mode', $mode);
-            $settings->set('correo_use_env', $useEnv);
+            $writer->set('correo_enabled', $enabled);
+            $writer->set('correo_mode', $mode);
+            $writer->set('correo_use_env', $useEnv);
 
             // QA/Dev: mock import (solo TEST). En PROD se ignora en runtime.
             $mockImport = isset($_POST['correo_mock_import']) ? '1' : '0';
-            $settings->set('correo_mock_import', $mockImport);
+            $writer->set('correo_mock_import', $mockImport);
 
             // Si usan env, no guardamos secretos en DB.
             if ($useEnv === '0') {
-                $settings->set('correo_api_username', trim((string)($_POST['correo_api_username'] ?? '')));
-                $settings->set('correo_api_password', trim((string)($_POST['correo_api_password'] ?? '')));
-                $settings->set('correo_user_email', trim((string)($_POST['correo_user_email'] ?? '')));
-                $settings->set('correo_user_password', trim((string)($_POST['correo_user_password'] ?? '')));
+                $writer->set('correo_api_username', trim((string)($_POST['correo_api_username'] ?? '')));
+                $newApiPassword = trim((string)($_POST['correo_api_password'] ?? ''));
+                if ($newApiPassword !== '') $writer->set('correo_api_password', $newApiPassword);
+                $writer->set('correo_user_email', trim((string)($_POST['correo_user_email'] ?? '')));
+                $newUserPassword = trim((string)($_POST['correo_user_password'] ?? ''));
+                if ($newUserPassword !== '') $writer->set('correo_user_password', $newUserPassword);
             }
 
             // Checkout / Cotización (FIX516)
-            $settings->set('shipping_origin_postal_code', trim((string)($_POST['shipping_origin_postal_code'] ?? '')));
+            $writer->set('shipping_origin_postal_code', trim((string)($_POST['shipping_origin_postal_code'] ?? '')));
 
             $freeMin = preg_replace('/[^0-9]/', '', (string)($_POST['shipping_free_min_amount'] ?? '0'));
             if ($freeMin === '') $freeMin = '0';
-            $settings->set('shipping_free_min_amount', (string)((int)$freeMin));
+            $writer->set('shipping_free_min_amount', (string)((int)$freeMin));
 
-            $settings->set('shipping_local_pickup_enabled', isset($_POST['shipping_local_pickup_enabled']) ? '1' : '0');
-            $settings->set('shipping_local_pickup_label', trim((string)($_POST['shipping_local_pickup_label'] ?? 'Retirar en el local')));
-            $settings->set('shipping_local_pickup_address', trim((string)($_POST['shipping_local_pickup_address'] ?? '')));
-            $settings->set('shipping_local_pickup_notes', trim((string)($_POST['shipping_local_pickup_notes'] ?? '')));
+            $writer->set('shipping_local_pickup_enabled', isset($_POST['shipping_local_pickup_enabled']) ? '1' : '0');
+            $writer->set('shipping_local_pickup_label', trim((string)($_POST['shipping_local_pickup_label'] ?? 'Retirar en el local')));
+            $writer->set('shipping_local_pickup_address', trim((string)($_POST['shipping_local_pickup_address'] ?? '')));
+            $writer->set('shipping_local_pickup_notes', trim((string)($_POST['shipping_local_pickup_notes'] ?? '')));
             $localPickupCost = preg_replace('/[^0-9]/', '', (string)($_POST['shipping_local_pickup_cost'] ?? '0'));
             if ($localPickupCost === '') $localPickupCost = '0';
-            $settings->set('shipping_local_pickup_cost', (string)((int)$localPickupCost));
-            $settings->set('shipping_local_pickup_maps_url', trim((string)($_POST['shipping_local_pickup_maps_url'] ?? '')));
-            $settings->set('shipping_local_pickup_place_id', trim((string)($_POST['shipping_local_pickup_place_id'] ?? '')));
+            $writer->set('shipping_local_pickup_cost', (string)((int)$localPickupCost));
+            $writer->set('shipping_local_pickup_maps_url', trim((string)($_POST['shipping_local_pickup_maps_url'] ?? '')));
+            $writer->set('shipping_local_pickup_place_id', trim((string)($_POST['shipping_local_pickup_place_id'] ?? '')));
             $localPickupLat = str_replace(',', '.', trim((string)($_POST['shipping_local_pickup_map_lat'] ?? '')));
             $localPickupLng = str_replace(',', '.', trim((string)($_POST['shipping_local_pickup_map_lng'] ?? '')));
             $localPickupZoom = (int)($_POST['shipping_local_pickup_map_zoom'] ?? 17);
             if ($localPickupZoom < 1) $localPickupZoom = 17;
             if ($localPickupZoom > 21) $localPickupZoom = 21;
-            $settings->set('shipping_local_pickup_map_lat', is_numeric($localPickupLat) ? (string)$localPickupLat : '');
-            $settings->set('shipping_local_pickup_map_lng', is_numeric($localPickupLng) ? (string)$localPickupLng : '');
-            $settings->set('shipping_local_pickup_map_zoom', (string)$localPickupZoom);
+            $writer->set('shipping_local_pickup_map_lat', is_numeric($localPickupLat) ? (string)$localPickupLat : '');
+            $writer->set('shipping_local_pickup_map_lng', is_numeric($localPickupLng) ? (string)$localPickupLng : '');
+            $writer->set('shipping_local_pickup_map_zoom', (string)$localPickupZoom);
 
-            $settings->set('shipping_default_weight', (string)max(1, (int)($_POST['shipping_default_weight'] ?? 1000)));
-            $settings->set('shipping_default_height', (string)max(1, (int)($_POST['shipping_default_height'] ?? 10)));
-            $settings->set('shipping_default_width',  (string)max(1, (int)($_POST['shipping_default_width'] ?? 10)));
-            $settings->set('shipping_default_length', (string)max(1, (int)($_POST['shipping_default_length'] ?? 10)));
+            $writer->set('shipping_default_weight', (string)max(1, (int)($_POST['shipping_default_weight'] ?? 1000)));
+            $writer->set('shipping_default_height', (string)max(1, (int)($_POST['shipping_default_height'] ?? 10)));
+            $writer->set('shipping_default_width',  (string)max(1, (int)($_POST['shipping_default_width'] ?? 10)));
+            $writer->set('shipping_default_length', (string)max(1, (int)($_POST['shipping_default_length'] ?? 10)));
 
-            $settings->set('shipping_packaging_extra_cm', (string)max(0, (int)($_POST['shipping_packaging_extra_cm'] ?? 0)));
+            $writer->set('shipping_packaging_extra_cm', (string)max(0, (int)($_POST['shipping_packaging_extra_cm'] ?? 0)));
             $rawPct = trim((string)($_POST['shipping_packaging_extra_weight_pct'] ?? '0'));
             $rawPct = str_replace(',', '.', $rawPct);
             $pct = (float)$rawPct;
             if ($pct < 0) $pct = 0;
             if ($pct > 100) $pct = 100;
-            $settings->set('shipping_packaging_extra_weight_pct', rtrim(rtrim(number_format($pct, 2, '.', ''), '0'), '.'));
+            $writer->set('shipping_packaging_extra_weight_pct', rtrim(rtrim(number_format($pct, 2, '.', ''), '0'), '.'));
 
             // Remitente fijo (FIX517)
-            $settings->set('shipping_sender_name', trim((string)($_POST['shipping_sender_name'] ?? '')));
-            $settings->set('shipping_sender_email', trim((string)($_POST['shipping_sender_email'] ?? '')));
-            $settings->set('shipping_sender_phone', trim((string)($_POST['shipping_sender_phone'] ?? '')));
-            $settings->set('shipping_sender_cellphone', trim((string)($_POST['shipping_sender_cellphone'] ?? '')));
-            $settings->set('shipping_sender_street', trim((string)($_POST['shipping_sender_street'] ?? '')));
-            $settings->set('shipping_sender_number', trim((string)($_POST['shipping_sender_number'] ?? '')));
-            $settings->set('shipping_sender_city', trim((string)($_POST['shipping_sender_city'] ?? '')));
-            $settings->set('shipping_sender_state', trim((string)($_POST['shipping_sender_state'] ?? '')));
-            $settings->set('shipping_sender_zip', trim((string)($_POST['shipping_sender_zip'] ?? '')));
-            $settings->set('shipping_sender_floor', trim((string)($_POST['shipping_sender_floor'] ?? '')));
-            $settings->set('shipping_sender_apartment', trim((string)($_POST['shipping_sender_apartment'] ?? '')));
+            $writer->set('shipping_sender_name', trim((string)($_POST['shipping_sender_name'] ?? '')));
+            $writer->set('shipping_sender_email', trim((string)($_POST['shipping_sender_email'] ?? '')));
+            $writer->set('shipping_sender_phone', trim((string)($_POST['shipping_sender_phone'] ?? '')));
+            $writer->set('shipping_sender_cellphone', trim((string)($_POST['shipping_sender_cellphone'] ?? '')));
+            $writer->set('shipping_sender_street', trim((string)($_POST['shipping_sender_street'] ?? '')));
+            $writer->set('shipping_sender_number', trim((string)($_POST['shipping_sender_number'] ?? '')));
+            $writer->set('shipping_sender_city', trim((string)($_POST['shipping_sender_city'] ?? '')));
+            $writer->set('shipping_sender_state', trim((string)($_POST['shipping_sender_state'] ?? '')));
+            $writer->set('shipping_sender_zip', trim((string)($_POST['shipping_sender_zip'] ?? '')));
+            $writer->set('shipping_sender_floor', trim((string)($_POST['shipping_sender_floor'] ?? '')));
+            $writer->set('shipping_sender_apartment', trim((string)($_POST['shipping_sender_apartment'] ?? '')));
 
 
+            if (!$writer->commit()) { flash('error', 'No se pudieron guardar los ajustes.'); redirect(url('/admin/settings?tab=envios')); return; }
             flash('ok', 'Ajustes de envíos guardados.');
             redirect('/admin/settings?tab=envios');
             return;
         }
 
         if ($tab !== 'email-marketing') {
-            flash('ok', 'Ajustes guardados.');
-            redirect('/admin/settings?tab=' . urlencode($tab));
+            flash('error', 'Sección de ajustes inválida. No se guardaron cambios.');
+            redirect(url('/admin/settings'));
+            return;
         }
 
         $db = db();
@@ -1090,7 +1104,7 @@ if ($tab === 'envios') {
 
         // 1) Double opt-in
         $double = isset($_POST['double_optin']) ? '1' : '0';
-        $settings->set('email_marketing_double_optin', $double);
+        $writer->set('email_marketing_double_optin', $double);
 
         // 2) Límites runner (opcionales)
         $sched = (string)($_POST['sched_limit'] ?? '');
@@ -1098,51 +1112,53 @@ if ($tab === 'envios') {
         $broadcast = (string)($_POST['broadcast_limit'] ?? '');
         if ($sched !== '') {
             $n = max(10, min(2000, (int)$sched));
-            $settings->set('email_marketing_scheduler_limit', (string)$n);
+            $writer->set('email_marketing_scheduler_limit', (string)$n);
         }
         if ($broadcast !== '') {
             $n = max(10, min(2000, (int)$broadcast));
-            $settings->set('email_marketing_broadcast_limit', (string)$n);
+            $writer->set('email_marketing_broadcast_limit', (string)$n);
         }
         if ($work !== '') {
             $n = max(1, min(500, (int)$work));
-            $settings->set('email_marketing_worker_limit', (string)$n);
+            $writer->set('email_marketing_worker_limit', (string)$n);
         }
 
         // 2b) Tracking + frequency caps
         $openTracking = isset($_POST['open_tracking']) ? '1' : '0';
-        $settings->set('email_marketing_open_tracking', $openTracking);
+        $writer->set('email_marketing_open_tracking', $openTracking);
 
         $capDay = (string)($_POST['cap_per_day'] ?? '');
         $capWeek = (string)($_POST['cap_per_week'] ?? '');
         if ($capDay !== '') {
             $n = max(0, min(20, (int)$capDay));
-            $settings->set('email_marketing_cap_per_day', (string)$n);
+            $writer->set('email_marketing_cap_per_day', (string)$n);
         }
         if ($capWeek !== '') {
             $n = max(0, min(100, (int)$capWeek));
-            $settings->set('email_marketing_cap_per_week', (string)$n);
+            $writer->set('email_marketing_cap_per_week', (string)$n);
         }
 
         // 2c) Runner vía web (fallback)
         $webEnabled = isset($_POST['web_runner_enabled']) ? '1' : '0';
-        $settings->set('email_marketing_web_runner_enabled', $webEnabled);
+        $writer->set('email_marketing_web_runner_enabled', $webEnabled);
 
-        $regenerate = isset($_POST['web_runner_regenerate']) && (string)$_POST['web_runner_regenerate'] === '1';
         $currentToken = (string)($settings->get('email_marketing_web_runner_token', '') ?? '');
-        // Genera token si se habilita y no existe, o si pidieron regenerarlo.
-        if ($webEnabled === '1' && ($regenerate || $currentToken === '')) {
-            try {
-                $newToken = bin2hex(random_bytes(16));
-            } catch (\Throwable $e) {
-                $newToken = bin2hex((string)microtime(true) . (string)rand());
-            }
-            $settings->set('email_marketing_web_runner_token', $newToken);
+        if ($webEnabled === '1' && $currentToken === '') {
+            flash('error', 'El runner necesita una clave aprovisionada por consola antes de activarlo.');
+            redirect(url('/admin/settings?tab=email-marketing'));
+            return;
+        }
+        // No regenerar secretos desde HTTP: no existe un canal seguro para entregarlos en pantalla.
+        if (!empty($_POST['web_runner_regenerate'])) {
+            flash('error', 'La rotación del token se realiza exclusivamente por consola.');
+            redirect(url('/admin/settings?tab=email-marketing'));
+            return;
         }
 
-        // 3) Delays por paso (value+unit)
+        // 3) Delays por paso, en la misma transacción que app_settings.
         $values = $_POST['delay_value'] ?? [];
         $units  = $_POST['delay_unit'] ?? [];
+        $saved = $writer->commit(static function () use ($repo, $values, $units): void {
         if (is_array($values) && is_array($units)) {
             foreach ($values as $sid => $val) {
                 $stepId = (int)$sid;
@@ -1157,10 +1173,12 @@ if ($tab === 'envios') {
                 $minutes = $v * $mult;
                 $minutes = max(0, min(60 * 24 * 30, $minutes)); // 0..30 días
 
-                try { $repo->setStepDelay($stepId, $minutes); } catch (\Throwable $e) { /* best-effort */ }
+                $repo->setStepDelay($stepId, $minutes);
             }
         }
 
+        });
+        if (!$saved) { flash('error', 'No se pudieron guardar los ajustes.'); redirect(url('/admin/settings?tab=email-marketing')); return; }
         flash('ok', 'Configuración de Email Marketing guardada.');
         redirect('/admin/settings?tab=email-marketing');
     }

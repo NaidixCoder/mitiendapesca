@@ -1,4 +1,4 @@
-<section class="av3-card av3-flow-3">
+<section id="ajustes-frecuencia" class="av3-ui-card av3-settings-detail__panel av3-flow-3">
   <h2 class="av3-type-base av3-weight-strong">Evitar molestias y medir interés</h2>
   <p class="av3-type-body av3-text-var-muted">Evita saturar a los clientes y, si querés, registra las aperturas de forma aproximada.</p>
 

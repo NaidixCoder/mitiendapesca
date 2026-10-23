@@ -1,3 +1,4 @@
+<link rel="stylesheet" href="<?= e(url('/assets/css/admin-v3/pages/settings.css')) ?>">
 <?php
 $pageTitle = 'Ajustes';
 require BASE_PATH.'/app/Views/partials/admin/subnav.php';

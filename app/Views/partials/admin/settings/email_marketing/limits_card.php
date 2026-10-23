@@ -1,4 +1,4 @@
-<section class="av3-card av3-flow-3">
+<section id="ajustes-limites" class="av3-ui-card av3-settings-detail__panel av3-flow-3">
   <h2 class="av3-type-base av3-weight-strong">Cuánto envía por tanda</h2>
   <p class="av3-type-body av3-text-var-muted">Controla cuántos emails se preparan y se envían por tanda. Si lo dejás vacío, se usa el valor del <code>.env</code>.</p>
 

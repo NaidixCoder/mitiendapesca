@@ -1,5 +1,5 @@
-<div class="av3-flow-2">
-  <div class="av3-weight-strong">Catalogo</div>
+<section id="ajustes-catalogo" class="av3-ui-card av3-settings-detail__panel av3-flow-3">
+  <h2 class="av3-settings-detail__heading">Catálogo y publicación</h2>
 
   <label class="av3-flex av3-items-start av3-gap-3">
     <input
@@ -62,4 +62,4 @@
     </span>
   </label>
 
-</div>
+</section>

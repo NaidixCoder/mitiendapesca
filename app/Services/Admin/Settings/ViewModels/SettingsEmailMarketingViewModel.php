@@ -38,7 +38,8 @@ final class SettingsEmailMarketingViewModel
             'double_opt_checked' => $this->resolveDoubleOptChecked($cfg),
             'open_tracking_checked' => $this->boolOn($cfg['open_tracking'] ?? '0'),
             'web_runner_enabled_checked' => $this->boolOn($cfg['web_runner_enabled'] ?? '0'),
-            'run_url' => url('/email/run') . '?token=' . urlencode((string)($cfg['web_runner_token'] ?? '')),
+            'run_url' => url('/email/run'), // Ruta pública solamente; el token nunca viaja a la vista.
+            'web_runner_configured' => !empty($cfg['web_runner_configured']),
         ];
     }
 

@@ -1,53 +1,23 @@
 <?php
-// Sub-nav de Ajustes (tabs)
-$tab = (string)($_GET['tab'] ?? '');
-$tab = trim($tab);
-
-$path = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '/';
-$basePrefix = rtrim(parse_url(url('/'), PHP_URL_PATH) ?: '', '/');
-$norm = function (string $href) use ($basePrefix): string {
-  $href = '/' . ltrim($href, '/');
-  return ($basePrefix ? $basePrefix : '') . $href;
-};
-
-$designPath = $norm('/admin/settings/design/home-hero');
-$designSectionsPath = $norm('/admin/settings/design/home-sections');
-if ($tab === '' && str_starts_with($path, $designPath)) {
-  $tab = 'design-home-hero';
-}
-if ($tab === '' && str_starts_with($path, $designSectionsPath)) {
-  $tab = 'design-home-sections';
-}
-if ($tab === '') $tab = 'email-marketing';
-
-$btn = function (string $label, string $qtab) use ($tab, $path, $norm): string {
-  $href = '/admin/settings?tab=' . urlencode($qtab);
-  $full = $norm('/admin/settings');
-  $is = str_starts_with($path, $full) && ($tab === $qtab);
-  $cls = $is ? 'btn-primary' : 'btn-secondary';
-  $aria = $is ? ' aria-current="page"' : '';
-  return '<a class="' . $cls . '" href="' . e(url($href)) . '"' . $aria . '>' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</a>';
-};
-
-$btnPath = function (string $label, string $href, string $key) use ($tab, $path, $norm): string {
-  $full = $norm($href);
-  $is = str_starts_with($path, $full) || $tab === $key;
-  $cls = $is ? 'btn-primary' : 'btn-secondary';
-  $aria = $is ? ' aria-current="page"' : '';
-  return '<a class="' . $cls . '" href="' . e(url($href)) . '"' . $aria . '>' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</a>';
-};
+$settingsTab = trim((string)($_GET['tab'] ?? 'index'));
+$settingsPath = (string)(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '/');
+if (str_ends_with($settingsPath, '/design/home-hero')) $settingsTab = 'design-home-hero';
+if (str_ends_with($settingsPath, '/design/home-sections')) $settingsTab = 'design-home-sections';
+$settingsLinks = [
+  ['Centro de ajustes', '/admin/settings', 'index'],
+  ['General', '/admin/settings?tab=general', 'general'],
+  ['Pagos', '/admin/settings?tab=pagos', 'pagos'],
+  ['Mayoristas', '/admin/settings?tab=mayoristas', 'mayoristas'],
+  ['Envíos', '/admin/settings?tab=envios', 'envios'],
+  ['Fiscal y ARCA', '/admin/settings?tab=fiscal', 'fiscal'],
+  ['Email', '/admin/settings?tab=email-marketing', 'email-marketing'],
+  ['Hero', '/admin/settings/design/home-hero', 'design-home-hero'],
+  ['Secciones Home', '/admin/settings/design/home-sections', 'design-home-sections'],
+];
 ?>
-
-<div class="av3-wrap">
-  <div class="av3-flex av3-flex-wrap av3-items-center av3-gap-2">
-    <?= $btn('Emails', 'email-marketing') ?>
-    <?= $btn('General', 'general') ?>
-    <?= $btnPath('Diseno', '/admin/settings/design/home-hero', 'design-home-hero') ?>
-    <?= $btnPath('Secciones Home', '/admin/settings/design/home-sections', 'design-home-sections') ?>
-    <?= $btn('Fiscal', 'fiscal') ?>
-    <?= $btn('Envios', 'envios') ?>
-    <?= $btn('Integraciones', 'integraciones') ?>
-    <?= $btn('Pagos', 'pagos') ?>
-    <?= $btn('Mayoristas', 'mayoristas') ?>
-  </div>
-</div>
+<nav class="av3-wrap av3-flex av3-flex-wrap av3-items-center av3-gap-2" aria-label="Secciones de ajustes">
+  <?php foreach ($settingsLinks as [$settingsLabel, $settingsHref, $settingsKey]): ?>
+    <a class="<?= $settingsTab === $settingsKey ? 'av3-ui-btn av3-ui-btn--primary av3-ui-btn--small' : 'av3-ui-btn av3-ui-btn--small' ?>"
+       href="<?= e(url($settingsHref)) ?>" <?= $settingsTab === $settingsKey ? 'aria-current="page"' : '' ?>><?= e($settingsLabel) ?></a>
+  <?php endforeach; ?>
+</nav>

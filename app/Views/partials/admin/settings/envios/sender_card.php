@@ -1,4 +1,4 @@
-<section class="av3-card av3-flow-3">
+<section id="ajustes-remitente" class="av3-ui-card av3-settings-detail__panel av3-flow-3">
   <h2 class="av3-type-base av3-weight-strong">Remitente fijo (para Crear envío)</h2>
   <p class="av3-type-caption av3-text-var-muted">Estos datos se usan en <code>/shipping/import</code>. No se editan por pedido.</p>
 

@@ -5,7 +5,8 @@ $crumbs = admin_crumbs('settings.section', ['name' => 'Home hero']);
 require BASE_PATH.'/app/Views/partials/admin/settings_subnav.php';
 $rows = is_array($rows ?? null) ? $rows : [];
 ?>
-<section class="admin-surface">
+<link rel="stylesheet" href="<?= e(url('/assets/css/admin-v3/pages/settings.css')) ?>">
+<section class="admin-surface av3-settings-detail av3-settings-detail--home-hero">
   <div class="av3-wrap av3-flow-4" data-home-hero-settings>
     <?php if ($m = flash('ok')): ?>
       <div class="av3-card av3-pad-3"><?= e((string)$m) ?></div>
@@ -31,10 +32,15 @@ require BASE_PATH.'/app/Views/partials/admin/page_header.php';
     <input type="hidden" data-hero-delete-url value="<?= e(url('/admin/settings/design/home-hero/delete-image')) ?>">
     <input type="hidden" data-hero-products-search-url value="<?= e(url('/admin/marketing/email/products/search')) ?>">
 
-    <form method="post" action="<?= e(url('/admin/settings/design/home-hero')) ?>" class="av3-flow-4">
+
+    <nav class="av3-settings-detail__toc" aria-label="Ir a una sección">
+      <a href="#ajustes-contenido">Contenido</a>
+      <a href="#ajustes-diapositivas">Diapositivas</a>
+    </nav>
+<form method="post" action="<?= e(url('/admin/settings/design/home-hero')) ?>" class="av3-flow-4">
       <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>" data-home-hero-csrf>
 
-      <section class="av3-card av3-pad-4 av3-flow-3">
+      <section id="ajustes-contenido" class="av3-card av3-pad-4 av3-flow-3">
         <h2 class="av3-weight-strong">Contenido principal del hero</h2>
         <div class="av3-grid av3-grid-cols-1 av3-gap-3">
           <label class="av3-flow-1">
@@ -65,6 +71,7 @@ require BASE_PATH.'/app/Views/partials/admin/page_header.php';
         </div>
       </section>
 
+      <div id="ajustes-diapositivas" class="av3-settings-detail__anchor"></div>
       <?php foreach ($rows as $i => $row): ?>
         <?php $sort = (int)($row['sort_order'] ?? ($i + 1)); ?>
         <section class="av3-card av3-pad-4 av3-flow-3" data-hero-slide>

@@ -1,4 +1,4 @@
-<section class="av3-card av3-flow-3">
+<section id="ajustes-conciliacion" class="av3-ui-card av3-settings-detail__panel av3-flow-3">
   <h2 class="av3-type-base av3-weight-strong">Conciliacion (M3)</h2>
   <p class="av3-type-body av3-text-var-muted">Estos estados se usan en <b>Reportes -> Conciliacion</b> para decidir que pedidos <b>deberian</b> tener comprobante y cuales se consideran <b>no facturables</b>. Es solo para alertas y listas operativas (no modifica pedidos ni emite).</p>
 

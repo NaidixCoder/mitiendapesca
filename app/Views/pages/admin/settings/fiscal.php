@@ -13,13 +13,19 @@ $statusOptions = is_array($fiscalPayload['status_options'] ?? null) ? $fiscalPay
 $isNoFacturar = !empty($fiscalPayload['is_no_facturar']);
 ?>
 
-<section class="admin-surface">
+<link rel="stylesheet" href="<?= e(url('/assets/css/admin-v3/pages/settings.css')) ?>">
+<section class="admin-surface av3-settings-detail av3-settings-detail--fiscal">
   <div class="av3-wrap av3-flow-4">
 
     <?php require BASE_PATH.'/app/Views/partials/admin/settings/fiscal/header.php'; ?>
     <?php require BASE_PATH.'/app/Views/partials/admin/settings/fiscal/flashes.php'; ?>
 
-    <form method="post" action="<?= e(url('/admin/settings?tab=fiscal')) ?>" class="av3-flow-4">
+    <nav class="av3-settings-detail__toc" aria-label="Ir a una sección">
+      <a href="#ajustes-regimen">Régimen</a>
+      <a href="#ajustes-arca">ARCA</a>
+      <a href="#ajustes-conciliacion">Conciliación</a>
+    </nav>
+<form method="post" action="<?= e(url('/admin/settings?tab=fiscal')) ?>" class="av3-settings-detail__form av3-flow-4">
       <?= csrf_field() ?>
       <input type="hidden" name="tab" value="fiscal">
 

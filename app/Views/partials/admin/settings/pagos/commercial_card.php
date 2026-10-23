@@ -1,4 +1,4 @@
-<div class="av3-flow-6">
+<section id="ajustes-condiciones" class="av3-ui-card av3-settings-detail__panel av3-flow-4">
   <div class="av3-flow-3">
     <div class="av3-weight-strong">Financiacion comercial</div>
 
@@ -49,4 +49,4 @@
       </div>
     </label>
   </div>
-</div>
+</section>
