@@ -1,3 +1,4 @@
+param([switch]$RaceOnly)
 # MiTiendaPesca — E2E HTTP privado. EJECUTAR SOLO LOCALMENTE por el propietario.
 # Bootstrap REAL de la aplicación + MariaDB privada; no usa la instancia de XAMPP.
 $ErrorActionPreference='Stop'
@@ -115,6 +116,8 @@ try {
  $noOrder=(One "SELECT COUNT(*) FROM $dbName.orders")
  Require ($noOrder -eq '0') 'synthetic checkout baseline contains orders'
  Write-Host '[QA] Synthetic checkout baseline has zero orders.'
+ $result='AUTHENTIC_HTTP_19_PREVIOUSLY_APPROVED_RACE_FOCAL_ONLY'
+ if(-not $RaceOnly){
  $pyOut=Join-Path $base 'qa_http.out'
  $pyErr=Join-Path $base 'qa_http.err'
  $pyProc=Start-Process -FilePath 'python' -ArgumentList @([char]34+$qaTest+[char]34) -Wait -PassThru -RedirectStandardOutput $pyOut -RedirectStandardError $pyErr
@@ -124,6 +127,7 @@ try {
  if($errorText){Write-Warning $errorText}
  Require ($pyProc.ExitCode -eq 0) 'HTTP authenticated E2E failed; consult private QA log'
  Require ($result -match 'CHECKOUT_AUTHENTIC_HTTP_MARIADB_PASS') 'HTTP E2E PASS marker missing'
+ }
  $raceTest=Join-Path $repo 'scripts\dev\checkout_http_real_concurrent.py'
  Require (Test-Path $raceTest -PathType Leaf) 'concurrency QA missing'
  $raceOut=Join-Path $base 'race_http.out'

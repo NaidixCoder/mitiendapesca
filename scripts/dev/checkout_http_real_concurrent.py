@@ -76,7 +76,10 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
     answers=[first.result(timeout=50),second.result(timeout=50)]
 state=json.loads(db("snapshot"))
 if state!={"order":1,"items":1,"stock":3,"status":"pending_payment"}:
-    raise AssertionError("FAIL concurrent order / inventory integrity "+json.dumps({"responses":answers,"db":state}))
+    diag=[]
+    for s in (s1,s2):
+        diag.append(subprocess.check_output([r"C:\xampp\php\php.exe",str(FIXTURE),"diagnose"],env={**os.environ,"MI_QA_HTTP_SESSION_ID":s.cookies.get("MIE2EPRIVATE")},text=True).strip())
+    raise AssertionError("FAIL concurrent order / inventory integrity "+json.dumps({"responses":answers,"db":state,"session_diagnostics":diag}))
 print("PASS independent authenticated sessions and parallel HTTP requests",flush=True)
 print("PASS single committed order, one item, stock decremented once",flush=True)
 print("PASS no duplicate order/oversell despite concurrent submissions",flush=True)

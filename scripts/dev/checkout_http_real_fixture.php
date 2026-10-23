@@ -8,7 +8,7 @@ $user=(string)getenv('MI_QA_DB_USER');
 $pass=(string)getenv('MI_QA_DB_PASS');
 $mode=$argv[1]??'';
 if($host!=='127.0.0.1'||$port!==18997||$name!=='mi_checkout_http_private_qa'
-   ||$user!=='root'||$pass===''||!in_array($mode,['seed','snapshot','session','hide','show','stock_low','stock_restore','cart_restore','race_reset'],true)){
+   ||$user!=='root'||$pass===''||!in_array($mode,['seed','snapshot','session','hide','show','stock_low','stock_restore','cart_restore','race_reset','diagnose'],true)){
     fwrite(STDERR,"REFUSED: private QA identity invalid\n");exit(2);
 }
 $db=new PDO("mysql:host=$host;port=$port;dbname=$name;charset=utf8mb4",$user,$pass,[
@@ -20,7 +20,7 @@ $actual=str_replace('\\','/',strtolower(rtrim((string)$meta['datadir'],"\\/")));
 if($meta['db']!==$name||(int)$meta['port']!==$port||rtrim($actual,'/')!==rtrim($expected,'/')){
     fwrite(STDERR,"REFUSED: MariaDB datadir or identity mismatched\n");exit(2);
 }
-if(in_array($mode,['hide','show','stock_low','stock_restore','cart_restore','race_reset'],true)){
+if(in_array($mode,['hide','show','stock_low','stock_restore','cart_restore','race_reset','diagnose'],true)){
     if($mode==='race_reset'){
         $db->beginTransaction();
         try {
@@ -63,7 +63,7 @@ if(in_array($mode,['hide','show','stock_low','stock_restore','cart_restore','rac
     $stock=(int)$db->query("SELECT stock FROM inventory WHERE product_id=197")->fetchColumn();
     $status=$db->query("SELECT status FROM orders WHERE user_id=197 ORDER BY id DESC LIMIT 1")->fetchColumn()?:'none';
     echo json_encode(compact('order','items','stock','status'),JSON_UNESCAPED_UNICODE)."\n";
-}elseif($mode==='session'){
+}elseif($mode==='session'||$mode==='diagnose'){
     $sid=(string)getenv('MI_QA_HTTP_SESSION_ID');
     if(!preg_match('/^[A-Za-z0-9,-]{12,160}$/',$sid))throw new RuntimeException('Missing session id');
     $save=(string)getenv('MI_QA_SESSION_DIR');
@@ -75,6 +75,12 @@ if(in_array($mode,['hide','show','stock_low','stock_restore','cart_restore','rac
     session_id($sid);
     if(!session_start())throw new RuntimeException('Cannot load PHP session');
     if((int)($_SESSION['uid']??0)!==197)throw new RuntimeException('QA synthetic user not authenticated');
+    if($mode==='diagnose'){
+        $q=$db->query('SELECT c.id,c.status,COUNT(ci.id) AS item_count FROM carts c LEFT JOIN cart_items ci ON ci.cart_id=c.id WHERE c.user_id=197 GROUP BY c.id,c.status ORDER BY c.id')->fetchAll(PDO::FETCH_ASSOC);
+        echo json_encode(['user_id'=>(int)($_SESSION['uid']??0),'shipping'=>$_SESSION['checkout_shipping']??null,'flash'=>$_SESSION['_flash']??($_SESSION['flash']??null),'carts'=>$q],JSON_UNESCAPED_UNICODE)."\n";
+        session_write_close();
+        exit(0);
+    }
     $_SESSION['checkout_shipping']=['mode'=>'free','service_code'=>'FREE','cost'=>0,
       'label'=>'Entrega privada QA', 'cart_sig'=>'', 'created_at'=>time()];
     $_SESSION['checkout_address_selected_id']=197;
