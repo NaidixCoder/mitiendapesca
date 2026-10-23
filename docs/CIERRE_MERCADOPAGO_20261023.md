@@ -41,3 +41,11 @@ Se revisaron los controladores reales `app/Controllers/Checkout/PaymentControlle
 - https://www.mercadopago.com.ar/developers/es/docs/split-payments/additional-content/your-integrations/notifications/webhooks
 
 No ejecutar pagos reales ni cambiar credenciales productivas durante una auditoría sin autorización expresa. No declarar homologación externa si faltan pruebas con MP.
+
+## Adenda V4 — inicio de homologación focal (23/10/2026)
+
+Se revisó nuevamente el flujo real `PaymentController::payment()` y `MercadoPagoWebhookController::handle()` junto al repositorio de pagos. Focal 80/80 PASS, exit 0, confirmado en ejecución combinada. Comprobaciones relevantes: bloqueo de pago en vuelo antes de llamar al proveedor, bloqueo del carrito e intentos pendientes, persistencia del resultado MP, orden asociada si existe, respuesta de conciliación si hay aprobado sin orden, rechazo de firma HMAC incorrecta, recuperación/idempotencia prevista para webhooks repetidos. **No se han probado aún operaciones en la plataforma MP**.
+
+Se contrastó la secuencia de homologación con documentación oficial vigente. Nota importante: el proyecto usa `createPayment` y `getPayment`, por lo que las pruebas externas deben corresponder al **endpoint y versión de API efectivamente integrados**, no trasladar mecánicamente las instrucciones `/v1/orders/{id}` de Checkout API Orders, que pueden pertenecer a otra variante de producto. Fuente oficial: https://www.mercadopago.com.ar/developers/es/docs/checkout-api-orders/integration-test/cards ; notificaciones: https://www.mercadopago.com.ar/developers/es/docs/links-and-debts/additional-content/your-integrations/notifications .
+
+**Siguiente ejecución exigida para GO:** comprobar conectividad y recepción webhook firmada en URL de pruebas HTTPS, compra sintética aprobada/rechazada/pendiente, y correlación de `payments`/`orders`/stock, sin exponer secretos, sin intervenir comercio productivo y sin generar cobros reales. El estado continúa NO GO hasta evidencia externa y conciliación aprobada. No repetir test 19/19 ni carrera 3/3 de transferencia.
