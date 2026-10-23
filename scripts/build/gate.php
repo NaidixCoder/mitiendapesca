@@ -68,6 +68,7 @@ $command([PHP_BINARY, 'scripts/build/regression.php'], 'Pruebas de regresion');
 $command([PHP_BINARY, 'scripts/build/checkout_intent_reuse_contract.php'], 'CheckoutIntent: campañas NULL/0 y reuso seguro');
 $command([PHP_BINARY, 'scripts/build/checkout_payment_orphan_contract.php'], 'Pago aprobado sin pedido: respuesta y conciliación');
 $command([PHP_BINARY, 'scripts/build/checkout_payment_integrity_contract.php'], 'Checkout MP integridad');
+$command([PHP_BINARY, 'scripts/dev/checkout_postcommit_integrity_isolated.php'], 'Checkout transferencia: postcommit e idempotencia SQLite aislado');
 $command([PHP_BINARY, 'scripts/build/transversal_mp_signature_contract.php'], 'Mercado Pago: firma HMAC webhook sintético');
 $command([PHP_BINARY, 'scripts/build/transversal_catalog_checkout_contract.php'], 'Transversal Catalogo-Checkout-Importaciones: reglas B1 y CSV');
 $command([PHP_BINARY, 'scripts/build/transversal_publication_stock_contract.php'], 'Transversal publicacion: inventario, imagenes y B1');

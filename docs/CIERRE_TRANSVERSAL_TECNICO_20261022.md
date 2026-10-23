@@ -72,3 +72,50 @@ La ejecución del gate tras incorporar el contrato HMAC cerró con `[gate] OK`, 
 El principal verificó ausencia de servidor MariaDB transversal temporal, puerto privado 18989 libre y conservación de `docs/ESTADO_DESARROLLO.md` sin incluirlo en stage. Ningún pago, reembolso o registro comercial fue alterado.
 
 **Dictamen actualizado:** auditoría, regresiones internas y **E2E SQL integral MariaDB (40/40) aprobados**. Producción y E2E HTTP/pedido siguen sin aprobación por los impedimentos externos y de alcance descritos arriba. No falsear estado ni reabrir módulos previamente integrados sin falla concreta.
+
+## 8. Ratificación final del cierre de fase SQL (22/10/2026 — continuación MAIN CHAT)
+
+El chat principal retomó por Desktop Commander el dictamen existente y **no repitió** la prueba destructiva ya aprobada. Comprobaciones nuevas, de solo lectura:
+
+- Archivo de evidencia `docs/QA_TRANSVERSAL_SQL_RESULT_20261022.log`: contiene las 40 aserciones PASS y termina en `[transversal-import-category-checkout] OK 40 MariaDB cross-module assertions`; se había documentado `exit=0` en esa misma evidencia.
+- `git status --short`: solo `M docs/ESTADO_DESARROLLO.md` antes de esta adenda; edición ajena respetada. `git diff --check` sin errores (aviso de conversión LF/CRLF, no fallo del check).
+- Directorio descartable `%TEMP%\mi_transversal_qa_20261022`: ausente. `netstat -ano -p tcp | findstr :18989`: sin entradas para el puerto 18989 al verificar.
+- Los contratos previos, la suite Checkout privada y el gate 890 PHP/120 JS permanecen como evidencias de ejecuciones anteriores; **no se declara una nueva ejecución**.
+
+**DICTAMEN DE FASE:** `CIERRE APROBADO — E2E SQL TRANSVERSAL` (40/40). Sin cambios en datos comerciales ni operaciones de pagos en esta continuación. El E2E HTTP autenticado con creación real y única de pedido/impacto de stock constituye la **fase siguiente y aún no aprobada**; no confundir ambos hitos. La homologación externa de Mercado Pago y la adopción de conciliación financiera continúan como bloqueos independientes de producción. **NO GO A PRODUCCIÓN**.
+
+## 9. Apertura de fase siguiente — E2E HTTP autenticado (22/10/2026)
+
+Se inició el reconocimiento de cobertura sin efectuar operaciones comerciales. El router real expone `POST /checkout/stock/preflight`, `POST /checkout/confirmar`, `POST /checkout/transferencia` y `POST /checkout/mp/payment`, implementados en `PaymentController` y `CheckoutController`. Los controladores invocan `auth_required` y `verify_csrf_or_abort` en rutas de pago; la cobertura exacta del resto exige ejecución HTTP aislada.
+
+El fixture previo `scripts/dev/checkout_order_concurrency_isolated.php` verifica `OrderFromIntentService` real, pero utiliza stubs para elegibilidad de producto, publicación, lealtad y correo. **No sustituye** una prueba HTTP autenticada de punta a punta. El runner SQL transversal aprobado declara expresamente `Do not invoke via remote tooling`; se respetó y no se reejecutó.
+
+**Matriz de aceptación para el nuevo E2E HTTP, todavía NO ejecutado:** (1) servidor PHP y MariaDB privados con guardias de DSN, `DATABASE()`, `@@port` y carpeta descartable, sin `.env` comercial; (2) GET de login/sesión sintética y POST sin autenticación rechazado; (3) POST sin token CSRF rechazado y con token correcto aceptado; (4) preflight de ítem activo/stock suficiente, producto/categoría B1 oculta, cantidad excesiva y variante incompatible; (5) confirmación de transferencia o camino simulado sin MP, con pedido e items persistidos y descuento de stock único; (6) replay mismo token, dos solicitudes concurrentes y errores forzados con idempotencia y rollback; (7) verificar que no se enviaron correos, eventos reales, cargos o reembolsos; (8) destruir solo recursos del ensayo y comprobar puerto/carpeta libres; (9) ejecutar gate solo al cierre.
+
+**Dictamen:** fase E2E HTTP **ABIERTA / NO APROBADA**. El cierre SQL 40/40 sigue aprobado e independiente. No habilitar producción sobre la base del ensayo SQL ni de stubs de servicio.
+
+### Regresión global de esta continuación
+
+Se ejecutó realmente `C:\xampp\php\php.exe scripts\build\gate.php` desde la raíz del repositorio: **890 PHP, 120 JavaScript, `[gate] OK`, exit 0** (runtime 101.61 s). `git diff --check` sin errores; avisos LF/CRLF no bloqueantes. No se ejecutó el E2E HTTP ni se utilizaron servicios externos.
+
+## 10. Corrección de alcance del E2E HTTP — identificación de rutas efectivas
+
+Inspección directa de controladores (sin ejecutar efectos): `POST /checkout/confirmar` es una ruta legacy deshabilitada: únicamente exige auth y redirige, **no confirma pedido**. En cambio `POST /checkout/transferencia` verifica auth, CSRF, email validado, dirección y envío; llama a `CheckoutOrderService::confirm()` y puede persistir un pedido pendiente de transferencia. El circuito MP usa `POST /checkout/mp/payment`, `CheckoutIntentService` y creación de pedido posterior a aprobación; preflight se atiende en `POST /checkout/stock/preflight`.
+
+**Corrección de la matriz anterior:** el E2E HTTP debe probar por separado transferencia con pedido realmente creado y MP con proveedor simulado/fixtures, sin confundir el `confirm` legacy con una confirmación válida. El método de transferencia no necesita proveedor financiero externo, pero sí DB privada, usuario/carrito/dirección/envío sintéticos y neutralización comprobable de envíos/analytics. No ejecutar contra `.env` habitual.
+
+**Estado de validación:** esta inspección es evidencia de ruta/código, no test HTTP ni PASS de E2E. Mantener NO GO hasta ejecución efectiva y comprobada de casos de sesión/CSRF/preflight/stock/orden/idempotencia en entorno privado.
+
+## 11. Intervención integral V3 — corrección Checkout y HTTP sintético
+
+**Código funcional corregido:** app/Services/Checkout/CheckoutOrderService.php. Riesgo P1: después del commit, Audit::log o la limpieza del carrito podían lanzar excepción capturada por el manejador transaccional general y comunicar falsamente que el pedido había fallado, aunque ya existiera y su stock estuviera reservado. Ambas tareas post-commit quedan aisladas con captura/log; las transacciones de orden, ítems y stock siguen intactas.
+
+**Prueba focal:** scripts/dev/checkout_postcommit_integrity_isolated.php, **3/3 PASS** con CheckoutOrderService real y SQLite en memoria. Inyecta error de auditoría y de limpieza, verifica una orden efectiva y reporte exitoso, diagnósticos registrados y replay sin nueva orden ni segunda reducción de stock. Quedó integrado al gate.
+
+**Gate final posterior a todos los cambios de código:** **893 PHP, 120 JavaScript, [gate] OK, exit 0** (73.58 s). Incluye el runner PHP post-commit y el lint de los dos archivos PHP del harness HTTP. El script Python compiló sin errores y su prueba HTTP pasó 17/17. Una ejecución anterior de gate (891 PHP y 120 JS) también había pasado, antes de incorporar el harness.
+
+**HTTP sintético realmente ejecutado:** scripts/dev/checkout_http_synthetic_isolated.py junto a checkout_http_private_router.php y checkout_http_private_stubs.php. **17/17 PASS, exit 0** en servidor PHP temporal 127.0.0.1:18898 y SQLite privado bajo %TEMP%/mi_checkout_http_qa_20261022. Ejecuta CheckoutController, PaymentController, CheckoutOrderService y CheckoutStockPreflightService auténticos, sustituyendo explícitamente login/CSRF y repositorios por adaptadores de QA. Cubrió anónimo rechazado, CSRF inválido/faltante, dirección inválida, preflight con stock, ocultamiento sintético y cantidad excesiva, transferencia con una sola orden y stock de 5 a 3, replay sin duplicado, ruta legacy /checkout/confirmar deshabilitada y cierre de sesión. La primera corrida falló únicamente por una aserción equivocada sobre la URL final (la base privada mostraba orden=1 y stock=3); se corrigió el test, no el servicio. La última corrida pasó íntegra y se verificó limpieza del servidor, puerto y SQLite temporales.
+
+**Límites no cubiertos:** inicio de sesión y middleware CSRF reales, repositorios reales sobre MariaDB aislada, B1 aplicado por sus servicios reales durante HTTP, concurrencia de peticiones HTTP, flujo completo con pago MP simulado y homologación oficial del proveedor. No denominar al 17/17 E2E HTTP productivo ni extender su resultado a esas áreas.
+
+**Dictamen:** mitigado el defecto P1, prueba focal y HTTP sintético **PASS**; **E2E HTTP real de la aplicación NO aprobado aún**. La certificación de producción sigue **NO GO**, independientemente de los resultados anteriores.

@@ -338,15 +338,21 @@ final class CheckoutOrderService
             // Auditoría: creación de pedido por transferencia (pending_payment)
             $pmForAudit = (string)($paymentMethod ?? '');
             if (in_array($pmForAudit, ['transfer','transferencia'], true)) {
-                Audit::log('order_created_transfer','order',(int)$orderId,[
-                    'payment_method' => $pmForAudit,
-                    'status' => 'pending_payment',
-                    'total'  => $total,
-                    'address_id' => (int)($addr['id'] ?? 0),
-                    'items_count' => (int)count($effectiveCart['items'] ?? []),
-                    'checkout_token' => $checkoutToken,
-                ]);
-                cache_forget('feed:audit_recent8');
+                try {
+                    Audit::log('order_created_transfer','order',(int)$orderId,[
+                        'payment_method' => $pmForAudit,
+                        'status' => 'pending_payment',
+                        'total'  => $total,
+                        'address_id' => (int)($addr['id'] ?? 0),
+                        'items_count' => (int)count($effectiveCart['items'] ?? []),
+                        'checkout_token' => $checkoutToken,
+                    ]);
+                    cache_forget('feed:audit_recent8');
+                } catch (\Throwable $auditError) {
+                    if (function_exists('log_error')) {
+                        log_error('CheckoutOrderService audit post-commit: '.$auditError->getMessage());
+                    }
+                }
             }
 
 
@@ -374,14 +380,20 @@ final class CheckoutOrderService
                 // silencioso: no frenamos checkout por un email
             }
 
-            foreach ($effectiveCart['items'] as $it) {
-                $productId = (int)($it['product_id'] ?? $it['id'] ?? 0);
-                $variantId = (int)($it['variant_id'] ?? 0);
-                if ($productId > 0) {
-                    $cartWriteSvc->remove($productId, $variantId);
+            try {
+                foreach ($effectiveCart['items'] as $it) {
+                    $productId = (int)($it['product_id'] ?? $it['id'] ?? 0);
+                    $variantId = (int)($it['variant_id'] ?? 0);
+                    if ($productId > 0) {
+                        $cartWriteSvc->remove($productId, $variantId);
+                    }
+                }
+                $selectionSvc->clear();
+            } catch (\Throwable $cartCleanupError) {
+                if (function_exists('log_error')) {
+                    log_error('CheckoutOrderService cart cleanup post-commit: '.$cartCleanupError->getMessage());
                 }
             }
-            $selectionSvc->clear();
 
             return [true, 'Pedido creado correctamente.', (int)$orderId];
         } catch (Throwable $e) {

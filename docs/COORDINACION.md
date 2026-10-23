@@ -368,3 +368,7 @@
 - Pendiente E2E HTTP autenticado/pedido confirmado en Checkout, homologación MP externa y conciliación operativa: **NO GO producción**. Ver `docs/EVIDENCIA_E2E_SQL_TRANSVERSAL_20261022.md`. Histórico de SQL pendiente queda superado. Estética postergada.
 
 - Gate de cierre tras E2E SQL 40/40: **890 PHP, 120 JS, todos los contratos `[gate] OK`, exit 0**. Estado SQL cerrado y evidencia escrita en `docs/EVIDENCIA_E2E_SQL_TRANSVERSAL_20261022.md`; solo siguen abiertos E2E HTTP/pedido y homologación MP con conciliación para NO GO producción.
+
+## Adenda — Ejecución integral del principal V3 (22/10/2026)
+
+Por mandato del propietario rige docs/PROTOCOLO_EJECUCION_INTEGRAL_V3.md para el chat principal: un resultado integral por intervención, correcciones continuas dentro de dominio y una entrega final documentada. Se conservan los límites de seguridad, las reservas de módulos, el control exclusivo del principal sobre Git y el NO GO a producción sin evidencias exigidas. V2 sigue regulando a los especialistas y las protecciones comunes.
