@@ -33,8 +33,8 @@ class CatalogTagsController extends BaseController
         $sort = max(0, (int)($_POST['sort'] ?? 0));
         $isActive = (($_POST['is_active'] ?? '0') === '1') ? 1 : 0;
 
-        if ($name === '') {
-            flash('error', 'Completa el nombre del grupo.');
+        if ($name === '' || mb_strlen($name, 'UTF-8') > 80 || $slug === '' || strlen($slug) > 120 || $sort > 2147483647 || $id < 0) {
+            flash('error', 'Ingresá un nombre de hasta 80 caracteres y un slug válido de hasta 120 caracteres.');
             redirect(url('/admin/catalog-tags' . ($id > 0 ? '?group_id=' . $id : '')));
             return;
         }
@@ -48,7 +48,7 @@ class CatalogTagsController extends BaseController
             ]);
             flash('ok', $id > 0 ? 'Grupo actualizado.' : 'Grupo creado.');
         } catch (\Throwable $e) {
-            flash('error', 'No se pudo guardar el grupo: ' . $e->getMessage());
+            flash('error', 'No se pudo guardar el grupo. Verificá los datos y que el slug no esté repetido.');
         }
 
         redirect(url('/admin/catalog-tags'));
@@ -67,8 +67,8 @@ class CatalogTagsController extends BaseController
         $sort = max(0, (int)($_POST['sort'] ?? 0));
         $isActive = (($_POST['is_active'] ?? '0') === '1') ? 1 : 0;
 
-        if ($groupId <= 0 || $name === '') {
-            flash('error', 'Completa grupo y nombre del tag.');
+        if ($groupId <= 0 || $name === '' || mb_strlen($name, 'UTF-8') > 80 || $slug === '' || strlen($slug) > 120 || $sort > 2147483647 || $id < 0) {
+            flash('error', 'Seleccioná un grupo e ingresá un nombre y slug válidos (máximo 80 y 120 caracteres).');
             redirect(url('/admin/catalog-tags' . ($id > 0 ? '?tag_id=' . $id : '')));
             return;
         }
@@ -83,7 +83,7 @@ class CatalogTagsController extends BaseController
             ]);
             flash('ok', $id > 0 ? 'Tag actualizado.' : 'Tag creado.');
         } catch (\Throwable $e) {
-            flash('error', 'No se pudo guardar el tag: ' . $e->getMessage());
+            flash('error', 'No se pudo guardar la etiqueta. Verificá el grupo y que el slug no esté repetido.');
         }
 
         redirect(url('/admin/catalog-tags'));

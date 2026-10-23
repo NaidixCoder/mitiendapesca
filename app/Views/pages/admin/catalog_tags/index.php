@@ -1,193 +1,76 @@
 <?php
-$pageTitle = 'Tags';
-require BASE_PATH.'/app/Views/partials/admin/subnav.php';
+$pageTitle = 'Etiquetas del catálogo';
+require BASE_PATH . '/app/Views/partials/admin/subnav.php';
 $crumbs = admin_crumbs('catalog-tags.index');
 $groups = is_array($groups ?? null) ? $groups : [];
 $tags = is_array($tags ?? null) ? $tags : [];
 $groupRow = is_array($groupRow ?? null) ? $groupRow : null;
 $tagRow = is_array($tagRow ?? null) ? $tagRow : null;
+$groupCount = count($groups);
+$tagCount = count($tags);
+$usedCount = count(array_filter($tags, static fn($tag) => (int)($tag['products_count'] ?? 0) + (int)($tag['variants_count'] ?? 0) > 0));
 ?>
+<link rel="stylesheet" href="<?= e(asset('css/admin-v3/pages/catalog-tags.css')) ?>">
 <section class="admin-surface">
-  <div class="av3-wrap av3-flow-4">
+  <div class="av3-wrap av3-layout--operational av3-catalog-tags">
     <?php
-ob_start(); ?>Tags de catalogo<?php $adminHeaderTitle=trim(strip_tags(ob_get_clean()));
-ob_start(); ?>Crea grupos y tags para clasificar productos sin afectar variantes ni SKU.<?php $adminHeaderDescription=trim(strip_tags(ob_get_clean()));
-$adminHeaderActions='';
-$adminHeaderBreadcrumbs=(isset($crumbs) && is_array($crumbs) && $crumbs) ? $crumbs : [['label'=>'Inicio','href'=>url('/admin')],['label'=>'Tags','href'=>url('/admin/catalog-tags')],['label'=>$adminHeaderTitle]];
-require BASE_PATH.'/app/Views/partials/admin/page_header.php';
-?>
+    $adminHeaderTitle = 'Etiquetas del catálogo';
+    $adminHeaderDescription = 'Organizá grupos y etiquetas para clasificar y filtrar productos.';
+    $adminHeaderActions = '';
+    $adminHeaderBreadcrumbs = $crumbs ?: [['label' => 'Inicio', 'href' => url('/admin')], ['label' => 'Etiquetas']];
+    require BASE_PATH . '/app/Views/partials/admin/page_header.php';
+    ?>
+    <?php if ($message = flash('ok')): ?><div class="av3-alert ok" role="status"><?= e((string)$message) ?></div><?php endif; ?>
+    <?php if ($message = flash('error')): ?><div class="av3-alert error" role="alert"><?= e((string)$message) ?></div><?php endif; ?>
 
-    <?php if ($m = flash('ok')): ?>
-      <div class="av3-alert ok"><?= e($m) ?></div>
-    <?php endif; ?>
-    <?php if ($m = flash('error')): ?>
-      <div class="av3-alert error"><?= e($m) ?></div>
-    <?php endif; ?>
+    <div class="av3-catalog-tags__stats" aria-label="Resumen de etiquetas">
+      <div class="av3-ui-card av3-catalog-tags__stat"><span>Grupos</span><strong><?= $groupCount ?></strong></div>
+      <div class="av3-ui-card av3-catalog-tags__stat"><span>Etiquetas</span><strong><?= $tagCount ?></strong></div>
+      <div class="av3-ui-card av3-catalog-tags__stat"><span>Etiquetas utilizadas</span><strong><?= $usedCount ?></strong></div>
+    </div>
 
-    <div class="av3-grid av3-xl-grid-cols-2 av3-gap-4">
-      <section class="av3-card">
-        <header class="av3-flex av3-items-center av3-justify-between av3-gap-3 av3-space-bottom-4">
-          <div>
-            <h2 class="av3-type-base av3-weight-strong"><?= $groupRow ? 'Editar grupo' : 'Nuevo grupo' ?></h2>
-            <p class="av3-type-body av3-text-var-muted">Ejemplos: Modalidad, Tecnica, Formato.</p>
-          </div>
-        </header>
-
-        <form class="av3-grid av3-md-grid-cols-2 av3-gap-3" method="post" action="<?= url('/admin/catalog-tags/group/save') ?>">
+    <div class="av3-catalog-tags__columns">
+      <section class="av3-ui-card av3-catalog-tags__panel" aria-labelledby="group-heading">
+        <div class="av3-catalog-tags__heading">
+          <div><h2 id="group-heading"><?= $groupRow ? 'Editar grupo' : 'Crear grupo' ?></h2><p>Los grupos organizan etiquetas relacionadas.</p></div>
+          <?php if ($groupRow): ?><a class="av3-ui-btn av3-ui-btn--small" href="<?= e(url('/admin/catalog-tags')) ?>">Nuevo grupo</a><?php endif; ?>
+        </div>
+        <form method="post" action="<?= e(url('/admin/catalog-tags/group/save')) ?>" class="av3-catalog-tags__form">
           <?= csrf_field() ?>
           <input type="hidden" name="id" value="<?= (int)($groupRow['id'] ?? 0) ?>">
-
-          <label class="av3-block av3-md-col-span-2">
-            <span class="label">Nombre</span>
-            <input class="input av3-width-full" name="name" value="<?= e((string)($groupRow['name'] ?? '')) ?>" placeholder="Modalidad">
-          </label>
-
-          <label class="av3-block">
-            <span class="label">Slug</span>
-            <input class="input av3-width-full" name="slug" value="<?= e((string)($groupRow['slug'] ?? '')) ?>" placeholder="modalidad">
-          </label>
-
-          <label class="av3-block">
-            <span class="label">Orden</span>
-            <input class="input av3-width-full" type="number" min="0" name="sort" value="<?= (int)($groupRow['sort'] ?? 0) ?>">
-          </label>
-
-          <label class="av3-block av3-md-col-span-2">
-            <span class="label">Activo</span>
-            <select class="input av3-width-full" name="is_active">
-              <option value="1" <?= !isset($groupRow['is_active']) || !empty($groupRow['is_active']) ? 'selected' : '' ?>>Si</option>
-              <option value="0" <?= isset($groupRow['is_active']) && empty($groupRow['is_active']) ? 'selected' : '' ?>>No</option>
-            </select>
-          </label>
-
-          <div class="av3-md-col-span-2 av3-flex av3-items-center av3-justify-end av3-gap-2">
-            <?php if ($groupRow): ?>
-              <a class="btn-secondary" href="<?= url('/admin/catalog-tags') ?>">Cancelar</a>
-            <?php endif; ?>
-            <button class="btn-primary"><?= $groupRow ? 'Guardar grupo' : 'Crear grupo' ?></button>
-          </div>
+          <label class="av3-ui-field av3-catalog-tags__full"><span class="av3-ui-field-label">Nombre del grupo</span><input class="av3-ui-control" name="name" required maxlength="80" value="<?= e((string)($groupRow['name'] ?? '')) ?>" placeholder="Ej.: Modalidad"></label>
+          <label class="av3-ui-field"><span class="av3-ui-field-label">Slug</span><input class="av3-ui-control" name="slug" maxlength="120" value="<?= e((string)($groupRow['slug'] ?? '')) ?>" placeholder="Se genera a partir del nombre"><span class="av3-ui-field-hint">Opcional; debe ser único.</span></label>
+          <label class="av3-ui-field"><span class="av3-ui-field-label">Orden</span><input class="av3-ui-control" type="number" min="0" max="2147483647" name="sort" value="<?= (int)($groupRow['sort'] ?? 0) ?>"></label>
+          <label class="av3-ui-field av3-catalog-tags__full"><span class="av3-ui-field-label">Estado</span><select class="av3-ui-control" name="is_active"><option value="1" <?= !isset($groupRow['is_active']) || !empty($groupRow['is_active']) ? 'selected' : '' ?>>Activo</option><option value="0" <?= isset($groupRow['is_active']) && empty($groupRow['is_active']) ? 'selected' : '' ?>>Inactivo</option></select></label>
+          <div class="av3-catalog-tags__actions"><button class="av3-ui-btn av3-ui-btn--primary" type="submit"><?= $groupRow ? 'Guardar cambios' : 'Crear grupo' ?></button></div>
         </form>
-
-        <div class="av3-space-top-5 av3-overflow-x-auto">
-          <table class="av3-table av3-width-full av3-type-body">
-            <thead>
-              <tr>
-                <th>Grupo</th>
-                <th class="av3-size-w-24 av3-text-right">Orden</th>
-                <th class="av3-size-w-24 av3-text-right">Tags</th>
-                <th class="av3-size-w-24">Activo</th>
-                <th class="av3-size-w-24">Accion</th>
-              </tr>
-            </thead>
-            <tbody>
-            <?php foreach ($groups as $group): ?>
-              <tr class="av3-border-top av3-border-var-line-soft">
-                <td class="av3-pad-y2 av3-pad-right-3">
-                  <div class="av3-weight-medium"><?= e((string)($group['name'] ?? '')) ?></div>
-                  <div class="av3-type-caption av3-text-var-muted"><?= e((string)($group['slug'] ?? '')) ?></div>
-                </td>
-                <td class="av3-pad-y2 av3-pad-right-3 av3-text-right"><?= (int)($group['sort'] ?? 0) ?></td>
-                <td class="av3-pad-y2 av3-pad-right-3 av3-text-right"><?= (int)($group['tags_count'] ?? 0) ?></td>
-                <td class="av3-pad-y2 av3-pad-right-3"><?= !empty($group['is_active']) ? '<span class="badge badge--ok">Si</span>' : '<span class="badge">No</span>' ?></td>
-                <td class="av3-pad-y2 av3-pad-right-3"><a class="btn-secondary" href="<?= url('/admin/catalog-tags?group_id=' . (int)($group['id'] ?? 0)) ?>">Editar</a></td>
-              </tr>
-            <?php endforeach; ?>
-            <?php if ($groups === []): ?>
-              <tr><td colspan="5" class="av3-pad-y6 av3-text-var-muted">Todavia no hay grupos.</td></tr>
-            <?php endif; ?>
-            </tbody>
-          </table>
-        </div>
+        <div class="av3-catalog-tags__table-heading"><h3>Grupos existentes</h3><span><?= $groupCount ?> en total</span></div>
+        <?php if ($groups === []): ?><div class="av3-ui-empty">Todavía no hay grupos. Creá uno para comenzar.</div><?php else: ?>
+        <div class="av3-ui-table-scroll"><table class="av3-ui-table"><thead><tr><th>Grupo</th><th>Etiquetas</th><th>Estado</th><th>Acción</th></tr></thead><tbody>
+        <?php foreach ($groups as $group): ?><tr><td data-label="Grupo"><strong><?= e((string)$group['name']) ?></strong><small><?= e((string)$group['slug']) ?> · Orden <?= (int)$group['sort'] ?></small></td><td data-label="Etiquetas"><?= (int)$group['tags_count'] ?></td><td data-label="Estado"><span class="av3-ui-badge <?= !empty($group['is_active']) ? '' : 'av3-ui-badge--neutral' ?>"><?= !empty($group['is_active']) ? 'Activo' : 'Inactivo' ?></span></td><td data-label="Acción"><a class="av3-ui-btn av3-ui-btn--small" href="<?= e(url('/admin/catalog-tags?group_id=' . (int)$group['id'])) ?>">Editar</a></td></tr><?php endforeach; ?>
+        </tbody></table></div><?php endif; ?>
       </section>
 
-      <section class="av3-card">
-        <header class="av3-flex av3-items-center av3-justify-between av3-gap-3 av3-space-bottom-4">
-          <div>
-            <h2 class="av3-type-base av3-weight-strong"><?= $tagRow ? 'Editar tag' : 'Nuevo tag' ?></h2>
-            <p class="av3-type-body av3-text-var-muted">Ejemplos: Baitcast, Pejerrey, Telescopica.</p>
-          </div>
-        </header>
-
-        <form class="av3-grid av3-md-grid-cols-2 av3-gap-3" method="post" action="<?= url('/admin/catalog-tags/tag/save') ?>">
+      <section class="av3-ui-card av3-catalog-tags__panel" aria-labelledby="tag-heading">
+        <div class="av3-catalog-tags__heading">
+          <div><h2 id="tag-heading"><?= $tagRow ? 'Editar etiqueta' : 'Crear etiqueta' ?></h2><p>Las etiquetas se pueden asignar a productos y variantes.</p></div>
+          <?php if ($tagRow): ?><a class="av3-ui-btn av3-ui-btn--small" href="<?= e(url('/admin/catalog-tags')) ?>">Nueva etiqueta</a><?php endif; ?>
+        </div>
+        <form method="post" action="<?= e(url('/admin/catalog-tags/tag/save')) ?>" class="av3-catalog-tags__form">
           <?= csrf_field() ?>
           <input type="hidden" name="id" value="<?= (int)($tagRow['id'] ?? 0) ?>">
-
-          <label class="av3-block av3-md-col-span-2">
-            <span class="label">Grupo</span>
-            <select class="input av3-width-full" name="group_id">
-              <option value="">Seleccione...</option>
-              <?php foreach ($groups as $group): ?>
-                <?php $gid = (int)($group['id'] ?? 0); ?>
-                <option value="<?= $gid ?>" <?= ((int)($tagRow['group_id'] ?? 0) === $gid) ? 'selected' : '' ?>>
-                  <?= e((string)($group['name'] ?? '')) ?>
-                </option>
-              <?php endforeach; ?>
-            </select>
-          </label>
-
-          <label class="av3-block av3-md-col-span-2">
-            <span class="label">Nombre</span>
-            <input class="input av3-width-full" name="name" value="<?= e((string)($tagRow['name'] ?? '')) ?>" placeholder="Baitcast">
-          </label>
-
-          <label class="av3-block">
-            <span class="label">Slug</span>
-            <input class="input av3-width-full" name="slug" value="<?= e((string)($tagRow['slug'] ?? '')) ?>" placeholder="baitcast">
-          </label>
-
-          <label class="av3-block">
-            <span class="label">Orden</span>
-            <input class="input av3-width-full" type="number" min="0" name="sort" value="<?= (int)($tagRow['sort'] ?? 0) ?>">
-          </label>
-
-          <label class="av3-block av3-md-col-span-2">
-            <span class="label">Activo</span>
-            <select class="input av3-width-full" name="is_active">
-              <option value="1" <?= !isset($tagRow['is_active']) || !empty($tagRow['is_active']) ? 'selected' : '' ?>>Si</option>
-              <option value="0" <?= isset($tagRow['is_active']) && empty($tagRow['is_active']) ? 'selected' : '' ?>>No</option>
-            </select>
-          </label>
-
-          <div class="av3-md-col-span-2 av3-flex av3-items-center av3-justify-end av3-gap-2">
-            <?php if ($tagRow): ?>
-              <a class="btn-secondary" href="<?= url('/admin/catalog-tags') ?>">Cancelar</a>
-            <?php endif; ?>
-            <button class="btn-primary"><?= $tagRow ? 'Guardar tag' : 'Crear tag' ?></button>
-          </div>
+          <label class="av3-ui-field av3-catalog-tags__full"><span class="av3-ui-field-label">Grupo</span><select class="av3-ui-control" name="group_id" required><option value="">Seleccionar grupo</option><?php foreach ($groups as $group): ?><option value="<?= (int)$group['id'] ?>" <?= (int)($tagRow['group_id'] ?? 0) === (int)$group['id'] ? 'selected' : '' ?>><?= e((string)$group['name']) ?></option><?php endforeach; ?></select></label>
+          <label class="av3-ui-field av3-catalog-tags__full"><span class="av3-ui-field-label">Nombre de etiqueta</span><input class="av3-ui-control" name="name" required maxlength="80" value="<?= e((string)($tagRow['name'] ?? '')) ?>" placeholder="Ej.: Baitcast"></label>
+          <label class="av3-ui-field"><span class="av3-ui-field-label">Slug</span><input class="av3-ui-control" name="slug" maxlength="120" value="<?= e((string)($tagRow['slug'] ?? '')) ?>" placeholder="Se genera a partir del nombre"><span class="av3-ui-field-hint">Único dentro de cada grupo.</span></label>
+          <label class="av3-ui-field"><span class="av3-ui-field-label">Orden</span><input class="av3-ui-control" type="number" min="0" max="2147483647" name="sort" value="<?= (int)($tagRow['sort'] ?? 0) ?>"></label>
+          <label class="av3-ui-field av3-catalog-tags__full"><span class="av3-ui-field-label">Estado</span><select class="av3-ui-control" name="is_active"><option value="1" <?= !isset($tagRow['is_active']) || !empty($tagRow['is_active']) ? 'selected' : '' ?>>Activo</option><option value="0" <?= isset($tagRow['is_active']) && empty($tagRow['is_active']) ? 'selected' : '' ?>>Inactivo</option></select></label>
+          <div class="av3-catalog-tags__actions"><button class="av3-ui-btn av3-ui-btn--primary" type="submit" <?= $groups === [] ? 'disabled' : '' ?>><?= $tagRow ? 'Guardar cambios' : 'Crear etiqueta' ?></button></div>
         </form>
-
-        <div class="av3-space-top-5 av3-overflow-x-auto">
-          <table class="av3-table av3-width-full av3-type-body">
-            <thead>
-              <tr>
-                <th>Tag</th>
-                <th>Grupo</th>
-                <th class="av3-size-w-24 av3-text-right">Orden</th>
-                <th class="av3-size-w-24 av3-text-right">Uso</th>
-                <th class="av3-size-w-24">Activo</th>
-                <th class="av3-size-w-24">Accion</th>
-              </tr>
-            </thead>
-            <tbody>
-            <?php foreach ($tags as $tag): ?>
-              <tr class="av3-border-top av3-border-var-line-soft">
-                <td class="av3-pad-y2 av3-pad-right-3">
-                  <div class="av3-weight-medium"><?= e((string)($tag['name'] ?? '')) ?></div>
-                  <div class="av3-type-caption av3-text-var-muted"><?= e((string)($tag['slug'] ?? '')) ?></div>
-                </td>
-                <td class="av3-pad-y2 av3-pad-right-3"><?= e((string)($tag['group_name'] ?? '')) ?></td>
-                <td class="av3-pad-y2 av3-pad-right-3 av3-text-right"><?= (int)($tag['sort'] ?? 0) ?></td>
-                <td class="av3-pad-y2 av3-pad-right-3 av3-text-right"><?= (int)($tag['products_count'] ?? 0) ?></td>
-                <td class="av3-pad-y2 av3-pad-right-3"><?= !empty($tag['is_active']) ? '<span class="badge badge--ok">Si</span>' : '<span class="badge">No</span>' ?></td>
-                <td class="av3-pad-y2 av3-pad-right-3"><a class="btn-secondary" href="<?= url('/admin/catalog-tags?tag_id=' . (int)($tag['id'] ?? 0)) ?>">Editar</a></td>
-              </tr>
-            <?php endforeach; ?>
-            <?php if ($tags === []): ?>
-              <tr><td colspan="6" class="av3-pad-y6 av3-text-var-muted">Todavia no hay tags.</td></tr>
-            <?php endif; ?>
-            </tbody>
-          </table>
-        </div>
+        <div class="av3-catalog-tags__table-heading"><h3>Etiquetas existentes</h3><span><?= $tagCount ?> en total</span></div>
+        <?php if ($tags === []): ?><div class="av3-ui-empty">Todavía no hay etiquetas. Agregá una al grupo correspondiente.</div><?php else: ?>
+        <div class="av3-ui-table-scroll"><table class="av3-ui-table"><thead><tr><th>Etiqueta / grupo</th><th>Uso (producto / variante)</th><th>Estado</th><th>Acción</th></tr></thead><tbody>
+        <?php foreach ($tags as $tag): ?><tr><td data-label="Etiqueta"><strong><?= e((string)$tag['name']) ?></strong><small><?= e((string)$tag['group_name']) ?> · <?= e((string)$tag['slug']) ?> · Orden <?= (int)$tag['sort'] ?></small></td><td data-label="Producto / variante"><?= (int)$tag['products_count'] ?> / <?= (int)($tag['variants_count'] ?? 0) ?></td><td data-label="Estado"><span class="av3-ui-badge <?= !empty($tag['is_active']) ? '' : 'av3-ui-badge--neutral' ?>"><?= !empty($tag['is_active']) ? 'Activo' : 'Inactivo' ?></span></td><td data-label="Acción"><a class="av3-ui-btn av3-ui-btn--small" href="<?= e(url('/admin/catalog-tags?tag_id=' . (int)$tag['id'])) ?>">Editar</a></td></tr><?php endforeach; ?>
+        </tbody></table></div><?php endif; ?>
       </section>
     </div>
   </div>

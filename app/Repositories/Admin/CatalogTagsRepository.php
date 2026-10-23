@@ -36,6 +36,19 @@ final class CatalogTagsRepository
 
     public function saveGroup(int $id, array $data): int
     {
+        if ($id > 0 && $this->findGroupById($id) === null) {
+            throw new \DomainException('Grupo inexistente.');
+        }
+        $check = $this->db->prepare('SELECT id FROM catalog_tag_groups WHERE slug = :slug AND id <> :id LIMIT 1');
+        $check->execute([':slug' => $data['slug'], ':id' => $id]);
+        if ($check->fetchColumn() !== false) {
+            throw new \DomainException('Slug de grupo duplicado.');
+        }
+        $check = $this->db->prepare('SELECT id FROM catalog_tag_groups WHERE name = :name AND id <> :id LIMIT 1');
+        $check->execute([':name' => $data['name'], ':id' => $id]);
+        if ($check->fetchColumn() !== false) {
+            throw new \DomainException('Nombre de grupo duplicado.');
+        }
         if ($id > 0) {
             $st = $this->db->prepare("
                 UPDATE catalog_tag_groups
@@ -81,7 +94,8 @@ final class CatalogTagsRepository
             SELECT
                 t.*,
                 g.name AS group_name,
-                COUNT(DISTINCT pt.product_id) AS products_count
+                COUNT(DISTINCT pt.product_id) AS products_count,
+                (SELECT COUNT(*) FROM variant_catalog_tags vt WHERE vt.tag_id = t.id) AS variants_count
             FROM catalog_tags t
             INNER JOIN catalog_tag_groups g ON g.id = t.group_id
             LEFT JOIN product_catalog_tags pt ON pt.tag_id = t.id
@@ -107,6 +121,22 @@ final class CatalogTagsRepository
 
     public function saveTag(int $id, array $data): int
     {
+        if ($id > 0 && $this->findTagById($id) === null) {
+            throw new \DomainException('Etiqueta inexistente.');
+        }
+        if ($this->findGroupById((int)$data['group_id']) === null) {
+            throw new \DomainException('Grupo inexistente.');
+        }
+        $check = $this->db->prepare('SELECT id FROM catalog_tags WHERE group_id = :group_id AND slug = :slug AND id <> :id LIMIT 1');
+        $check->execute([':group_id' => $data['group_id'], ':slug' => $data['slug'], ':id' => $id]);
+        if ($check->fetchColumn() !== false) {
+            throw new \DomainException('Slug de etiqueta duplicado dentro del grupo.');
+        }
+        $check = $this->db->prepare('SELECT id FROM catalog_tags WHERE group_id = :group_id AND name = :name AND id <> :id LIMIT 1');
+        $check->execute([':group_id' => $data['group_id'], ':name' => $data['name'], ':id' => $id]);
+        if ($check->fetchColumn() !== false) {
+            throw new \DomainException('Nombre de etiqueta duplicado dentro del grupo.');
+        }
         if ($id > 0) {
             $st = $this->db->prepare("
                 UPDATE catalog_tags
@@ -196,23 +226,46 @@ final class CatalogTagsRepository
     public function syncProductTags(int $productId, array $tagIds): void
     {
         $tagIds = array_values(array_unique(array_filter(array_map('intval', $tagIds))));
+        $this->assertExistingTags($tagIds);
 
-        $this->db->prepare("DELETE FROM product_catalog_tags WHERE product_id = :product_id")
-            ->execute([':product_id' => $productId]);
+        $ownsTransaction = !$this->db->inTransaction();
+        if ($ownsTransaction) {
+            $this->db->beginTransaction();
+        }
+        try {
+            $this->db->prepare("DELETE FROM product_catalog_tags WHERE product_id = :product_id")
+                ->execute([':product_id' => $productId]);
 
+            if ($tagIds !== []) {
+                $st = $this->db->prepare("
+                    INSERT INTO product_catalog_tags (product_id, tag_id)
+                    VALUES (:product_id, :tag_id)
+                ");
+                foreach ($tagIds as $tagId) {
+                    $st->execute([':product_id' => $productId, ':tag_id' => $tagId]);
+                }
+            }
+            if ($ownsTransaction) {
+                $this->db->commit();
+            }
+        } catch (\Throwable $e) {
+            if ($ownsTransaction && $this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $e;
+        }
+    }
+
+    private function assertExistingTags(array $tagIds): void
+    {
         if ($tagIds === []) {
             return;
         }
-
-        $st = $this->db->prepare("
-            INSERT INTO product_catalog_tags (product_id, tag_id)
-            VALUES (:product_id, :tag_id)
-        ");
-        foreach ($tagIds as $tagId) {
-            $st->execute([
-                ':product_id' => $productId,
-                ':tag_id' => $tagId,
-            ]);
+        $placeholders = implode(',', array_fill(0, count($tagIds), '?'));
+        $st = $this->db->prepare("SELECT COUNT(*) FROM catalog_tags WHERE id IN ($placeholders)");
+        $st->execute($tagIds);
+        if ((int)$st->fetchColumn() !== count($tagIds)) {
+            throw new \DomainException('La selección contiene etiquetas inexistentes.');
         }
     }
 
@@ -252,23 +305,33 @@ final class CatalogTagsRepository
     public function syncVariantTags(int $variantId, array $tagIds): void
     {
         $tagIds = array_values(array_unique(array_filter(array_map('intval', $tagIds))));
+        $this->assertExistingTags($tagIds);
 
-        $this->db->prepare("DELETE FROM variant_catalog_tags WHERE variant_id = :variant_id")
-            ->execute([':variant_id' => $variantId]);
-
-        if ($tagIds === []) {
-            return;
+        $ownsTransaction = !$this->db->inTransaction();
+        if ($ownsTransaction) {
+            $this->db->beginTransaction();
         }
+        try {
+            $this->db->prepare("DELETE FROM variant_catalog_tags WHERE variant_id = :variant_id")
+                ->execute([':variant_id' => $variantId]);
 
-        $st = $this->db->prepare("
-            INSERT INTO variant_catalog_tags (variant_id, tag_id)
-            VALUES (:variant_id, :tag_id)
-        ");
-        foreach ($tagIds as $tagId) {
-            $st->execute([
-                ':variant_id' => $variantId,
-                ':tag_id' => $tagId,
-            ]);
+            if ($tagIds !== []) {
+                $st = $this->db->prepare("
+                    INSERT INTO variant_catalog_tags (variant_id, tag_id)
+                    VALUES (:variant_id, :tag_id)
+                ");
+                foreach ($tagIds as $tagId) {
+                    $st->execute([':variant_id' => $variantId, ':tag_id' => $tagId]);
+                }
+            }
+            if ($ownsTransaction) {
+                $this->db->commit();
+            }
+        } catch (\Throwable $e) {
+            if ($ownsTransaction && $this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $e;
         }
     }
 }
