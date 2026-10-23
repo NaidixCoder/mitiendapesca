@@ -20,7 +20,7 @@ $actual=str_replace('\\','/',strtolower(rtrim((string)$meta['datadir'],"\\/")));
 if($meta['db']!==$name||(int)$meta['port']!==$port||rtrim($actual,'/')!==rtrim($expected,'/')){
     fwrite(STDERR,"REFUSED: MariaDB datadir or identity mismatched\n");exit(2);
 }
-if(in_array($mode,['hide','show','stock_low','stock_restore','cart_restore','race_reset','diagnose'],true)){
+if(in_array($mode,['hide','show','stock_low','stock_restore','cart_restore','race_reset'],true)){
     if($mode==='race_reset'){
         $db->beginTransaction();
         try {

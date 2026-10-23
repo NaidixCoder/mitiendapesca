@@ -136,6 +136,21 @@ final class CheckoutOrderService
 
         try {
             $this->db->beginTransaction();
+            // Serializar transferencias del mismo comprador ANTES de tocar stock u ordenes.
+            // La consulta previa a la transaccion no protege contra dos POST simultaneos.
+            if ($this->db->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'mysql'
+                && $checkoutToken !== null && in_array((string)$paymentMethod, ['transfer', 'transferencia'], true)) {
+                $lockUser = $this->db->prepare('SELECT id FROM users WHERE id = ? FOR UPDATE');
+                $lockUser->execute([$userId]);
+                if ((int)$lockUser->fetchColumn() !== $userId) {
+                    throw new \RuntimeException('Comprador no disponible.');
+                }
+                $existingLocked = $orderRepo->findIdByCheckoutToken($checkoutToken);
+                if ($existingLocked > 0) {
+                    $this->db->commit();
+                    return [true, 'Ya tenés un pedido pendiente de pago para este carrito.', $existingLocked];
+                }
+            }
             [$eligible,$reason] = (new CheckoutProductEligibilityGuard($this->db))
                 ->checkItems((array)$effectiveCart['items'],true);
             if (!$eligible) {
