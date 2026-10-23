@@ -12,16 +12,18 @@ class UsersController extends BaseController {
   /** Listado con búsqueda y paginación simple */
   public function index(): void {
     $db   = db();
-    $q    = trim($_GET['q'] ?? '');
-    $page = max(1, (int)($_GET['page'] ?? 1));
+    $rawQuery = $_GET['q'] ?? '';
+    $q = mb_substr(trim(is_string($rawQuery) ? $rawQuery : ''), 0, 120);
+    $page = min(100000, max(1, (int)($_GET['page'] ?? 1)));
     $per  = 20;
     $off  = ($page - 1) * $per;
 
     $where  = '';
     $params = [];
     if ($q !== '') {
-      $where = "WHERE (email LIKE :q OR name LIKE :q)";
-      $params[':q'] = "%{$q}%";
+      $where = "WHERE (email LIKE :q1 OR name LIKE :q2)";
+      $params[':q1'] = "%{$q}%";
+      $params[':q2'] = "%{$q}%";
     }
 
     // total
@@ -29,13 +31,15 @@ class UsersController extends BaseController {
     $stc->execute($params);
     $total = (int)$stc->fetchColumn();
     $pages = max(1, (int)ceil($total / $per));
+    $page = min($page, $pages);
+    $off = ($page - 1) * $per;
 
     // data
     $st = $db->prepare("
       SELECT id, name, email, role, email_verified, created_at, last_login_at, last_activity_at
       FROM users
       {$where}
-      ORDER BY created_at DESC
+      ORDER BY created_at DESC, id DESC
       LIMIT :lim OFFSET :off
     ");
     foreach ($params as $k=>$v) $st->bindValue($k,$v);
@@ -69,21 +73,9 @@ class UsersController extends BaseController {
 
     // Stats (agregados por usuario) - Opción B
     $stats = [];
-    $rebuild = (int)($_GET['rebuild'] ?? 0) === 1;
 
     try {
       $cs = new CustomerStatsService($db);
-
-      if ($rebuild) {
-        $cs->rebuildForUser($id);
-      } else {
-        $chk = $db->prepare("SELECT user_id FROM customer_stats WHERE user_id=:id");
-        $chk->execute([':id'=>$id]);
-        $exists = $chk->fetch(PDO::FETCH_ASSOC);
-        if (!$exists) {
-          $cs->rebuildForUser($id);
-        }
-      }
 
       $stStats = $db->prepare("
         SELECT user_id, paid_orders_count, paid_total, first_paid_at, last_paid_at,
@@ -99,7 +91,7 @@ class UsersController extends BaseController {
     }
 
     // Historial completo de pedidos (paginado)
-    $page = max(1, (int)($_GET['p'] ?? 1));
+    $page = min(100000, max(1, (int)($_GET['p'] ?? 1)));
     $perPage = 20;
     $offset = ($page - 1) * $perPage;
 
@@ -108,6 +100,8 @@ class UsersController extends BaseController {
     $totalOrders = (int)$cnt->fetchColumn();
 
     $pages = (int)max(1, ceil($totalOrders / $perPage));
+    $page = min($page, $pages);
+    $offset = ($page - 1) * $perPage;
 
     $ord = $db->prepare("
       SELECT id, status, payment_method, total, created_at
@@ -181,6 +175,48 @@ class UsersController extends BaseController {
     render_page('admin/users/show', array_merge(compact('user','stats','orders','page','pages','totalOrders','pageTitle','userProfile','addresses'), $vm));
   }
 
+  /** Recalcular exclusivamente por POST autenticado y protegido. */
+  public function rebuildStats(): void {
+    rate_limit_or_fail('admin:'.client_ip().':'.($_SESSION['uid'] ?? 0).':user_rebuild_stats', 10, 60);
+    if (function_exists('verify_csrf_or_abort')) {
+      verify_csrf_or_abort();
+    } elseif (!verify_csrf()) {
+      http_response_code(419);
+      exit('CSRF inválido');
+    }
+    if (($_SESSION['urole'] ?? '') !== 'admin') {
+      http_response_code(403);
+      exit('Forbidden');
+    }
+    $value = $_POST['user_id'] ?? null;
+    $userId = is_scalar($value) && preg_match('/^[1-9][0-9]*$/D', (string)$value) ? (int)$value : 0;
+    if ($userId <= 0) {
+      flash('error', 'Usuario inválido.');
+      redirect('/admin/users');
+    }
+    $db = db();
+    $next = '/admin/users/show?id=' . $userId;
+    try {
+      $check = $db->prepare('SELECT id FROM users WHERE id = ? LIMIT 1');
+      $check->execute([$userId]);
+      if (!$check->fetchColumn()) {
+        flash('error', 'El usuario no existe.');
+        redirect('/admin/users');
+      }
+      $result = (new CustomerStatsService($db))->rebuildForUser($userId);
+      if (empty($result['ok'])) {
+        throw new \RuntimeException('Recálculo no confirmado.');
+      }
+      Audit::log('user.stats_rebuild', 'user', $userId, ['by' => (int)($_SESSION['uid'] ?? 0)]);
+      cache_forget('feed:audit_recent8');
+      flash('ok', 'Estadísticas recalculadas.');
+    } catch (\Throwable $e) {
+      error_log('Users rebuild stats failed: ' . $e->getMessage());
+      flash('error', 'No se pudieron recalcular las estadísticas.');
+    }
+    redirect($next);
+  }
+
   /** Cambio de rol con auditoría */
   public function role(): void {
     rate_limit_or_fail('admin:'.client_ip().':'.($_SESSION['uid']??0).':user_role', 20, 60);
@@ -192,88 +228,41 @@ class UsersController extends BaseController {
     $settings = new AppSettingsRepository($db);
     $whEnabled = (string)($settings->get('wh_enabled', '0') ?? '0');
 
-    $requested = strtolower(trim((string)($_POST['role'] ?? 'customer')));
+    $rawRole = $_POST['role'] ?? null;
+    $requested = is_string($rawRole) ? strtolower(trim($rawRole)) : '';
     $allowedRoles = ['customer','admin'];
     if ($whEnabled === '1') {
       $allowedRoles[] = 'mayorista1';
       $allowedRoles[] = 'mayorista2';
     }
     if (!in_array($requested, $allowedRoles, true)) {
-      $requested = 'customer';
+      flash('error', 'Rol no permitido.');
+      redirect('/admin/users');
     }
     $newRole = $requested;
 
     // NEXT seguro (default a /admin/users; sólo rutas internas)
     $next = $_POST['next'] ?? '/admin/users';
-    if (!is_string($next) || !str_starts_with($next, '/')) $next = '/admin/users';
+    if (!is_string($next) || !preg_match('~^/admin/users(?:/show\?id=[1-9][0-9]*)?$~D', $next)) $next = '/admin/users';
 
-    if ($targetId <= 0) { flash('error','Usuario inválido'); redirect($next); }
+    if ($targetId <= 0 || $targetId === (int)($_SESSION['uid'] ?? 0)) { flash('error','Operación no permitida para esta cuenta.'); redirect($next); }
     if (($_SESSION['urole'] ?? 'customer') !== 'admin') { http_response_code(403); exit('Forbidden'); }
 
-    // Rol actual del usuario objetivo (para no bloquear cambios que no afectan admins)
-    $stCur = $db->prepare("SELECT role FROM users WHERE id=:id LIMIT 1");
-    $stCur->execute([':id' => $targetId]);
-    $currentRole = (string)($stCur->fetchColumn() ?: '');
-
-    // No permitir dejar el sistema sin administradores (solo si estás degradando un admin)
-    if ($currentRole === 'admin' && $newRole !== 'admin') {
-      $countAdmins = (int)$db->query("SELECT COUNT(*) FROM users WHERE role='admin'")->fetchColumn();
-      if ($countAdmins <= 1) {
-        flash('warn','No puedes dejar el sistema sin administradores.');
-        redirect($next);
+    try {
+      $result = (new \App\Services\Admin\Users\UserAccessService($db))
+        ->changeRole((int)($_SESSION['uid'] ?? 0), $targetId, $newRole);
+      if ($result['changed']) {
+        Audit::log('user.role_change', 'user', $targetId, [
+          'old_role' => $result['old_role'], 'new_role' => $newRole,
+          'by' => (int)($_SESSION['uid'] ?? 0),
+        ]);
+        cache_forget('feed:audit_recent8');
       }
+      flash('ok', $result['changed'] ? 'Rol actualizado.' : 'El usuario ya tiene ese rol.');
+    } catch (\Throwable $e) {
+      error_log('Users role change failed: ' . $e->getMessage());
+      flash('error', 'No se pudo cambiar el rol: ' . $e->getMessage());
     }
-
-    // Debug pre (rol/sv)
-    $pre = null;
-    try {
-      $stPre = $db->prepare("SELECT role, session_version FROM users WHERE id=:id LIMIT 1");
-      $stPre->execute([':id' => $targetId]);
-      $pre = $stPre->fetch(PDO::FETCH_ASSOC) ?: null;
-    } catch (\Throwable $e) { /* noop */ }
-
-    $sql = "UPDATE users SET role=:r";
-    $hasSv = (function_exists('db_has_column') && db_has_column('users','session_version'));
-    if ($hasSv) {
-      // COALESCE: si session_version es NULL en alguna fila vieja, NULL+1 queda NULL.
-      $sql .= ", session_version = COALESCE(session_version, 0) + 1";
-    }
-    $sql .= " WHERE id=:id";
-
-    $stUp = $db->prepare($sql);
-    $ok = $stUp->execute([':r'=>$newRole, ':id'=>$targetId]);
-    $aff = (int)$stUp->rowCount();
-
-    // Debug post
-    $post = null;
-    try {
-      $stPost = $db->prepare("SELECT role, session_version FROM users WHERE id=:id LIMIT 1");
-      $stPost->execute([':id' => $targetId]);
-      $post = $stPost->fetch(PDO::FETCH_ASSOC) ?: null;
-    } catch (\Throwable $e) { /* noop */ }
-
-    debug_log('admin.users.role', [
-      'target_id' => $targetId,
-      'new_role' => $newRole,
-      'has_session_version' => $hasSv,
-      'ok' => $ok,
-      'row_count' => $aff,
-      'pre' => $pre,
-      'post' => $post,
-      'by' => ($_SESSION['uid'] ?? null),
-    ]);
-
-    if ($ok && $aff === 1) {
-      Audit::log('user.role_change','user',$targetId,[
-        'new_role'=>$newRole,
-        'by'=>($_SESSION['uid'] ?? null),
-      ]);
-      cache_forget('feed:audit_recent8'); // para ver el evento en Actividad reciente
-      flash('ok','Rol actualizado.');
-    } else {
-      flash('error','No se pudo actualizar el rol.');
-    }
-
     redirect($next);
   }
 
@@ -292,59 +281,23 @@ class UsersController extends BaseController {
 
     $targetId = (int)($_POST['user_id'] ?? $_POST['id'] ?? 0);
     $next = $_POST['next'] ?? '/admin/users';
-    if (!is_string($next) || !str_starts_with($next, '/')) $next = '/admin/users';
+    if (!is_string($next) || !preg_match('~^/admin/users(?:/show\?id=[1-9][0-9]*)?$~D', $next)) $next = '/admin/users';
 
-    if ($targetId <= 0) { flash('error','Usuario inválido'); redirect($next); }
+    if ($targetId <= 0 || $targetId === (int)($_SESSION['uid'] ?? 0)) { flash('error','Operación no permitida para esta cuenta.'); redirect($next); }
 
-    $db = db();
-
-    // Leemos pre/post para tener certeza (y para feedback en pantalla).
-    $preSv = null;
-    $postSv = null;
-    $ok = false;
-    $aff = 0;
+    $targetId = (int)($_POST['user_id'] ?? $_POST['id'] ?? 0);
+    $next = $_POST['next'] ?? '/admin/users';
+    if (!is_string($next) || !preg_match('~^/admin/users(?:/show\?id=[1-9][0-9]*)?$~D', $next)) $next = '/admin/users';
 
     try {
-      $stPre = $db->prepare('SELECT session_version FROM users WHERE id = ? LIMIT 1');
-      $stPre->execute([$targetId]);
-      $preSv = $stPre->fetchColumn();
-      $preSv = ($preSv === false) ? null : (int)$preSv;
-
-      // Incremento simple (misma lógica que /cuenta/sessions/clear)
-      $stUp = $db->prepare('UPDATE users SET session_version = session_version + 1 WHERE id = ?');
-      $ok = (bool)$stUp->execute([$targetId]);
-      $aff = (int)$stUp->rowCount();
-
-      $stPost = $db->prepare('SELECT session_version FROM users WHERE id = ? LIMIT 1');
-      $stPost->execute([$targetId]);
-      $postSv = $stPost->fetchColumn();
-      $postSv = ($postSv === false) ? null : (int)$postSv;
-    } catch (\Throwable $e) {
-      $ok = false;
-    }
-
-    // Debug log best-effort
-    if (function_exists('debug_log')) {
-      debug_log('admin.users.force_logout', [
-        'target_id' => $targetId,
-        'ok' => $ok,
-        'row_count' => $aff,
-        'pre_sv' => $preSv,
-        'post_sv' => $postSv,
-        'by' => ($_SESSION['uid'] ?? null),
-        'server' => $_SERVER['SERVER_NAME'] ?? null,
-        'https' => (!empty($_SERVER['HTTPS']) ? (string)$_SERVER['HTTPS'] : ''),
-      ]);
-    }
-
-    if ($ok && $aff === 1 && $preSv !== null && $postSv !== null && $postSv !== $preSv) {
-      Audit::log('user.force_logout','user',$targetId,[
-        'by'=>($_SESSION['uid'] ?? null),
-      ]);
+      (new \App\Services\Admin\Users\UserAccessService(db()))
+        ->invalidateSessions((int)($_SESSION['uid'] ?? 0), $targetId);
+      Audit::log('user.force_logout', 'user', $targetId, ['by' => (int)($_SESSION['uid'] ?? 0)]);
       cache_forget('feed:audit_recent8');
-      flash('ok','Sesión cerrada. Versión de sesión: ' . (string)$preSv . ' → ' . (string)$postSv . '.');
-    } else {
-      flash('error','No se pudo cerrar la sesión del usuario.');
+      flash('ok', 'Las sesiones del usuario fueron invalidadas.');
+    } catch (\Throwable $e) {
+      error_log('Users force logout failed: ' . $e->getMessage());
+      flash('error', 'No se pudo invalidar la sesión.');
     }
 
     redirect($next);

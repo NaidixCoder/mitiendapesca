@@ -1313,10 +1313,9 @@ if (!function_exists('auth_required')) {
         // --- ValidaciÃ³n server-side de sesiÃ³n (fail-closed) ---
         // Motivo: si el usuario fue eliminado / cambiÃ³ rol / o la DB no está disponible,
         // NO podemos confiar en la sesiÃ³n del navegador.
-        $now  = time();
-        $next = (int)($_SESSION['_sv_chk_next'] ?? 0);
-        if ($next > $now) return;
-        $_SESSION['_sv_chk_next'] = $now + 60; // cada 60s
+        // Validar contra DB en cada request autenticado: la caché de 60s
+        // permitía usar sesiones revocadas después de cambiar rol o cerrar sesiones.
+        // No confiar en _sv_chk_next heredado de sesiones anteriores.
 
         $revoke = function(string $reason = 'session_invalid') use ($backTo): void {
             if (function_exists('clear_remember_me')) {

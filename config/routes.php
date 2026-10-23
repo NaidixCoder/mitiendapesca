@@ -285,6 +285,7 @@ return [
   'GET /admin/users/show'  => 'Admin\\UsersController@show',
   'POST /admin/users/role' => 'Admin\\UsersController@role',
   'POST /admin/users/force-logout' => 'Admin\\UsersController@forceLogout',
+  'POST /admin/users/rebuild-stats' => 'Admin\\UsersController@rebuildStats',
 
   // Products (Admin)
 

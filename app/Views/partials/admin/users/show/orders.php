@@ -1,50 +1,36 @@
 <?php
-$ord = is_array($show['orders'] ?? null) ? $show['orders'] : ['rows' => []];
-$ordersRows = is_array($ord['rows'] ?? null) ? $ord['rows'] : [];
-$pg = is_array($show['pagination'] ?? null) ? $show['pagination'] : [];
-$page = (int)($pg['page'] ?? 1);
-$pages = (int)($pg['pages'] ?? 1);
-$totalOrders = (int)($pg['total'] ?? 0);
-$prevHref = (string)($pg['prev_href'] ?? '#');
-$nextHref = (string)($pg['next_href'] ?? '#');
-$prevDisabled = !empty($pg['prev_disabled']);
-$nextDisabled = !empty($pg['next_disabled']);
+$ord=is_array($show['orders']??null)?$show['orders']:[];
+$rowsOrders=is_array($ord['rows']??null)?$ord['rows']:[];
+$pg=is_array($show['pagination']??null)?$show['pagination']:[];
 ?>
-<div class="av3-card">
-  <div class="av3-card__head">
-    <h2 class="av3-card__title">Pedidos (historial completo)</h2>
-    <div class="av3-card__meta"><?= (int)$totalOrders ?> registro(s)</div>
+<section class="av3-ui-card">
+ <div class="av3-ui-card-header"><h2 class="av3-ui-card-title">Historial de pedidos</h2><span class="av3-users__meta"><?= (int)($pg['total']??0) ?> pedidos</span></div>
+ <div class="av3-ui-card-body av3-users__table-wrap">
+ <?php if (!$rowsOrders): ?><p class="av3-ui-empty">Este usuario todavía no tiene pedidos.</p>
+ <?php else: ?>
+  <table class="av3-ui-table av3-users__table">
+   <thead><tr><th>Pedido</th><th>Fecha</th><th>Estado</th><th>Medio de pago</th><th>Total</th></tr></thead>
+   <tbody>
+    <?php foreach ($rowsOrders as $o): ?>
+    <tr>
+     <td data-label="Pedido"><a href="<?= e((string)($o['href']??'#')) ?>">#<?= (int)($o['id']??0) ?></a></td>
+     <td data-label="Fecha"><?= e((string)($o['date']??'')) ?></td>
+     <td data-label="Estado"><?= e((string)($o['status_label']??'')) ?></td>
+     <td data-label="Pago"><?= e((string)(($o['payment_method']??'')?:'No informado')) ?></td>
+     <td data-label="Total"><?= e((string)($o['total_fmt']??money(0))) ?></td>
+    </tr>
+    <?php endforeach; ?>
+   </tbody>
+  </table>
+ <?php endif; ?>
+ </div>
+ <?php if (($pg['pages']??1)>1): ?>
+ <nav class="av3-users__pagination" aria-label="Paginación de pedidos">
+  <span class="av3-users__meta">Página <?= (int)$pg['page'] ?> de <?= (int)$pg['pages'] ?></span>
+  <div class="av3-ui-actions">
+   <?php if (empty($pg['prev_disabled'])): ?><a class="av3-ui-btn" href="<?= e((string)$pg['prev_href']) ?>">Anterior</a><?php endif; ?>
+   <?php if (empty($pg['next_disabled'])): ?><a class="av3-ui-btn" href="<?= e((string)$pg['next_href']) ?>">Siguiente</a><?php endif; ?>
   </div>
-
-  <?php if (!$ordersRows): ?>
-    <div class="empty-state"><p>No hay pedidos asociados a este cliente.</p></div>
-  <?php else: ?>
-    <div class="table-scroll">
-      <table class="av3-table">
-        <thead>
-          <tr><th>ID</th><th>Fecha</th><th>Estado</th><th>Metodo</th><th class="av3-text-right">Total</th></tr>
-        </thead>
-        <tbody>
-          <?php foreach ($ordersRows as $o): ?>
-            <?php $oid = (int)($o['id'] ?? 0); $href = (string)($o['href'] ?? url('/admin/orders/show?id='.(int)$oid)); ?>
-            <tr class="dash-row-link" data-href="<?= e($href) ?>">
-              <td>#<?= (int)$oid ?></td>
-              <td><?= e((string)($o['date'] ?? '-')) ?></td>
-              <td><?= e((string)($o['status_label'] ?? '-')) ?></td>
-              <td><?= !empty($o['payment_method']) ? e((string)$o['payment_method']) : '-' ?></td>
-              <td class="av3-text-right"><?= e((string)($o['total_fmt'] ?? money(0))) ?></td>
-            </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="paginator">
-      <div class="paginator__info">Pagina <?= (int)$page ?> de <?= (int)$pages ?> (<?= (int)$totalOrders ?>)</div>
-      <div class="paginator__actions">
-        <a class="btn btn-soft <?= $prevDisabled ?'is-disabled' : '' ?>" href="<?= $prevDisabled ? 'javascript:void(0)' : e($prevHref) ?>">Anterior</a>
-        <a class="btn btn-soft <?= $nextDisabled ?'is-disabled' : '' ?>" href="<?= $nextDisabled ? 'javascript:void(0)' : e($nextHref) ?>">Siguiente</a>
-      </div>
-    </div>
-  <?php endif; ?>
-</div>
+ </nav>
+ <?php endif; ?>
+</section>
