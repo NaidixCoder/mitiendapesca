@@ -38,3 +38,9 @@ Autorizado por el propietario. Se instaló con Winget (paquete Cloudflare.cloudf
 Aislamiento verificado conceptualmente con referencia existente `scripts/dev/run_checkout_http_private.ps1`: es un runner temporal local que excluye `.env`, `.git`, uploads y storage y verifica un datadir MariaDB separado. Sin embargo este runner destruye su entorno al terminar, no admite credenciales MP ni exposición HTTPS. **No se debe exponer el runner ni el XAMPP comercial directamente**. Para homol. MP se necesita otro lanzador seguro de staging, persistente durante las pruebas y con apagado explícito, y cargar TEST credentials únicamente en secreto local. Hasta tenerlo probado, no arrancar túnel.
 
 Dependencia siguiente: acceder a Mercado Pago > Tus integraciones para configurar app de prueba, claves TEST y webhook. Nunca incorporar tokens productivos, no reproducir claves en logs, chat o commits. Antes de abrir el túnel verificar que el origin 127.0.0.1 corresponde al clon privado con DB y sesiones privadas; deshabilitar phpMyAdmin y rutas administrativas sensibles en la exposición.
+
+## Evidencia API externa real (23/10/2026)
+
+Con permiso del propietario se realizó desde el equipo local una solicitud HTTPS **de solo lectura** a `GET https://api.mercadopago.com/v1/payment_methods`, autenticada con el token TEST ya existente en `.env`. Script `scripts/dev/mp_test_connectivity_readonly.php`: `HTTP 200`, JSON válido, `MP_TEST_CONNECTIVITY=PASS`. No imprimió token ni JSON de la respuesta y **no generó ningún cargo**. La suite interna focal de seis programas volvió a aprobar 80/80.
+
+**Alcance**: conectividad de red, TLS y lectura autenticada. Este resultado NO acredita creación/confirmación de pagos `/v1/payments`, callbacks públicos ni reconciliación externa. Sigue NO GO producción. No iniciar túnel sobre XAMPP original. Crear y verificar un staging aislado antes de emitir una URL de webhook público.
