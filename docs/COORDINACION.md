@@ -333,3 +333,9 @@
 - Se aclaró el estado de `payment_in_flight` en protocolo MP: 10 casos aislados PASS en tanda anterior, aunque su conciliación operativa y validación real con proveedor siguen pendientes. No se accedió a DB habitual, no hubo pagos/refunds automáticos, migración UNIQUE ni aprobación visual.
 
 - **Gate definitivo de auditoría interna** tras añadir firma HMAC MP: 889 PHP / 120 JS / `[gate] OK` / exit 0, todos los contratos de categorías, imports, atributos, marcas, checkout, 27 B1/CSV y 15 firmas webhook PASS. Dictamen firmado en `docs/CIERRE_TRANSVERSAL_TECNICO_20261022.md`: **GO integración interna, NO GO producción** hasta E2E MariaDB y homologación + responsable de conciliación. Visual postergado.
+
+### 2026-10-22 — Principal: E2E MariaDB no habilitado, fixture reforzado
+- Nuevo intento: arranque MariaDB privada 127.0.0.1:18989 OK; control de seguridad remoto bloqueó CREATE DATABASE. Se respetó el bloqueo sin alternativas, se detuvo mysqld privado, se eliminó datadir efímero y se verificó puerto libre.
+- Se amplió `scripts/dev/transversal_import_category_checkout_isolated.php` con stock por variante, relaciones reales de atributos y rollback I05 de maestro/relaciones/stock, y guardias `@@datadir` + tablas vacías. **LINT PASS, contratos B1/CSV 27/27 e I05 21/21 PASS; E2E SQL NO ejecutado.** Matriz en `docs/QA_TRANSVERSAL_TECNICO_20261022.md`. No comercial y no producción.
+
+- Gate global tras reforzar fixture E2E pendiente: **889 archivos PHP / 120 JavaScript / [gate] OK / exit 0**. Comprobado por el principal. No sustituye prueba SQL E2E porque CREATE DATABASE privada fue bloqueado; base temporal limpiada y puerto libre.

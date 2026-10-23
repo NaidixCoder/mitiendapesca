@@ -67,3 +67,37 @@ HAVING COUNT(*) > 1;
 Documento principal de salida: `docs/CIERRE_TRANSVERSAL_TECNICO_20261022.md`. En esta pasada se verificó documentación oficial de pruebas de Checkout Bricks y validación Webhooks; `scripts/build/transversal_mp_signature_contract.php` aportó **15/15 firmas HMAC verificadas con el controlador real y datos sintéticos**, incorporado al gate.
 
 **GO a integración interna de cambios y regresiones; NO GO a producción** hasta completar prueba E2E SQL transversal con `ImportService` real en DB desechable, homologación externa Mercado Pago y adopción del procedimiento supervisado de conciliación. No modificar el esquema real por UNIQUE físico sin diagnóstico/compatibilidad de NULL. Diseño visual pendiente por decisión del propietario.
+
+## 2026-10-22 — E2E ImportService ↔ Atributos ↔ B1: tercer intento de ejecución y preparación final
+
+**Estado: NO EJECUTADO. No certificar como PASS.**
+
+El principal intentó por tercera vez crear una MariaDB aislada y sintética en `127.0.0.1:18989` usando un datadir efímero `%TEMP%/mi_transversal_qa_20261022/data`. `mysql_install_db` y `mysqld` **funcionaron** (MariaDB 10.4.32 lista solo en 127.0.0.1:18989). La operación remota **CREATE DATABASE** fue explícitamente bloqueada por los controles de seguridad antes de cargar esquema o ejecutar el fixture. No se intentó ninguna ruta alternativa para eludir el control ni se accedió a DB comercial.
+
+**Limpieza verificada:** servidor privado detenido, directorio efímero eliminado y puerto 18989 libre. No se tocó el `mysqld` habitual del equipo.
+
+### Fixture reforzado y verificaciones previstas
+
+`scripts/dev/transversal_import_category_checkout_isolated.php` ahora exige:
+
+1. DSN literal de QA + puerto 18989 + nombre de base `mi_transversal_qa_20261022`.
+2. Datadir real `@@datadir` igual al directorio físico temporal autorizado. Rechaza conexión a cualquier otro servidor, aunque coincidan puerto y nombre lógico.
+3. Tablas de negocio sintéticas instaladas y **vacías** (`categories`, `products`, `product_variants`, `attributes`, `import_jobs`).
+4. Almacenamiento de CSV/snapshots dentro de la misma carpeta efímera y `ImportSnapshotStore` inyectado con directorio permitido.
+
+Al ser habilitada la ejecución privada, el ensayo validará:
+
+- Alta real de productos publicados en categorías activa e inactiva, inventarios y snapshot reversible.
+- Visibilidad B1 OFF/ON y validaciones de Checkout comunes y con `FOR UPDATE`.
+- Alta de **variante real con stock y pares de atributo/valor**; filas persistidas en `product_variant_values`, `product_attributes`, `product_attribute_values`.
+- Rechazo de variante perteneciente a otro padre.
+- Archivo mixto con producto + variante + atributo nuevo válidos, seguido de fila inválida: rollback I05; conteos de productos, variantes, inventarios, maestros de atributos y relaciones **idénticos antes y después**, ningún snapshot publicado.
+- Categoría desactivada después de importación: carrito previamente válido bloqueado con B1 ON y admisible al desactivar B1 de forma controlada.
+
+**Resultados realmente ejecutados tras editar:** `php -l` del fixture PASS, `scripts/build/transversal_catalog_checkout_contract.php` **27/27 PASS**, `scripts/build/imports_i05_atomic_contract.php` **21/21 PASS**, `git diff --check` PASS. Esto no reemplaza el E2E MariaDB.
+
+**La prueba completa de pedido/stock con el servicio real** (y cualquier HTTP autenticado, sesión, CSRF) debe acompañar al ensayo de importación cuando se disponga de ejecución privada autorizada. No conectar pasarela ni generar pagos reales. El servicio de pedido y su concurrencia ya tuvieron fixtures aislados previos pero **no** dentro de esta misma base transversal.
+
+**Criterio de aprobación:** ejecución E2E verificable con log de cada aserción, código de salida 0 y limpieza confirmada del entorno privado; recién entonces actualizar este estado. Si no se habilita ejecución SQL aislada, mantener NO GO a certificación E2E y producción.
+
+- **Regresión final tras ampliación del fixture:** `scripts/build/gate.php` PASS (889 PHP, 120 JS, exit 0); `php -l` del fixture PASS; contratos B1/CSV 27/27 e I05 21/21 PASS. El propio fixture MariaDB permanece **no ejecutado** por bloqueo remoto de CREATE DATABASE.

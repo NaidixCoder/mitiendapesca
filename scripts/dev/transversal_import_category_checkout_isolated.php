@@ -25,6 +25,20 @@ if ($db->query('SELECT DATABASE()')->fetchColumn()!=='mi_transversal_qa_20261022
 }
 $privateDir = realpath(sys_get_temp_dir().DIRECTORY_SEPARATOR.'mi_transversal_qa_20261022');
 if (!$privateDir || !is_dir($privateDir)) throw new RuntimeException('Private storage directory missing');
+// Verificar datadir real, no solo nombre de base/puerto; prohibir cualquier
+// servidor distinto a la MariaDB efímera generada para esta suite.
+$expectedData = realpath($privateDir.DIRECTORY_SEPARATOR.'data');
+$serverData = realpath((string)$db->query('SELECT @@datadir')->fetchColumn());
+if (!$expectedData || !$serverData
+    || strcasecmp(rtrim($expectedData, '\\/'),rtrim($serverData,'\\/'))!==0) {
+    throw new RuntimeException('REFUSED: MariaDB datadir is not private QA');
+}
+// Este ensayo es de una sola ejecución y no modifica estados persistentes
+// de otras suites: exige tablas instaladas y vacías.
+foreach (['categories','products','product_variants','attributes','import_jobs'] as $table) {
+    $count=(int)$db->query('SELECT COUNT(*) FROM '.$table)->fetchColumn();
+    if($count !== 0) throw new RuntimeException('REFUSED: private QA table not empty: '.$table);
+}
 $storage = $privateDir.DIRECTORY_SEPARATOR.'imports';
 if (!is_dir($storage) && !mkdir($storage,0700)) throw new RuntimeException('Unable to create private storage');
 $n=0;
@@ -106,11 +120,12 @@ $activeId=(int)$db->query("SELECT id FROM categories WHERE slug='qa-cross-active
 $hiddenId=(int)$db->query("SELECT id FROM categories WHERE slug='qa-cross-hidden'")->fetchColumn();
 crossCheck($activeId>0 && $hiddenId>0,'synthetic active/inactive categories created');
 $flag(0);
-[$job,$successful]=$run('two_products',[
+[$job,$successful,$firstCsv]=$run('two_products',[
     $prod('QA-CROSS-VISIBLE','QA Cross Active'),
     $prod('QA-CROSS-HIDDEN','QA Cross Hidden')
 ]);
 crossCheck($successful->applyOutcome==='committed' && $successful->errors===0,'two products imported via real ImportService');
+crossCheck(is_file(substr($firstCsv,0,-4).'_rollback.json'),'successful import publishes reversible snapshot');
 $visible=$lookup('QA-CROSS-VISIBLE');
 $hidden=$lookup('QA-CROSS-HIDDEN');
 crossCheck($visible!==null && $hidden!==null,'both imported SKUs persisted');
@@ -128,21 +143,109 @@ $checkGuard((int)$hidden['id'],true,'B1 OFF hidden-category');
 $flag(1);
 $checkGuard((int)$visible['id'],true,'B1 ON active');
 $checkGuard((int)$hidden['id'],false,'B1 ON hidden-category');
+
+// Cruce REAL: importar variante + atributo y valor, chequear tres tablas de
+// asociaciones, su stock y pertenencia al producto desde Checkout.
+$variantFixture=[
+  'tipo_fila'=>'variante',
+  'sku'=>'QA-CROSS-VAR-AZUL','sku_padre'=>'QA-CROSS-VISIBLE',
+  'nombre'=>'Variante azul de prueba',
+  'precio'=>'2600','stock'=>'4','publicado'=>'1',
+  'attr_1'=>'Color QA Transversal','valor_1'=>'Azul'
+];
+[$variantJob,$variantResult]=$run('variant_attributes',[$variantFixture]);
+crossCheck($variantResult->applyOutcome==='committed' && $variantResult->errors===0,
+    'ImportService creates variant with attribute and inventory');
+$variantStmt=$db->prepare('SELECT id,product_id,is_active FROM product_variants WHERE sku=?');
+$variantStmt->execute(['QA-CROSS-VAR-AZUL']);
+$variant=$variantStmt->fetch();
+crossCheck(is_array($variant) && (int)$variant['product_id']===(int)$visible['id'],
+    'imported variant belongs to expected parent product');
+$variantId=(int)$variant['id'];
+$variantStock=$db->prepare('SELECT stock FROM inventory_variants WHERE variant_id=?');
+$variantStock->execute([$variantId]);
+crossCheck((int)$variantStock->fetchColumn()===4,'imported variant stock persisted');
+$relations=$db->prepare(
+  "SELECT av.value, a.name FROM product_variant_values pvv
+   JOIN attribute_values av ON av.id=pvv.value_id
+   JOIN attributes a ON a.id=pvv.attribute_id
+   WHERE pvv.variant_id=?"
+);
+$relations->execute([$variantId]);
+$attr=$relations->fetch();
+crossCheck(is_array($attr) && $attr['name']==='Color QA Transversal'
+  && $attr['value']==='Azul','imported variant retains attribute/value relationship');
+$attrs=$db->prepare(
+  "SELECT COUNT(*) FROM product_attributes pa
+   JOIN attributes a ON a.id=pa.attribute_id
+   WHERE pa.product_id=? AND a.name='Color QA Transversal'"
+);
+$attrs->execute([(int)$visible['id']]);
+crossCheck((int)$attrs->fetchColumn()===1,'product-level attribute relation exists');
+$values=$db->prepare(
+  "SELECT COUNT(*) FROM product_attribute_values pav
+   JOIN attribute_values av ON av.id=pav.value_id
+   JOIN attributes a ON a.id=pav.attribute_id
+   WHERE pav.product_id=? AND a.name='Color QA Transversal' AND av.value='Azul'"
+);
+$values->execute([(int)$visible['id']]);
+crossCheck((int)$values->fetchColumn()===1,'product-level selected attribute value exists');
+[$buyVariant]=$guard->checkItems([[
+  'product_id'=>(int)$visible['id'],'variant_id'=>$variantId,'qty'=>1
+]]);
+crossCheck($buyVariant===true,'Checkout accepts imported variant of active category');
+[$buyOther]=$guard->checkItems([[
+  'product_id'=>(int)$hidden['id'],'variant_id'=>$variantId,'qty'=>1
+]]);
+crossCheck($buyOther===false,'Checkout rejects variant assigned to wrong product');
+
 $public=new ProductPublicVisibilityService($db);
 crossCheck($public->permitsProduct($activeId) && !$public->permitsProduct($hiddenId),
     'public visibility agrees with Checkout B1 ON');
-$before=[(int)$db->query('SELECT COUNT(*) FROM products')->fetchColumn(),
-    (int)$db->query('SELECT COUNT(*) FROM inventory')->fetchColumn()];
+$before=[
+    (int)$db->query('SELECT COUNT(*) FROM products')->fetchColumn(),
+    (int)$db->query('SELECT COUNT(*) FROM inventory')->fetchColumn(),
+    (int)$db->query('SELECT COUNT(*) FROM product_variants')->fetchColumn(),
+    (int)$db->query('SELECT COUNT(*) FROM inventory_variants')->fetchColumn(),
+    (int)$db->query('SELECT COUNT(*) FROM attributes')->fetchColumn(),
+    (int)$db->query('SELECT COUNT(*) FROM attribute_values')->fetchColumn(),
+    (int)$db->query('SELECT COUNT(*) FROM product_variant_values')->fetchColumn(),
+    (int)$db->query('SELECT COUNT(*) FROM product_attributes')->fetchColumn(),
+    (int)$db->query('SELECT COUNT(*) FROM product_attribute_values')->fetchColumn(),
+];
 $bad=['tipo_fila'=>'variante','sku'=>'','sku_padre'=>'QA-CROSS-VISIBLE','nombre'=>'Invalid row'];
-[$badJob,$rolledBack]=$run('i05_failed_mixed',[
-    $prod('QA-CROSS-ROLLBACK','QA Cross Active'),$bad
+$validButRejected=[
+  'tipo_fila'=>'variante','sku'=>'QA-CROSS-VAR-ROLLBACK',
+  'sku_padre'=>'QA-CROSS-VISIBLE','nombre'=>'Variante rechazada por I05',
+  'precio'=>'3200','stock'=>'9','publicado'=>'1',
+  'attr_1'=>'Material QA ReversiÃ³n','valor_1'=>'Titanio'
+];
+[$badJob,$rolledBack,$badCsv]=$run('i05_failed_mixed',[
+    $prod('QA-CROSS-ROLLBACK','QA Cross Active'),$validButRejected,$bad
 ]);
 crossCheck($rolledBack->applyOutcome==='rolled_back' && $rolledBack->errors>=1,
     'I05 mixed good and invalid rows force rollback');
+crossCheck(!is_file(substr($badCsv,0,-4).'_rollback.json'),'rejected import never publishes snapshot');
 crossCheck($lookup('QA-CROSS-ROLLBACK')===null,'valid row preceding bad row not committed');
-$after=[(int)$db->query('SELECT COUNT(*) FROM products')->fetchColumn(),
-    (int)$db->query('SELECT COUNT(*) FROM inventory')->fetchColumn()];
-crossCheck($after===$before,'no products/stock retained from rejected CSV');
+$after=[
+    (int)$db->query('SELECT COUNT(*) FROM products')->fetchColumn(),
+    (int)$db->query('SELECT COUNT(*) FROM inventory')->fetchColumn(),
+    (int)$db->query('SELECT COUNT(*) FROM product_variants')->fetchColumn(),
+    (int)$db->query('SELECT COUNT(*) FROM inventory_variants')->fetchColumn(),
+    (int)$db->query('SELECT COUNT(*) FROM attributes')->fetchColumn(),
+    (int)$db->query('SELECT COUNT(*) FROM attribute_values')->fetchColumn(),
+    (int)$db->query('SELECT COUNT(*) FROM product_variant_values')->fetchColumn(),
+    (int)$db->query('SELECT COUNT(*) FROM product_attributes')->fetchColumn(),
+    (int)$db->query('SELECT COUNT(*) FROM product_attribute_values')->fetchColumn(),
+];
+crossCheck($after===$before,
+    'I05 leaves no changes to products, variants, attributes, relationships or stock');
+$lostVariant=$db->prepare('SELECT COUNT(*) FROM product_variants WHERE sku=?');
+$lostVariant->execute(['QA-CROSS-VAR-ROLLBACK']);
+crossCheck((int)$lostVariant->fetchColumn()===0,'valid variant from rejected CSV not persisted');
+$lostAttr=$db->prepare('SELECT COUNT(*) FROM attributes WHERE name=?');
+$lostAttr->execute(['Material QA ReversiÃ³n']);
+crossCheck((int)$lostAttr->fetchColumn()===0,'new attribute from rejected CSV not persisted');
 $checkGuard((int)$visible['id'],true,'B1 after failed import active');
 $checkGuard((int)$hidden['id'],false,'B1 after failed import hidden');
 
