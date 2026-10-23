@@ -339,3 +339,9 @@
 - Se amplió `scripts/dev/transversal_import_category_checkout_isolated.php` con stock por variante, relaciones reales de atributos y rollback I05 de maestro/relaciones/stock, y guardias `@@datadir` + tablas vacías. **LINT PASS, contratos B1/CSV 27/27 e I05 21/21 PASS; E2E SQL NO ejecutado.** Matriz en `docs/QA_TRANSVERSAL_TECNICO_20261022.md`. No comercial y no producción.
 
 - Gate global tras reforzar fixture E2E pendiente: **889 archivos PHP / 120 JavaScript / [gate] OK / exit 0**. Comprobado por el principal. No sustituye prueba SQL E2E porque CREATE DATABASE privada fue bloqueado; base temporal limpiada y puerto libre.
+
+### 2026-10-22 — E2E real MariaDB: runner local seguro preparado, ejecución pendiente
+
+- Creado `scripts/dev/run_transversal_e2e_private.ps1` (solo uso local) y `docs/EJECUCION_E2E_MARIADB_PRIVADA.md`. El entorno asistente no incluye MariaDB ni permite descargarla; el control de seguridad remoto bloquea SQL CREATE DATABASE de QA. No hay alternativa de ejecución permitida desde este chat y no se elude.
+- Runner exige port 18989 sin listener, carpeta temporal ausente, random credenciales QA, mysql CLI `--no-defaults`, identidad `@@datadir` antes de cualquier SQL mutable, SQL sintético y eliminación segura de su propio datadir. El log de evidencia se guarda en `docs/QA_TRANSVERSAL_SQL_RESULT_20261022.log`. El propietario puede ejecutarlo directamente sin montar manualmente BD, usuarios o fixtures.
+- **Parser PS 0 errores, PHP lint OK, regresiones 27 B1/CSV y 21 I05 PASS; SQL E2E aún NO ejecutado.** No producción, no datos comerciales y no abrir el servidor habitual de XAMPP.

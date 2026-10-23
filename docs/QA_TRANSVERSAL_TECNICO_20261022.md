@@ -101,3 +101,11 @@ Al ser habilitada la ejecución privada, el ensayo validará:
 **Criterio de aprobación:** ejecución E2E verificable con log de cada aserción, código de salida 0 y limpieza confirmada del entorno privado; recién entonces actualizar este estado. Si no se habilita ejecución SQL aislada, mantener NO GO a certificación E2E y producción.
 
 - **Regresión final tras ampliación del fixture:** `scripts/build/gate.php` PASS (889 PHP, 120 JS, exit 0); `php -l` del fixture PASS; contratos B1/CSV 27/27 e I05 21/21 PASS. El propio fixture MariaDB permanece **no ejecutado** por bloqueo remoto de CREATE DATABASE.
+
+## 2026-10-22 — Ejecutor local privado preparado (NO ejecutado)
+
+Se agregó `scripts/dev/run_transversal_e2e_private.ps1`, launcher Windows para ejecución local voluntaria. Genera contraseña sintética aleatoria, no lee `.env`, crea MariaDB efímera en `%TEMP%/mi_transversal_qa_20261022` con puerto 18989, valida **@@datadir y puerto antes de CREATE DATABASE**, importa el esquema `database/schema.sql`, ejecuta `scripts/dev/transversal_import_category_checkout_isolated.php` (asociaciones de atributos, variantes, stock y rollback I05) y registra evidencia en `docs/QA_TRANSVERSAL_SQL_RESULT_20261022.log`. Destruye instancia/carpeta solo cuando verifica la identidad y detención del servidor privado. Ante error conserva log y retorna exit 1.
+
+**Verificaciones hechas por el principal:** parser PowerShell **0 errores**, PHP lint fixture PASS, 27 contratos B1/CSV PASS y 21 I05 PASS, `git diff --check` PASS. **No se ejecutó el launcher ni el fixture contra MariaDB** a través de la conexión remota. Documentación/único comando en `docs/EJECUCION_E2E_MARIADB_PRIVADA.md`.
+
+**Pendiente al propietario:** iniciar el archivo PowerShell directamente desde Windows, revisar que `docs/QA_TRANSVERSAL_SQL_RESULT_20261022.log` contenga la salida de la ejecución y entregar su resultado para auditoría. No corresponde autorizar producción sin evidencia de prueba SQL y otras condiciones del dictamen.
