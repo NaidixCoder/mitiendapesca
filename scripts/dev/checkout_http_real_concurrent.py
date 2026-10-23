@@ -49,6 +49,8 @@ def login(base):
     return s,token
 
 db("race_reset")
+if db("cart_check")!="PRIVATE_QA_CART_EXACTLY_ONE_LINE_OK":
+    raise AssertionError("Race fixture cart must contain exactly one line, quantity two")
 initial=json.loads(db("snapshot"))
 if initial!={"order":0,"items":0,"stock":5,"status":"none"}:
     raise AssertionError("Race baseline not fresh "+str(initial))

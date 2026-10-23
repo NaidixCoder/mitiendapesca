@@ -8,7 +8,7 @@ $user=(string)getenv('MI_QA_DB_USER');
 $pass=(string)getenv('MI_QA_DB_PASS');
 $mode=$argv[1]??'';
 if($host!=='127.0.0.1'||$port!==18997||$name!=='mi_checkout_http_private_qa'
-   ||$user!=='root'||$pass===''||!in_array($mode,['seed','snapshot','session','hide','show','stock_low','stock_restore','cart_restore','race_reset','diagnose'],true)){
+   ||$user!=='root'||$pass===''||!in_array($mode,['seed','snapshot','session','hide','show','stock_low','stock_restore','cart_restore','race_reset','diagnose','cart_check'],true)){
     fwrite(STDERR,"REFUSED: private QA identity invalid\n");exit(2);
 }
 $db=new PDO("mysql:host=$host;port=$port;dbname=$name;charset=utf8mb4",$user,$pass,[
@@ -27,7 +27,8 @@ if(in_array($mode,['hide','show','stock_low','stock_restore','cart_restore','rac
             $db->exec('DELETE FROM order_items WHERE product_id=197');
             $db->exec('DELETE FROM orders WHERE user_id=197');
             $db->exec('UPDATE inventory SET stock=5 WHERE product_id=197');
-            $db->exec('INSERT INTO cart_items(cart_id,product_id,quantity) VALUES(197,197,2) ON DUPLICATE KEY UPDATE quantity=2');
+            $db->exec('DELETE FROM cart_items WHERE cart_id=197');
+            $db->exec('INSERT INTO cart_items(cart_id,product_id,variant_id,quantity) VALUES(197,197,NULL,2)');
             $db->commit();
         }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
     }elseif($mode==='cart_restore'){
@@ -57,6 +58,13 @@ if(in_array($mode,['hide','show','stock_low','stock_restore','cart_restore','rac
     $db->commit();
     echo "PRIVATE_QA_SEED_OK\n";
    }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
+}elseif($mode==='cart_check'){
+    $lines=$db->query('SELECT COUNT(*) FROM cart_items WHERE cart_id=197 AND product_id=197')->fetchColumn();
+    $qty=$db->query('SELECT COALESCE(SUM(quantity),0) FROM cart_items WHERE cart_id=197 AND product_id=197')->fetchColumn();
+    if((int)$lines!==1||(int)$qty!==2){
+       fwrite(STDERR,'QA cart fixture invalid: lines='.$lines.' qty='.$qty.PHP_EOL);exit(1);
+    }
+    echo "PRIVATE_QA_CART_EXACTLY_ONE_LINE_OK\n";
 }elseif($mode==='snapshot'){
     $order=(int)$db->query("SELECT COUNT(*) FROM orders WHERE user_id=197")->fetchColumn();
     $items=(int)$db->query("SELECT COUNT(*) FROM order_items WHERE product_id=197")->fetchColumn();
