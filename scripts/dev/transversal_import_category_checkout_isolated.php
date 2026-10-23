@@ -146,6 +146,16 @@ try {
     $db->rollBack();
 }
 $flag(0);
+// SOLO en esta base efímera: el CSV no importa imágenes. Mantener la política
+// comercial por defecto en 0; habilitar la excepción únicamente para probar
+// las reglas B1/variantes/stock sin que ProductPublicationSyncService
+// despublique los productos sintéticos al insertar el inventario.
+$db->prepare("INSERT INTO app_settings(setting_key,setting_value) VALUES
+    ('catalog_allow_publish_without_images','1')
+    ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value)")->execute();
+crossCheck((string)$db->query("SELECT setting_value FROM app_settings
+    WHERE setting_key='catalog_allow_publish_without_images'")->fetchColumn()==='1',
+    'private QA allows image-free fixtures without changing commercial defaults');
 [$job,$successful,$firstCsv]=$run('two_products',[
     $prod('QA-CROSS-VISIBLE','QA Cross Active'),
     $prod('QA-CROSS-HIDDEN','QA Cross Hidden')

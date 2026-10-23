@@ -352,3 +352,11 @@
 - Se instrumentó el fixture para imprimir `[qa-publication]` (estado CSV y SQL de ambos SKUs) y el runner para conservar `fixture.out` en el log de fallos. Contratos B1 27 e I05 21 PASS, parser/lint PASS. Solo QA, sin cambio en módulos funcionales. Reejecutar una sola vez con launcher local para diagnóstico verificable; producción NO GO.
 
 - Gate tras diagnóstico del hallazgo 6: **889 PHP, 120 JS, todos los contratos PASS**. El CSV y ProductImporter aislado insertan `is_active=1` pero falta identificar el valor real en MariaDB; se instrumentó `[qa-repository-probe]` + `[qa-publication]`, log de fallo conserva `fixture.out`. No hay fix de lógica productiva aún.
+
+### 2026-10-22 — Principal: FAIL 6 E2E explicado por política de imágenes, prueba 16/16
+
+- Segunda corrida MariaDB privada: ImportService + stock despublicó dos productos sin imágenes, aunque `publicado=1`. **No es defecto del normalizador**. `InventoryRepository` llama a `ProductPublicationSyncService` y este aplica los bloqueos de `ProductWizardService`: requiere imagen salvo setting `catalog_allow_publish_without_images=1`.
+- Nuevo contrato real `scripts/build/transversal_publication_stock_contract.php`: **16/16 PASS** con stock, sync, waiver de imágenes, precio obligatorio y B1. Se sumó a `scripts/build/gate.php`.
+- Solo fixture SQL `transversal_import_category_checkout_isolated.php` habilita waiver **dentro de BD efímera** antes de importación; NO modificar reglas/código productivo ni la configuración comercial. E2E MariaDB completo pendiente de nueva ejecución local; ver `docs/QA_TRANSVERSAL_TECNICO_20261022.md`. No producción, visual diferido.
+
+- Gate global **PASS 890 PHP / 120 JS / exit 0** tras corregir solamente setup del E2E privado: `catalog_allow_publish_without_images=1` en DB QA. Nuevo contrato `transversal_publication_stock_contract` 16/16 PASS; la política de imágenes por defecto (0) y ProductPublicationSyncService productivo se mantienen. Próximo: una corrida local del runner para continuar desde aserción 6. No producción.
