@@ -48,3 +48,9 @@ Ejecuta `ImportService` real sobre productos, variante, relaciones de atributos,
 - proceso/datos de QA eliminados y puerto 18989 libre.
 
 Ante cualquier error, permanecer **NO GO** y corregir el defecto antes de repetir. El usuario solo debe entregar el log para la auditoría del chat principal. No ejecutar SQL, envíos, cobros, devoluciones o ajustes de datos sobre la base habitual.
+
+## Resultado oficial de ejecución local — 22/10/2026 22:16
+
+**El propietario ejecutó el runner local y completó el E2E SQL con 40/40 PASS, exit=0**, MariaDB privada de 65 tablas; el principal revisó la evidencia original y verificó limpieza. **No es necesario volver a ejecutar el comando para este punto.** La ejecución inicial fallida por falta de imagen del fixture se resolvió exclusivamente habilitando `catalog_allow_publish_without_images=1` en la base temporal; la política comercial permaneció intacta.
+
+El cierre y SHA del archivo de resultados se encuentran en `docs/EVIDENCIA_E2E_SQL_TRANSVERSAL_20261022.md`. E2E HTTP de pedido y MP real son alcances separados no acreditados por esta suite.

@@ -360,3 +360,11 @@
 - Solo fixture SQL `transversal_import_category_checkout_isolated.php` habilita waiver **dentro de BD efímera** antes de importación; NO modificar reglas/código productivo ni la configuración comercial. E2E MariaDB completo pendiente de nueva ejecución local; ver `docs/QA_TRANSVERSAL_TECNICO_20261022.md`. No producción, visual diferido.
 
 - Gate global **PASS 890 PHP / 120 JS / exit 0** tras corregir solamente setup del E2E privado: `catalog_allow_publish_without_images=1` en DB QA. Nuevo contrato `transversal_publication_stock_contract` 16/16 PASS; la política de imágenes por defecto (0) y ProductPublicationSyncService productivo se mantienen. Próximo: una corrida local del runner para continuar desde aserción 6. No producción.
+
+### 2026-10-22 — Principal: cierre E2E SQL transversal, PASS 40/40
+
+- **Propietario ejecutó en su Windows la suite E2E SQL con MariaDB aislada (65 tablas, localhost:18989), y el principal leyó el log.** Resultado 40/40 PASS sin saltos, `exit=0`, sin FAIL/Fatal. Cobertura real: ImportService, productos, variantes, atributos, relaciones, inventario, B1 ON/OFF, CheckoutProductEligibilityGuard con/sin `FOR UPDATE`, snapshot e I05 rollback sin residuos. Log SHA-256 `0120F3DDF2DA48197EAF6E07C3BE580B7B842FD7A9FBBAD1A9D16E64A2E5AA8C`.
+- **Limpieza confirmada:** sin datadir/directorio temporal, sin proceso MariaDB privado, 18989 libre. Regresión adicional de publicación/imagenes 16/16 PASS (contrato permanente), gate previo de 890 PHP, 120 JS PASS. No SQL comercial.
+- Pendiente E2E HTTP autenticado/pedido confirmado en Checkout, homologación MP externa y conciliación operativa: **NO GO producción**. Ver `docs/EVIDENCIA_E2E_SQL_TRANSVERSAL_20261022.md`. Histórico de SQL pendiente queda superado. Estética postergada.
+
+- Gate de cierre tras E2E SQL 40/40: **890 PHP, 120 JS, todos los contratos `[gate] OK`, exit 0**. Estado SQL cerrado y evidencia escrita en `docs/EVIDENCIA_E2E_SQL_TRANSVERSAL_20261022.md`; solo siguen abiertos E2E HTTP/pedido y homologación MP con conciliación para NO GO producción.

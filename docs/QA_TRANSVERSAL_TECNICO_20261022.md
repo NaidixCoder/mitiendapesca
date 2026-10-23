@@ -140,3 +140,13 @@ Se creó `scripts/build/transversal_publication_stock_contract.php`, usando `Inv
 **Evidencia nueva:** regresión aislada de 16/16 PASS; el E2E MariaDB completo **no ha sido reejecutado** después del ajuste. Repetir el runner Windows autorizado y revisar en `docs/QA_TRANSVERSAL_SQL_RESULT_20261022.log` cada aserción antes de certificar. Producción NO GO.
 
 - **Gate coordinado tras cerrar causa raíz FAIL 6:** `scripts/build/gate.php` **PASS / exit 0**, 890 PHP, 120 JavaScript; incluye contrato nuevo de publicación/stock **16/16 PASS**, B1/CSV **27/27 PASS**, contratos I05/atributos/marcas/Checkout/MP y regresiones globales PASS. `php -l` fixture y `git diff --check` PASS. Pendiente nueva ejecución del E2E real MariaDB privada con el setting de imágenes exclusivo del fixture. No producción.
+
+## 2026-10-22 — E2E SQL MariaDB aprobado definitivamente: 40/40
+
+**Esta sección prevalece sobre todos los pendientes históricos de ejecución SQL del presente documento.** El propietario reejecutó localmente `scripts/dev/run_transversal_e2e_private.ps1` y el chat principal leyó el resultado real `docs/QA_TRANSVERSAL_SQL_RESULT_20261022.log` (22:16 h). **40 comprobaciones MariaDB PASS, secuencia 1–40 exacta, exit=0, sin errores; 65 tablas.** Cierre del E2E SQL entre Importaciones, productos/variantes, atributos/relaciones, stock, B1, guard de Checkout con y sin bloqueo, y reversión total I05. No se modifica política comercial, imágenes obligatorias siguen por defecto.
+
+**Aislamiento verificado:** instancia temporal detenida, datadir privado ausente, puerto 18989 libre y sin proceso perteneciente al ensayo. El log tiene SHA-256 `0120F3DDF2DA48197EAF6E07C3BE580B7B842FD7A9FBBAD1A9D16E64A2E5AA8C`. Informe completo `docs/EVIDENCIA_E2E_SQL_TRANSVERSAL_20261022.md`.
+
+**Se cierra el pendiente SQL; NO se cierra el E2E HTTP/pedido real**, ni homologación MP, conciliación humana o aprobación visual/producción.
+
+- Validación final después de la ejecución SQL exit 0: gate de proyecto reejecutado **890 PHP, 120 JS, `[gate] OK`, exit 0**. El cierre SQL se encuentra en `docs/EVIDENCIA_E2E_SQL_TRANSVERSAL_20261022.md`. No confundir con la validación HTTP/pedido real, aún fuera de la suite 40/40.
