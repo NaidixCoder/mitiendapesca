@@ -71,20 +71,27 @@ try {
  if($Tunnel) {
    $cf='C:\Program Files (x86)\cloudflared\cloudflared.exe'
    Check (Test-Path $cf) 'CLOUDFLARED_NOT_INSTALLED'
-   $cferr=Join-Path $base 'tunnel.err'
-   $tunnelProc=Start-Process -FilePath $cf -ArgumentList @('tunnel','--no-autoupdate','--protocol','http2','--url',"http://127.0.0.1:$webport") -PassThru -RedirectStandardError $cferr -RedirectStandardOutput (Join-Path $base 'tunnel.out')
-   $url=''
-   for($j=0;$j -lt 30;$j++){
-     Start-Sleep -Milliseconds 700
-     $log=Get-Content -LiteralPath $cferr -Raw -ErrorAction SilentlyContinue
-     if($log -match 'https://[a-zA-Z0-9-]+\.trycloudflare\.com'){ $url=$matches[0];break }
-     if($tunnelProc.HasExited){break}
-   }
-   Check ($url -ne '') 'PUBLIC_HTTPS_URL_NOT_CREATED'
    $publicOk=$false
-   for($k=0;$k -lt 12;$k++){
-     try{$login=Invoke-WebRequest -Uri ($url+'/login') -UseBasicParsing -TimeoutSec 8; if($login.StatusCode -eq 200){$publicOk=$true;break}}catch{}
-     Start-Sleep -Seconds 2
+   for($attempt=1;$attempt -le 3 -and !$publicOk;$attempt++){
+     $cferr=Join-Path $base ("tunnel_$attempt.err")
+     $tunnelProc=Start-Process -FilePath $cf -ArgumentList @('tunnel','--no-autoupdate','--protocol','http2','--url',"http://127.0.0.1:$webport") -PassThru -RedirectStandardError $cferr -RedirectStandardOutput (Join-Path $base ("tunnel_$attempt.out"))
+     $url=''
+     for($j=0;$j -lt 30;$j++){
+       Start-Sleep -Milliseconds 700
+       $log=Get-Content -LiteralPath $cferr -Raw -ErrorAction SilentlyContinue
+       if($log -match 'https://[a-zA-Z0-9-]+\.trycloudflare\.com'){ $url=$matches[0];break }
+       if($tunnelProc.HasExited){break}
+     }
+     if($url -ne ''){
+       for($k=0;$k -lt 8;$k++){
+         try{$login=Invoke-WebRequest -Uri ($url+'/login') -UseBasicParsing -TimeoutSec 6; if($login.StatusCode -eq 200){$publicOk=$true;break}}catch{}
+         Start-Sleep -Seconds 2
+       }
+     }
+     if(!$publicOk){
+       try{Stop-Process -Id $tunnelProc.Id -Force -ErrorAction SilentlyContinue}catch{}
+       Start-Sleep -Seconds 1
+     }
    }
    Check $publicOk 'PUBLIC_LOGIN_NOT_REACHABLE_AFTER_RETRIES'
    try { $unexpected=Invoke-WebRequest -Uri ($url+'/admin') -UseBasicParsing -TimeoutSec 10;Check $false 'PUBLIC_ADMIN_ACCESSIBLE' }
