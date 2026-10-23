@@ -125,7 +125,7 @@ try {
     $failureMessage = "PRIVATE E2E FAILED: " + $_.Exception.Message
     Write-Warning $failureMessage
     $details = @($failureMessage, "timestamp=$((Get-Date).ToString('o'))")
-    foreach ($name in @('schema.err','fixture.err')) {
+    foreach ($name in @('schema.err','fixture.out','fixture.err')) {
         $diag = Join-Path $qaDir $name
         if (Test-Path -LiteralPath $diag) {
             $details += "--- $name ---"

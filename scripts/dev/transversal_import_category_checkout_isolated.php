@@ -119,6 +119,32 @@ $db->exec("INSERT INTO categories(name,slug,is_active) VALUES
 $activeId=(int)$db->query("SELECT id FROM categories WHERE slug='qa-cross-active'")->fetchColumn();
 $hiddenId=(int)$db->query("SELECT id FROM categories WHERE slug='qa-cross-hidden'")->fetchColumn();
 crossCheck($activeId>0 && $hiddenId>0,'synthetic active/inactive categories created');
+// Diagnóstico privado MariaDB: misma ruta de inserción real, fuera de
+// ImportService, revertida de inmediato para no interferir con el E2E.
+$probeImporter = new \App\Services\Import\ProductImporter(
+    new \App\Repositories\Catalog\ProductRepository($db),
+    new \App\Repositories\Catalog\BrandRepository($db),
+    new \App\Repositories\Catalog\CategoryRepository($db),
+    new \App\Repositories\Catalog\SupplierRepository($db)
+);
+$probeInput = (new \App\Services\Import\RowNormalizer())->fromSpanish(
+    $prod('QA-CROSS-PROBE','QA Cross Active'), 'products', ['update_publish'=>true]
+);
+$db->beginTransaction();
+try {
+    $probeResult = $probeImporter->upsert($probeInput, false, [
+        'create_missing_products'=>true,'update_publish'=>true
+    ]);
+    $probeStmt = $db->prepare('SELECT sku,is_active,category_id FROM products WHERE id=?');
+    $probeStmt->execute([(int)($probeResult['product_id'] ?? 0)]);
+    echo '[qa-repository-probe] '.json_encode([
+        'normalized_active'=>$probeInput['is_active'] ?? null,
+        'result_ok'=>$probeResult['ok'] ?? false,
+        'stored'=>$probeStmt->fetch(PDO::FETCH_ASSOC) ?: null,
+    ], JSON_THROW_ON_ERROR).PHP_EOL;
+} finally {
+    $db->rollBack();
+}
 $flag(0);
 [$job,$successful,$firstCsv]=$run('two_products',[
     $prod('QA-CROSS-VISIBLE','QA Cross Active'),
@@ -131,8 +157,28 @@ $hidden=$lookup('QA-CROSS-HIDDEN');
 crossCheck($visible!==null && $hidden!==null,'both imported SKUs persisted');
 crossCheck((int)$visible['category_id']===$activeId && (int)$hidden['category_id']===$hiddenId,
     'imported category assignment preserves inactive category');
+// Diagnóstico sintético: no ocultar un producto publicado incorrectamente.
+// El E2E no consulta ni registra información comercial.
+$csvPublishValues = [];
+$csvReader = (new \App\Services\Import\CsvReader())->open($firstCsv,';');
+$csvNormalizer = new \App\Services\Import\RowNormalizer();
+foreach ($csvReader as $csvRow) {
+    $normalizedRow = $csvNormalizer->fromSpanish($csvRow, 'products', $options);
+    $csvPublishValues[(string)($normalizedRow['sku'] ?? '')] = [
+        'raw_publicado'=>(string)($csvRow['publicado'] ?? ''),
+        'normalized_active'=>$normalizedRow['is_active'] ?? null,
+    ];
+}
+$publishedState = [
+    'csv' => $csvPublishValues,
+    'visible' => ['sku'=>(string)$visible['sku'], 'product_active'=>$visible['is_active'],
+        'category_active'=>(int)$db->query("SELECT is_active FROM categories WHERE id=$activeId")->fetchColumn()],
+    'hidden' => ['sku'=>(string)$hidden['sku'], 'product_active'=>$hidden['is_active'],
+        'category_active'=>(int)$db->query("SELECT is_active FROM categories WHERE id=$hiddenId")->fetchColumn()],
+];
+echo '[qa-publication] '.json_encode($publishedState, JSON_THROW_ON_ERROR).PHP_EOL;
 crossCheck((int)$visible['is_active']===1 && (int)$hidden['is_active']===1,
-    'import publication did not override category state');
+    'imported products must retain publicado=1 independently of category state');
 crossCheck($stock((int)$visible['id'])===7 && $stock((int)$hidden['id'])===7,
     'import inventory persisted as configured');
 crossCheck((int)$db->query("SELECT is_active FROM categories WHERE id=$hiddenId")->fetchColumn()===0,

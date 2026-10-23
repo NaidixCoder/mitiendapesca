@@ -109,3 +109,20 @@ Se agregó `scripts/dev/run_transversal_e2e_private.ps1`, launcher Windows para 
 **Verificaciones hechas por el principal:** parser PowerShell **0 errores**, PHP lint fixture PASS, 27 contratos B1/CSV PASS y 21 I05 PASS, `git diff --check` PASS. **No se ejecutó el launcher ni el fixture contra MariaDB** a través de la conexión remota. Documentación/único comando en `docs/EJECUCION_E2E_MARIADB_PRIVADA.md`.
 
 **Pendiente al propietario:** iniciar el archivo PowerShell directamente desde Windows, revisar que `docs/QA_TRANSVERSAL_SQL_RESULT_20261022.log` contenga la salida de la ejecución y entregar su resultado para auditoría. No corresponde autorizar producción sin evidencia de prueba SQL y otras condiciones del dictamen.
+
+## 2026-10-22 — Primera ejecución real del E2E por el propietario: fallo reproducible en aserción 6
+
+La ejecución **local y aislada** del launcher `scripts/dev/run_transversal_e2e_private.ps1` creó correctamente MariaDB privada con **65 tablas** y ejecutó `ImportService` real. Reportó **PASS 1–5** (categorías sintéticas, COMMIT de los productos, snapshot publicado, SKUs persistidos y asignación de categorías), seguido de **FAIL (6)**: los valores de `products.is_active` importados no cumplieron simultáneamente `1` como requería `publicado=1`. El dato exacto de cada producto **no fue registrado en esta primera corrida**; no afirmar aún si falló uno, ambos o por qué. El runner reportó limpieza correcta de DB/puerto/carpeta.
+
+El principal ejecutó fuera de MariaDB comercial dos diagnósticos independientes: lectura/normalización real de CSV **2/2** (`raw_publicado='1', normalized_active=1`) y `RowNormalizer → ProductImporter → ProductRepository::insertGetId` con SQLite de memoria **2/2**, incluyendo categoría inactiva. Ambos crean `products.is_active=1`; la diferencia exige evidencia específica MariaDB y no admite cambiar a ciegas la lógica de producto ni bajar el rigor de B1.
+
+Se reforzaron únicamente herramientas de QA:
+- `transversal_import_category_checkout_isolated.php` ahora emite `[qa-publication]` con SKU sintético, `raw_publicado`, `normalized_active`, `products.is_active` y `categories.is_active` **antes** de la aserción.
+- `run_transversal_e2e_private.ps1` conserva `fixture.out` **además** de `fixture.err` en `docs/QA_TRANSVERSAL_SQL_RESULT_20261022.log` cuando una corrida falla.
+- PHP lint del fixture, parser PowerShell, contrato cruzado B1/CSV **27/27**, contrato I05 **21/21** y `git diff --check`: PASS. Los scripts de diagnóstico descartables se eliminaron; ninguna modificación funcional ni dato comercial.
+
+**Próximo paso único:** volver a ejecutar el mismo launcher de QA local; capturar el nuevo log con valores observados y recién entonces corregir la causa exacta. E2E MariaDB transversal **NO aprobado** hasta recuperar la aserción 6 y completar las restantes.
+
+- **Diagnóstico adicional antes de la próxima corrida:** el fixture ejecuta `ProductImporter::upsert` + `ProductRepository` reales directamente en la misma MariaDB privada, imprime `[qa-repository-probe]` con publicación persistida, y hace `ROLLBACK` inmediato. El ensayo principal imprime `[qa-publication]` con CSV y SQL de los dos productos. El runner conserva ahora `fixture.out` y `fixture.err` incluso cuando el fixture falla. Así se separa el problema de persistencia SQL del flujo integral sin modificar código de producción.
+
+- Tras la instrumentación de diagnóstico, gate global `scripts/build/gate.php` **PASS**, 889 archivos PHP, 120 JavaScript, `[gate] OK`, `PUBLICATION_DIAG_GATE_EXIT=0`. No acredita el E2E MariaDB, que continúa detenido en el hallazgo 6 hasta conocer los valores SQL.
