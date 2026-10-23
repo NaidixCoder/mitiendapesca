@@ -1,4 +1,4 @@
-param([switch]$Keep)
+param([switch]$Keep,[switch]$Tunnel)
 $ErrorActionPreference='Stop'
 $repo='C:\xampp\htdocs\mi-pesca'
 $base=Join-Path $env:TEMP 'mitiendapesca_mp_staging_20261023'
@@ -11,7 +11,7 @@ $mysqld='C:\xampp\mysql\bin\mysqld.exe'
 $init='C:\xampp\mysql\bin\mysql_install_db.exe'
 function Check([bool]$ok,[string]$name){if(!$ok){throw $name}}
 function Busy([int]$port){[bool](Get-NetTCPConnection -State Listen -LocalPort $port -ErrorAction SilentlyContinue)}
-$dbProc=$null;$webProc=$null;$completed=$false;$created=$false
+$dbProc=$null;$webProc=$null;$tunnelProc=$null;$completed=$false;$created=$false
 try {
  Check (!(Test-Path $base)) 'PRIVATE_STAGE_PATH_EXISTS'
  Check (!(Busy $dbport) -and !(Busy $webport)) 'PRIVATE_STAGE_PORT_BUSY'
@@ -33,7 +33,7 @@ try {
   'APP_ENV=local','APP_DEBUG=false',"APP_URL=http://127.0.0.1:$webport",
   'DB_HOST=127.0.0.1',"DB_PORT=$dbport","DB_NAME=$dbname",'DB_USER=root',"DB_PASS=$password",
   'SESSION_NAME=MIMPSTAGING','MAIL_MAILER=log','MAIL_DRIVER=log',
-  'MP_ACCESS_TOKEN=','MP_PUBLIC_KEY=','MP_WEBHOOK_SIGNATURE_SECRET=','MP_WEBHOOK_SECRET='
+  'MP_ACCESS_TOKEN=','MP_PUBLIC_KEY=',"MP_WEBHOOK_SIGNATURE_SECRET=$password",'MP_WEBHOOK_SECRET='
  ) -join [Environment]::NewLine
  [IO.File]::WriteAllText((Join-Path $site '.env'),$envContent,[Text.UTF8Encoding]::new($false))
  $datadir=Join-Path $base 'data'
@@ -68,11 +68,42 @@ try {
  Write-Host 'MP_STAGE_LOGIN=HTTP_200'
  Write-Host 'MP_STAGE_ADMIN=HTTP_403'
  Write-Host 'MP_STAGE_ISOLATION=PASS'
+ if($Tunnel) {
+   $cf='C:\Program Files (x86)\cloudflared\cloudflared.exe'
+   Check (Test-Path $cf) 'CLOUDFLARED_NOT_INSTALLED'
+   $cferr=Join-Path $base 'tunnel.err'
+   $tunnelProc=Start-Process -FilePath $cf -ArgumentList @('tunnel','--no-autoupdate','--protocol','http2','--url',"http://127.0.0.1:$webport") -PassThru -RedirectStandardError $cferr -RedirectStandardOutput (Join-Path $base 'tunnel.out')
+   $url=''
+   for($j=0;$j -lt 30;$j++){
+     Start-Sleep -Milliseconds 700
+     $log=Get-Content -LiteralPath $cferr -Raw -ErrorAction SilentlyContinue
+     if($log -match 'https://[a-zA-Z0-9-]+\.trycloudflare\.com'){ $url=$matches[0];break }
+     if($tunnelProc.HasExited){break}
+   }
+   Check ($url -ne '') 'PUBLIC_HTTPS_URL_NOT_CREATED'
+   $publicOk=$false
+   for($k=0;$k -lt 12;$k++){
+     try{$login=Invoke-WebRequest -Uri ($url+'/login') -UseBasicParsing -TimeoutSec 8; if($login.StatusCode -eq 200){$publicOk=$true;break}}catch{}
+     Start-Sleep -Seconds 2
+   }
+   Check $publicOk 'PUBLIC_LOGIN_NOT_REACHABLE_AFTER_RETRIES'
+   try { $unexpected=Invoke-WebRequest -Uri ($url+'/admin') -UseBasicParsing -TimeoutSec 10;Check $false 'PUBLIC_ADMIN_ACCESSIBLE' }
+   catch [System.Net.WebException] { Check ($_.Exception.Response.StatusCode.value__ -eq 403) 'PUBLIC_ADMIN_NOT_DENIED' }
+   try {
+     $unexpectedWebhook=Invoke-WebRequest -Uri ($url+'/webhooks/mercadopago') -Method Post -ContentType 'application/json' -Body '{"type":"payment","data":{"id":"197"}}' -UseBasicParsing -TimeoutSec 10
+     Check $false 'UNSIGNED_WEBHOOK_ACCEPTED'
+   } catch [System.Net.WebException] {
+     Check ($_.Exception.Response.StatusCode.value__ -eq 403) 'UNSIGNED_WEBHOOK_NOT_REJECTED'
+   }
+   Write-Host 'MP_STAGE_TUNNEL_HTTPS=PASS'
+   Write-Host 'MP_STAGE_PUBLIC_ADMIN=HTTP_403'
+   Write-Host 'MP_STAGE_UNSIGNED_WEBHOOK=HTTP_403'
+ }
  $completed=$true
  if($Keep){throw 'KEEP_NOT_IMPLEMENTED: secure manual lifecycle required'}
 } catch {Write-Host ('MP_STAGE_RESULT='+$_.Exception.Message)}
 finally {
- foreach($pr in @($webProc,$dbProc)){if($null -ne $pr){try{Stop-Process -Id $pr.Id -Force -ErrorAction SilentlyContinue}catch{}}}
+ foreach($pr in @($tunnelProc,$webProc,$dbProc)){if($null -ne $pr){try{Stop-Process -Id $pr.Id -Force -ErrorAction SilentlyContinue}catch{}}}
  Start-Sleep -Milliseconds 800
  if($created -and (Test-Path -LiteralPath $base)){Remove-Item -LiteralPath $base -Recurse -Force -ErrorAction SilentlyContinue}
  Remove-Item Env:MYSQL_PWD -ErrorAction SilentlyContinue
