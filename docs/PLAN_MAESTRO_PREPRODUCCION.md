@@ -86,3 +86,32 @@ La ejecución debe inventariar las rutas reales de `config/routes.php`, controla
 **NO GO hasta demostrar:** (a) operaciones críticas E2E públicas/admin sobre entorno aislado; (b) P0/P1 cerrados y regresiones; (c) facturación/pagos/integraciones habilitadas homologadas; (d) backup+restore ensayados; (e) staging, migraciones, rollback y observabilidad verificados; (f) aprobación expresa del propietario.
 
 **Primer paso operativo:** crear matriz exhaustiva de rutas y cobertura del Admin, clasificando automáticamente cuáles cuentan ya con suites reproducibles. Comenzar por hallazgos reales y vacíos de cobertura, no reiniciar auditorías locales ya cerradas.
+
+
+## 7. Adenda de seguridad — OWASP ASVS y plataforma PHP (24/10/2026)
+
+**Decisión del propietario:** expandir la fase F3 a una matriz sistemática de seguridad; los 30 puntos iniciales son una lista de comprobación orientativa, **no** acreditan seguridad por mera presencia.
+
+### 7.1 Matriz de seguridad trazable
+
+- Base principal: **OWASP ASVS 5.0.0**, aspiración a verificación de requisitos aplicables de nivel 2 con selección y justificación según riesgos; complementos OWASP WSTG y API Security Top 10 y contratos específicos de negocio.
+- Auditar todas las rutas identificadas: tienda pública, Admin V3, API/AJAX, callbacks/webhooks, CLI/cron y superficie de despliegue; registrar por requisito ASVS: identificador/versión, activo y punto de entrada, amenaza, condición aplicable/no aplicable justificada, prueba/script, resultado, evidencia, defecto/severidad, corrección y regresión. Sin presuponer que 100 % de rutas equivale a 100 % de amenazas.
+- Cobertura agrupada: identidad/sesiones, autorización horizontal/vertical por ID, autenticación y contraseñas, CSRF, validaciones/XSS/SQL/SSRF, cargas/descargas, cookies/CSP/headers/HTTPS, secreto y API keys, dependencias, logs/datos personales, rate limiting/bots, webhooks HMAC/idempotencia, pagos/pedidos/stock/concurrencia, integraciones ARCA/Correo/Email, DB privilegios mínimos, backups y recuperación.
+- Estados: SIN INVENTARIAR / PENDIENTE / PASS CON EVIDENCIA / VULNERABLE / NO APLICABLE JUSTIFICADO / BLOQUEADO. Reutilizar evidencia válida Usuarios 42/42, Ajustes 155/155 y otros contratos solo para el requisito exacto demostrado; volver a probar si cambian código/plataforma/configuración.
+- No se permite GO con P0/P1 abiertos o requisitos aplicables críticos sin evidencia; pruebas controladas solo contra ambientes privados/sandbox.
+
+### 7.2 Avisos oficiales de PHP — riesgo urgente previo al lanzamiento
+
+**Fuente primaria consultada 24/10/2026:** https://www.php.net/archive/2026.php y https://www.php.net/supported-versions.php .
+
+El **21/10/2026** PHP publicó correcciones para dos vulnerabilidades de RCE sin autenticación: **CVE-2026-109618** (corrupción de estado ante OOM) y **CVE-2026-109619** (estado global obsoleto/use-after-free). Versiones mínimas parcheadas: **8.2.35 / 8.3.36 / 8.4.27 / 8.5.12**; Apache mod_php, FPM, CGI y otros están comprendidos. Actualizar es obligatorio; mitigaciones parciales **no** reemplazan el parche. PHP 8.6 todavía es candidato RC, no instalar RC en producción.
+
+**Hallazgo verificado MAIN:** `C:\\xampp\\php\\php.exe -v` devuelve **PHP 8.2.12 (CLI, compilado 24/10/2023)**. El mismo CLI devuelve `session.upload_progress.enabled=1`. Esto **NO confirma aún** la versión/configuración que utiliza Apache; se exige verificar el runtime web y el servidor de hosting destino por separado, sin exponer phpinfo públicamente.
+
+El **23/10/2026** PHP comunicó advertencia adicional relativa a `session.upload_progress.enabled` en combinación poco habitual de serialize handlers, con **CVE-2026-115560** previsto para una próxima corrección. La recomendación temporal oficial es `session.upload_progress.enabled=0` hasta nueva versión; verificar que esté desactivado en el runtime web y reiniciar procesos propios bajo cambio controlado. No tocar configuración del XAMPP activo sin plan de rollback ni interrumpir otras tareas.
+
+**Criterio de versión para producción:** preferir la última revisión estable y parcheada de PHP 8.5 (al 24/10: mínimo **8.5.12**) tras E2E de compatibilidad; PHP 8.4.27+ es alternativa soportada con menor riesgo de migración, previa validación. PHP 8.2.35 corrige las dos RCE pero la rama termina soporte 31/12/2026, por lo que **no** se recomienda como base nueva a largo plazo. No usar PHP 8.1 o anteriores sin soporte del proveedor y verificación explícita. Confirmar con cada proveedor de hosting sus backports, binarios, configuración y extensiones reales.
+
+**Tareas bloqueantes nuevas:** inventario de CLI/Apache/staging/hosting y versiones extensiones; matriz PHP/Composer/dependencias; elegir runtime parcheado; staging PHP actualizado con lint, gate global, E2E y smoke público/admin y workers; prueba de sesiones, imágenes/uploads, mail, SQL/driver PDO, cron, Mercado Pago/ARCA; logs sin warnings/deprecations críticos, configuración de memoria y límites de petición; evaluar despliegue/rollback y ventanas de actualización futura. Guardar evidencia de versión web mediante prueba privada, no endpoint público persistente.
+
+**GATE P0:** nunca publicar en PHP afectado por las dos CVE de octubre; no iniciar cobros si plataforma/producto carece de parche y verificaciones de seguridad. La detección local de 8.2.12 es real para CLI; estado Apache/prod permanece **PENDIENTE DE MEDIR**, no asumir afectación confirmada del proveedor externo.
