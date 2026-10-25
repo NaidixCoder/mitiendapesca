@@ -46,3 +46,23 @@ Solo QA database `mi_pesca_qa_local` con fixtures ficticios; código comercial s
 ## Reanudación y regresión después de interrupción
 Se inspeccionó el servidor privado propio en 127.0.0.1:18855 (PID 6268 identificado por línea de comandos). Se repitió `python scripts/dev/qa_cart_http_main.py`: login 302 a `/cuenta`, agregar 200 ($2300), actualizar 200 ($4600), checkout autenticado 200, quitar 200 y carrito vacío; SQL de ítems cero acreditado en corrida previa. `qa_payment_sql_main.php` **6/6 PASS** (identidad, cambios, duplicado, rollback) y `qa_settings_consumer_main.php` **3/3 PASS** (404 y 200 según setting B1, restauración). PHP privado propio finalizó mediante PID verificado; XAMPP MySQL del usuario intacto.
 El gate global ejecutado antes de la interrupción sobre los cambios presentes: **913 archivos PHP, 120 JavaScript, `[gate] OK`, exit 0**; tiempo 77,04 s. El número 913 incluye los scripts temporales de QA todavía en el árbol. Sigue sin existir acreditación E2E completa de A1–A8. Ninguna API de proveedor externo fue utilizada.
+
+
+## Nueva intervención MAIN — continuación E2E local 25/10/2026
+Se reutiliza exclusivamente la DB `mi_pesca_qa_local` con esquema de 65 tablas y fixtures sintéticos. Servidor PHP privado iniciado en `127.0.0.1:18855` con router `qa_http_router_main.php`, guard de DB antes de dispatch y sin servicios externos.
+
+### QA de seguridad HTTP nuevo
+`python scripts/dev/qa_security_http_main.py` **10/10 PASS**: tres diagnósticos retirados `/phpinfo.php`, `/tmp_session_dump.php`, `/tmp_session_info.php` (404); ruta inexistente 404; invitado a `/cuenta` y `/admin/products` (401); POST `/carrito/agregar` sin CSRF (419); login cliente sintético (302), cliente accediendo a admin (403), acceso a su cuenta (200). Confirma HTTP focal del P1 corregido, no certifica OWASP/IDOR global.
+
+### Regresión E2E con DB real
+- `qa_mysql_seed_main.php`: seed idempotente usuarios/productos/categoría/inventario/carrito QA OK.
+- `qa_admin_read_main.py`: admin login, dashboard, listado/edición productos, ajustes y pedidos **HTTP 200**.
+- `qa_cart_http_main.py`: login 302; agregar qty1=$2300, actualizar qty2=$4600, checkout autenticado 200, quitar ítem 200 y dejar carrito vacío, **PASS**. Sin pedido ni cobro externo.
+- `qa_payment_sql_main.php`: **6/6 PASS** SQL repo real, pendiente→aprobado, duplicado idempotente, importe/moneda, huérfano, rollback, sin proveedor.
+- `qa_settings_consumer_main.php`: **3/3 PASS** persistencia SQL y consumidor real B1 HTTP 404/200, estado restaurado.
+- `marketing_email_campaign_lifecycle_smoke.php` con guard: **PASS** transiciones/cola sintética/rollback, **0 envíos**.
+- `seo_readonly_smoke.php` con guard: **PASS** consultas sobre 3 productos y render.
+- `facturacion_domain_smoke_private.php`: **40 comprobaciones sintéticas OK**, NO son MariaDB fiscal E2E.
+
+### Alcance abierto
+Continúan NO ACREDITADOS como E2E full: registro y recuperación de clave completos, CRUD de imagen y variantes, compras/recepción/importaciones con cruce SQL, confirmación idempotente de pedido y stock por HTTP sobre MariaDB, procesamiento webhook MP integrado y conciliación, facturación/NC concurrencia MariaDB y consumidor de SEO tras edición. No hay GO de producción ni declaración de cierre del Bloque A. No repetir estas suites aprobadas salvo cambios afectados.
