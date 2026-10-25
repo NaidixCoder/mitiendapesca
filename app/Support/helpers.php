@@ -773,7 +773,7 @@ if (!function_exists('base_url')) {
             $envPath = (string)(parse_url($envUrl, PHP_URL_PATH) ?: '');
             $envPath = rtrim($envPath, '/');
             $scriptName = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
-            $scriptDir  = rtrim(dirname($scriptName), '/');
+            $scriptDir  = rtrim(str_replace('\\', '/', dirname($scriptName)), '/');
 
             if (($envPath === '' || $envPath === '/') && $scriptDir !== '' && $scriptDir !== '/') {
                 $base = rtrim($envUrl, '/') . $scriptDir;
@@ -785,7 +785,7 @@ if (!function_exists('base_url')) {
             $scheme = $https ? 'https' : 'http';
             $host   = $currHost ?: 'localhost';
             $scriptName = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
-            $scriptDir  = rtrim(dirname($scriptName), '/');
+            $scriptDir  = rtrim(str_replace('\\', '/', dirname($scriptName)), '/');
             $base  = $scheme . '://' . $host . ($scriptDir && $scriptDir !== '/' ? $scriptDir : '');
         }
 
@@ -1219,7 +1219,7 @@ if (!function_exists('sanitize_next_url')) {
 
         // Quitar basepath si viene incluido en REQUEST_URI (evita duplicar /mi-pesca/public_html ...)
         $scriptName = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
-        $scriptDir  = rtrim(dirname($scriptName), '/');
+        $scriptDir  = rtrim(str_replace('\\', '/', dirname($scriptName)), '/');
         if ($scriptDir !== '' && $scriptDir !== '/') {
             // Caso: next == /mi-pesca/public_html
             if ($next === $scriptDir) {

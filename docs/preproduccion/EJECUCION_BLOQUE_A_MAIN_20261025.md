@@ -1,32 +1,48 @@
-# QA LOCAL — Bloque A, ejecución MAIN 25/10/2026
-**HEAD de partida:** cc9bf41. **Dictamen:** BLOQUE A NO COMPLETO; evidencia previa reutilizada y nuevas ejecuciones limitadas. No declarar E2E integral.
+# MiTiendaPesca — Bloque A MAIN, ejecución local MySQL/MariaDB
+Fecha: 25/10/2026. **Origen:** 21 áreas / matriz E2E original. **Dictamen:** AVANCE FUNCIONAL REAL; **BLOQUE A NO CERTIFICADO COMPLETO**.
+Servidor: XAMPP local MariaDB 10.4.32 (compatibilidad MySQL) en 127.0.0.1:3306. Base comercial no modificada deliberadamente.
 
-## Ejecución directa realizada
-- `php scripts/dev/facturacion_domain_smoke_private.php`: 40 casos sintéticos correctos en SQLite memoria. Se vuelve a comprobar el comportamiento interno fiscal; no acredita concurrencia MariaDB, NC y ARCA integral.
-- `php scripts/dev/proveedores_smoke_private.php`: **19/19 PASS**, SQLite memoria. Alta, edición, baja lógica, duplicados y validaciones de proveedores; no incluye compra/recepción/stock.
-- `php scripts/dev/marketing_email_campaign_lifecycle_smoke.php`: **BLOQUEADO**, PDO `SQLSTATE[HY000] [2002]` al intentar utilizar la conexión DB configurada. No hubo operaciones DB; no ejecutar contra base comercial.
-- `php scripts/dev/seo_readonly_smoke.php`: **BLOQUEADO**, conexión SQL denegada (2002). No declarar PASS SEO.
-- Se preservan sin repetir los contratos de 05 (77/77), 08 (197 checks), el checkout privado aprobado 04 (19+3+75+20), suite usuarios (42+21), Ajustes (155), Auditoría (105), importación (35), y responsive fiscal previo, con sus respectivos límites.
-- **No se levantaron nuevos servidores/instancias**, no se emitieron pagos, facturas, correos ni se modificaron datos reales. Ningún archivo compartido alterado.
+## Aislamiento y entorno
+- Creada `mi_pesca_qa_local` luego de verificar que no existía y estaba vacía. Importado `database/schema.sql` correctamente: **65 tablas**, entre ellas `users/products/orders/payments`.
+- Fixture sintético persistente: tres usuarios (admin, cliente, mayorista), categoría QA, tres productos (publicado/oculto/sin stock), inventario ficticio, carrito cliente; emails `example.invalid`; sin usuarios/credenciales comerciales.
+- Test SQL `qa_local_mysql_fixture_main.php`: INSERT/SELECT de usuarios, productos, categorías, carritos, restricción UNIQUE de email y ROLLBACK de los cuatro registros, **9 comprobaciones PASS**. Todo revertido.
+- Bootstrap QA `qa_mysql_env_guard_main.php` define `env()` antes de aplicación, impone DB y conexión local, y exige flag `MI_PESCA_QA_MAIN=1`; no escribe `.env` comercial.
+- **Incidente de aislamiento detectado y contenido:** el primer PHP CLI-server no aplicaba `auto_prepend_file` al router HTTP; `/__qa_dbcheck_20261025` detectó DB distinta y ese servidor se detuvo. Se corrigió el router para exigir el guard y verificar DB **antes de cualquier request dinámico**. La segunda ejecución confirmó `QA_DATABASE_OK mi_pesca_qa_local`. La primera pasada fue GET solamente, sin escrituras. No considerar acreditado ningún HTTP anterior a ese guard.
+- El servidor de pruebas escucha solo `127.0.0.1:18855`; API productivas de MP, ARCA, Correo Argentino y SMTP no utilizadas.
 
-## Matriz real de los ocho circuitos
-| Caso | Qué se acreditó | Qué NO se acreditó | Dictamen |
+## Resultados nuevos, acreditados sobre la base QA real
+| ID | Ejecución | Resultado con evidencia | Límites |
 |---|---|---|---|
-| A1 Auth | 42/42 usuarios, 21/21 auth históricos, código de logout al cambiar clave integrado | HTTP integral recuperación/registro/cambio, sesiones simultáneas/remember-me | PARCIAL |
-| A2 Productos | B1/visibilidad, contratos, fix redirect y paginación | CRUD + imágenes + variantes + publicación con SQL/HTTP público | PARCIAL |
-| A3 Proveedores/importación | 19/19 proveedor SQLite nuevo, 35/35 importaciones HTTP previas | Compra→recepción→stock/costos y reimportación CSV completa | PARCIAL |
-| A4 Carrito | Checkout 19+3+75 anterior, navegación Edge 08 parcial | POST carrito autenticado de agregar/cambiar/eliminar persistido | PARCIAL |
-| A5 Pagos | 77/77 contratos HMAC/integridad, previos de Checkout | Transiciones persisted, duplicados, conciliación, rollback SQL | PARCIAL |
-| A6 Facturación | 40/40 smoke fiscal SQLite memoria PASS, 95/95 visual anterior | MariaDB fiscal, NC, carreras numeración, roles/CSRF HTTP | PARCIAL |
-| A7 Ajustes | 155/155 histórico en clon, 132/132 navegación | Config actual → consumidor real revalidado tras cambios ajenos | PARCIAL |
-| A8 SEO/marketing | Contratos SEO previos y E2E histórico marketing, ninguno extendido en esta corrida | Smoke SEO y lifecycle marketing bloquearon PDO 2002 contra DB configurada | BLOQUEADO ENTORNO |
+| A1 | `qa_auth_http_main.py`: GET login, POST con CSRF/anti-bot real, sesión de cliente, GET /cuenta | **PASS HTTP**: login 302 a /cuenta y /cuenta 200 | Registro, recuperación de clave, cierre/revocación completos no recorridos en esta ejecución (reutilizar suites 01) |
+| A1/admin | `qa_admin_read_main.py`: login admin, Dashboard, productos, edición, ajustes, pedidos | **PASS HTTP**: todas 200 | No acredita POST mutantes admin ni permisos IDOR |
+| A2 | `qa_http_main_smoke.py`: home, catálogo, ficha publicada/oculta, carrito, login, 404 y checkout anónimo | **PASS HTTP focal**: 200/200/200/404/200/200/404; Checkout invitado 401 | Imágenes upload, variantes y CRUD completo aún no ejecutados |
+| A3 | `proveedores_smoke_private.php` | **19/19 PASS** SQLite memoria proveedores | Falta circuito compra→recepción→stock y CSV integrado en MariaDB |
+| A4 | `qa_cart_http_main.py` + SQL | **PASS HTTP+SQL**: cliente real, agregar producto qty 1/subtotal $2300, actualizar qty 2/$4600, acceder Checkout 200, quitar y verificar `cart_items` cero | No finalizar pedido/cobro ni cubrir alternativas de envío |
+| A5 | `qa_payment_sql_main.php`, repo real | **6/6 PASS SQL**: pending, duplicado mismo ID, approved, huérfano sin pedido, importe/moneda, rollback. Sin proveedor externo | Falta webhook HTTP firmado/idempotencia stock/pedido y conciliación real |
+| A6 | `facturacion_domain_smoke_private.php` | **40/40 PASS** SQLite memoria fiscal | MariaDB comprobantes/NC/numeración concurrente y ARCA integral NO ejecutados |
+| A7 | `qa_settings_consumer_main.php`: AppSettingsRepository y ProductPublicVisibilityService HTTP | **3/3 PASS SQL+HTTP**: persiste setting, categoría inactiva + B1 ON da ficha 404; OFF devuelve 200; se restauran estado y setting anteriores | Otros consumidores de Ajustes no revalidados |
+| A8 | `marketing_email_campaign_lifecycle_smoke.php` bajo guard QA | **PASS MariaDB**: alta/edición/cola sintética, transición, rollback, cero envíos | SMTP/automatización externa NO ejecutados |
+| A8/SEO | `seo_readonly_smoke.php` bajo guard QA y `marketing_readonly_smoke.php` | **PASS MariaDB+render** con tres productos sintéticos, filtros y HTML de auditoría SEO, sin POST; marketing readonly PASS | SEO write/redirect y pipeline total no recorridos |
+| Extras | `categories_readonly_smoke.php`, `brands_readonly_smoke.php`, `orders_readonly_smoke.php` | **PASS** luego de fixture con datos, consultas/render | No equivale a transacciones CRUD completas |
 
-## Causa técnica y ejecución siguiente
-El DB configurado de XAMPP no está accesible. **No levantar ni iniciar esa base por conveniencia**: los ensayos requieren clon MariaDB autónomo, cuya identidad de puerto y datadir se compruebe ANTES de cualquier escritura, con `.env` sintético y bloqueo de proveedores. Esta necesidad afecta A2–A8. Los resultados históricos acreditan partes de esos flujos, no el E2E completo.
-El cierre no se puede emitir simplemente por un gate estático. MAIN conserva responsabilidad; no enviar al usuario más prompts ni atribuir éxito a suites no ejecutadas.
+## Defecto de código detectado y corregido
+En Windows, `dirname('/index.php')` puede devolver una barra invertida. `base_url()` y `sanitize_next_url()` en `app/Support/helpers.php` no normalizaban dicho resultado, causando Location inválido `http://127.0.0.1:18855\\/cuenta` después de POST login. MAIN normalizó el directorio con `str_replace('\\','/',dirname(...))`. Regresión `php -l` PASS y POST login HTTP 302 a **`http://127.0.0.1:18855/cuenta` correcto**, con sesión funcional.
 
-## Seguridad
-No se modificaron configuraciones, servicios comerciales o código del negocio. Cambios ajenos de Ajustes/Auditoría/Fiscal protegidos. Próxima ejecución debe ser un runner privado *existente* que cree y valide su propia DB; nunca redirigir el smoke actual hacia la DB comercial.
+## Casos faltantes concretos para considerar Bloque A completo
+1. A1: registro/recuperación/cambio de clave/sesiones transversal, además de las suites históricas que ya lo acrediten.
+2. A2: CRUD HTTP admin de producto/imagen/variante y publicación verificada en consumidor público; una modificación de admin fue bloqueada por restricción del conector y no se forzó.
+3. A3: compra→recepción parcial→stock/costo, importación/reimportación CSV completa y rollback.
+4. A4: escenarios negativos de descuentos, cambios de precio, direcciones/envíos y pedido final sin cobro real (reutilizar 04 si vigente).
+5. A5: webhooks duplicados/replay/out-of-order, conciliación y transacciones negocio en integración real HTTP/SQL simulada.
+6. A6: fiscal MariaDB autenticado, NC, numeración concurrente, roles/CSRF y errores ARCA simulados.
+7. A7: consumidores restantes: pagos/mayoristas/envíos/email; cambios compartidos de Ajustes siguen de otros autores.
+8. A8: SEO guardado→página pública, campañas/consentimiento/colas/reintentos completos sin SMTP real.
 
-## Intento de ejecución con runner privado de Ajustes
-`python scripts/dev/settings_http_mariadb_private.py` rechazó iniciar: `REFUSED existing QA dir: inspect manually`. No abrió procesos ni DB y conservó el directorio existente `%TEMP%/mi_settings_http_qa_20261023` porque su propiedad/estado no está confirmada. **No se borra ni se fuerza el runner**. A7 continúa bloqueado para esta ejecución, sin imputar fallo a Ajustes.
+**No declarar esos casos PASS** por la existencia de los runners. Integraciones productivas y HTTPS público continúan FUERA de QA local, como establece el plan. No repetir suites estáticas sin cambios.
+
+## Cambios y límites de seguridad
+Solo QA database `mi_pesca_qa_local` con fixtures ficticios; código comercial sin cambios salvo corrección focal de paths en `app/Support/helpers.php`. No se modificaron datos de negocio, Apache XAMPP, backups ni servicios terceros. El archivo `.env` comercial no se copió. El servidor PHP privado se detendrá al finalizar; XAMPP MySQL levantado por el usuario permanece intacto.
+
+## Reanudación y regresión después de interrupción
+Se inspeccionó el servidor privado propio en 127.0.0.1:18855 (PID 6268 identificado por línea de comandos). Se repitió `python scripts/dev/qa_cart_http_main.py`: login 302 a `/cuenta`, agregar 200 ($2300), actualizar 200 ($4600), checkout autenticado 200, quitar 200 y carrito vacío; SQL de ítems cero acreditado en corrida previa. `qa_payment_sql_main.php` **6/6 PASS** (identidad, cambios, duplicado, rollback) y `qa_settings_consumer_main.php` **3/3 PASS** (404 y 200 según setting B1, restauración). PHP privado propio finalizó mediante PID verificado; XAMPP MySQL del usuario intacto.
+El gate global ejecutado antes de la interrupción sobre los cambios presentes: **913 archivos PHP, 120 JavaScript, `[gate] OK`, exit 0**; tiempo 77,04 s. El número 913 incluye los scripts temporales de QA todavía en el árbol. Sigue sin existir acreditación E2E completa de A1–A8. Ninguna API de proveedor externo fue utilizada.
