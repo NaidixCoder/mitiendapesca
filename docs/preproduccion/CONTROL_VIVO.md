@@ -21,3 +21,14 @@ Cada entrega/corrección: MAIN verifica resultado real y actualiza este tablero 
 
 ## Formato obligatorio de actualización
 Fecha/Hora | HEAD/commit | Especialista | ID caso | Entorno local/staging | Comando/acción | PASS/FAIL/BLOQUEADO/DIFERIDO | Evidencia | Defecto/severidad | Fix/commit | Próximo responsable | Gate. Añadir nueva entrada por cada auditoría; conservar fallos originales.
+
+## Auditoría MAIN — Cierre local tras entregas finales 01–04 (25/10/2026)
+
+**Evidencia inspeccionada:** `RESULTADO_01.md` (116 líneas), `RESULTADO_02.md` (139), `RESULTADO_03.md` (132), `RESULTADO_04.md` (196), `git status` y códigos implicados identificados en informes. Las cifras son resultados reportados por especialistas, **no suites reejecutadas por MAIN en esta pasada**. Árbol HEAD al corte `2e1ef1c`.
+
+- **01 — CIERRE LOCAL CONDICIONADO:** Usuario 42/42 + Auth 21/21 PASS reportado. Servicio Auth modificado aún no integrado. MAIN revisa UX sesión actual tras changePassword y corrección existente. Casos HTTP multi-browser y remember-me → ST-01; registro/alta de perfil/direcciones → ST-02. No reintentar runner bloqueado.
+- **02 — PENDIENTE LOCAL FOCAL:** sin E2E nuevo HTTP/MariaDB. Hallazgo P2 de redirección externa potencial en `ProductsController::jsonOrRedirect()`; otro P2 potencial: `per/page` sin máximo; fijar seguro y probar contratos/funciones focales sin abrir un runner complejo. CRUD/imagen/variantes/navegador → ST-03 y ST-04.
+- **03 — P1 BLOQUEADO EN FUENTE:** 35/35 PASS HTTP sobre clon con columnas ship_* NULL; fuente ImportsController sigue consultando v.ship_* inexistentes. MAIN autoriza **reserva exclusiva a 03 de `app/Controllers/Admin/ImportsController.php::export()`**, únicamente SELECT de dimensiones variante, con NULL AS ship_*. No expandir cambios. Repetir sobre fuente corregida en clon seguro, registrar PASS y MAIN integra selectivamente. Previsualización de CSV NO significa reimportación completa.
+- **04 — P0 BLOQUEADO EN FUENTE:** nueva cadena 19/19+3/3+75/75 PASS con CandidateTokenFix y responsive previo 20/20. Archivo CheckoutOrderService fuente no modificado. **Reserva MAIN exclusiva sobre CheckoutOrderService y algoritmo de checkout_token**; aplicar solución idempotente estable en fuente, revisar implicaciones y ejecutar harness existente SIN CandidateTokenFix. El resto de positivos con terceros y navegación de hosting → ST-05/ST-06/ST-07.
+
+**No se autoriza GO ni staging-ready hasta la integración de 03-P1 y 04-P0.** Pruebas trasladadas a staging continúan PENDIENTE, no PASS. No hacer commits de archivos de otros especialistas. Mantener solo especialistas 01–04 activos, 01 y 04 sin nuevas ejecuciones hasta que MAIN concluya dependencias.
