@@ -115,3 +115,16 @@ El **23/10/2026** PHP comunicó advertencia adicional relativa a `session.upload
 **Tareas bloqueantes nuevas:** inventario de CLI/Apache/staging/hosting y versiones extensiones; matriz PHP/Composer/dependencias; elegir runtime parcheado; staging PHP actualizado con lint, gate global, E2E y smoke público/admin y workers; prueba de sesiones, imágenes/uploads, mail, SQL/driver PDO, cron, Mercado Pago/ARCA; logs sin warnings/deprecations críticos, configuración de memoria y límites de petición; evaluar despliegue/rollback y ventanas de actualización futura. Guardar evidencia de versión web mediante prueba privada, no endpoint público persistente.
 
 **GATE P0:** nunca publicar en PHP afectado por las dos CVE de octubre; no iniciar cobros si plataforma/producto carece de parche y verificaciones de seguridad. La detección local de 8.2.12 es real para CLI; estado Apache/prod permanece **PENDIENTE DE MEDIR**, no asumir afectación confirmada del proveedor externo.
+
+
+## 8. ACTUALIZACIÓN VIGENTE — Plan local + staging (25/10/2026)
+
+**Decisión del propietario:** en esta fase solo trabajan especialistas 01–04. Todas las pruebas cuya ejecución local sea desproporcionadamente compleja, dependa de HTTPS/hosting/proveedor sandbox o esté impedida por controles de seguridad de la herramienta pasan a una cola detallada de staging. **No se consideran aprobadas ni se omiten de las puertas finales de producción.**
+
+**Documento operativo prioritario:** `docs/preproduccion/PLAN_DOS_ETAPAS_LOCAL_STAGING.md`. **Tablero de estados obligatorio:** `docs/preproduccion/CONTROL_VIVO.md`. Ambos prevalecen sobre las indicaciones de fases F1–F6 del presente documento únicamente en el **momento y entorno de ejecución**, no en los requisitos de seguridad, integridad ni lanzamiento.
+
+**Prioridad local inaplazable:** corregir en código fuente el P0 de idempotencia Checkout (dos pedidos/stock 5→1; candidato comprobado solo en clon), y el P1 de exportación CSV en Importaciones (columnas de variante inexistentes). Mantener Auth corregido y asegurar regresiones permitidas. MAIN integra selectivamente y documenta cada commit. No iniciar producción por tener pruebas locales PASS.
+
+**Etapa staging:** al contratar hosting, configurar entorno cerrado con PHP parcheado y DB sintética, pruebas completas HTTP/UI/roles/cookies/archivos/concurrencia, backup+restore, HTTPS, sandbox o proveedores deshabilitados. Correo Argentino en producción no se usa para pruebas. Staging verificado tampoco autoriza producción sin acto GO y aprobación expresa.
+
+**Mantenimiento:** cualquier nueva auditoría actualizará tablero y reporte del especialista con estado, evidencia y pendientes, manteniendo histórico. P0/P1 reales nunca se rebautizan como diferidos para avanzar una etapa.
