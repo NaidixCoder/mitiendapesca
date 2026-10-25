@@ -30,8 +30,7 @@ class ProductsController extends BaseController
     {
         $qstr = trim((string)($_GET['q'] ?? ''));
         $page = max(1, (int)($_GET['page'] ?? 1));
-        $per  = max(1, (int)($_GET['per']  ?? 20));
-        $off  = ($page - 1) * $per;
+        $per  = min(100, max(1, (int)($_GET['per'] ?? 20)));
 
         $db = db();
 
@@ -54,6 +53,9 @@ class ProductsController extends BaseController
             foreach ($params as $k => $v) { $stTotal->bindValue($k, $v, \PDO::PARAM_STR); }
             $stTotal->execute();
             $total = (int)$stTotal->fetchColumn();
+            $pages = max(1, (int)ceil($total / $per));
+            $page = min($page, $pages);
+            $off = ($page - 1) * $per;
 
             // Filas (ojo: LIMIT con enteros ya saneados)
             $sql = "
@@ -352,7 +354,12 @@ private function wantsJson(): bool
             json(['ok'=>$ok, 'message'=>$message] + $data, $ok ? 200 : 400);
             return;
         }
-        $next = $_POST['next'] ?? ($_SERVER['HTTP_REFERER'] ?? url('/admin/products'));
+        // No confiar en next ni Referer: solo destinos locales de Productos.
+        $next = $_POST['next'] ?? null;
+        if (!is_string($next) || strlen($next) > 1024
+            || !preg_match('~\A/admin/products(?:/edit|/variants)?(?:\?[a-zA-Z0-9_=&-]*)?\z~D', $next)) {
+            $next = '/admin/products';
+        }
         flash($ok ? 'ok' : 'error', $message);
         redirect($next);
     }
