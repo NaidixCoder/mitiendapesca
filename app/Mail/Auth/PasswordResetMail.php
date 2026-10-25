@@ -21,9 +21,9 @@ class PasswordResetMail
         $ok = @mail($to, $subject, $body, implode("\r\n", $headers));
 
         if (function_exists('log_error')) {
-            log_error('[EMAIL] password_reset send to=' . $to . ' ok=' . ($ok ? '1' : '0') . ' link=' . $link);
+            log_error('[EMAIL] password_reset send to=' . $to . ' ok=' . ($ok ? '1' : '0'));
         } else {
-            error_log('[EMAIL] password_reset send to=' . $to . ' ok=' . ($ok ? '1' : '0') . ' link=' . $link);
+            error_log('[EMAIL] password_reset send to=' . $to . ' ok=' . ($ok ? '1' : '0'));
         }
 
         return $ok;

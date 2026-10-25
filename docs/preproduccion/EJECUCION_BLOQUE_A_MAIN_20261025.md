@@ -96,3 +96,6 @@ En servidor PHP de prueba `127.0.0.1:18855` (router QA con comprobación de DB a
 - `qa_admin_read_main.py` cubre ahora **20 URLs GET administrativas HTTP 200**, incluyendo proveedores, importaciones y fiscal.
 - `php scripts/build/gate.php` **916 archivos PHP + 120 JavaScript + regresiones `[gate] OK`, exit 0** (76,35 segundos), ejecutado sobre el árbol con la nueva guardia de QA y los scripts nuevos. No es certificación E2E integral.
 - Se detuvo el servidor privado propio PHP `127.0.0.1:18855` tras comprobar PID y línea de comando. XAMPP MySQL queda activo. No se intervino `.env`, Apache ni BD comercial.
+
+### Defecto de confidencialidad detectado durante E2E de registro
+El código de `app/Mail/Auth/EmailVerificationMail.php` y `app/Mail/Auth/PasswordResetMail.php` registraba en logs la URL completa de verificación y recuperación, **incluyendo el token**. MAIN retiró la concatenación `link=` de ambos registros en los dos caminos (`log_error` y `error_log`) sin cambiar la URL enviada al correo. PHP lint **PASS** en los dos archivos y `git diff --check` **PASS**. La prueba de registro/verificación real ejecutada anteriormente acredita la lógica; no se repitió el E2E completo tras la modificación de logging, por ser acotada. No exponer tokens de QA en evidencias ni volver a conservarlos fuera de su sink temporal.
