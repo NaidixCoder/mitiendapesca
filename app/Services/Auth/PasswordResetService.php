@@ -140,26 +140,50 @@ class PasswordResetService
      */
     public function resetPassword(string $token, string $newPassword): bool
     {
-        $payload = $this->validateToken($token);
-        if (!$payload) return false;
-
-        $uid = (int)$payload['user_id'];
-        if ($uid <= 0) return false;
+        $token = trim($token);
+        if (strlen($token) < 20) return false;
 
         $hash = password_hash($newPassword, PASSWORD_DEFAULT);
         if (!$hash) return false;
 
         $this->db->beginTransaction();
         try {
-            $this->db->prepare(
-                'UPDATE users SET password_hash = ?, password_changed_at = NOW(), updated_at = NOW() WHERE id = ?'
-            )->execute([$hash, $uid]);
+            // Token bloqueado hasta el commit: dos peticiones simultaneas nunca pueden consumirlo.
+            $lookup = $this->db->prepare(
+                'SELECT id, user_id, email FROM password_resets
+                 WHERE token_hash = ? AND used_at IS NULL AND expires_at > NOW()
+                 LIMIT 1 FOR UPDATE'
+            );
+            $lookup->execute([hash('sha256', $token)]);
+            $payload = $lookup->fetch(PDO::FETCH_ASSOC);
+            if (!$payload || (int)$payload['user_id'] <= 0) {
+                $this->db->rollBack();
+                return false;
+            }
+            $uid = (int)$payload['user_id'];
 
-            $this->db->prepare(
-                'UPDATE password_resets SET used_at = NOW() WHERE id = ?'
-            )->execute([(int)$payload['reset_id']]);
+            $consume = $this->db->prepare(
+                'UPDATE password_resets SET used_at = NOW()
+                 WHERE id = ? AND used_at IS NULL AND expires_at > NOW()'
+            );
+            $consume->execute([(int)$payload['id']]);
+            if ($consume->rowCount() !== 1) {
+                $this->db->rollBack();
+                return false;
+            }
 
-            // Invalidar "remember me" (sesiones persistentes)
+            // Revocar cookies PHP previas y recordar dispositivo en una unica transaccion.
+            $update = $this->db->prepare(
+                'UPDATE users SET password_hash = ?, password_changed_at = NOW(),
+                 session_version = COALESCE(session_version, 0) + 1, updated_at = NOW()
+                 WHERE id = ?'
+            );
+            $update->execute([$hash, $uid]);
+            if ($update->rowCount() !== 1) {
+                $this->db->rollBack();
+                return false;
+            }
+
             $this->db->prepare('DELETE FROM user_tokens WHERE user_id = ?')->execute([$uid]);
 
             $this->db->commit();
@@ -196,7 +220,7 @@ class PasswordResetService
         $this->db->beginTransaction();
         try {
             $this->db->prepare(
-                'UPDATE users SET password_hash = ?, password_changed_at = NOW(), updated_at = NOW() WHERE id = ?'
+                'UPDATE users SET password_hash = ?, password_changed_at = NOW(), session_version = COALESCE(session_version, 0) + 1, updated_at = NOW() WHERE id = ?'
             )->execute([$hash, $userId]);
 
             $this->db->prepare('DELETE FROM user_tokens WHERE user_id = ?')->execute([$userId]);

@@ -87,7 +87,7 @@ class AddressRepository
           LIMIT 1';
 
         $st = $this->db->prepare($sql);
-        return $st->execute([
+        $executed = $st->execute([
             ':id'        => $id,
             ':user_id'   => $userId,
             ':label'     => $data['label'] ?? null,
@@ -102,6 +102,9 @@ class AddressRepository
             ':zip'       => $data['zip'] ?? null,
             ':notes'     => $data['notes'] ?? null,
         ]);
+        // execute() alone returns true even if the address belongs to another user.
+        // Preserve idempotent edits (no changed rows) only when the address is owned.
+        return $executed && ($st->rowCount() > 0 || $this->findForUser($id, $userId) !== null);
     }
 
     public function delete(int $id, int $userId): bool

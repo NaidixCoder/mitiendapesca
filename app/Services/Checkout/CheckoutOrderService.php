@@ -118,7 +118,18 @@ final class CheckoutOrderService
             $checkoutToken = null;
         }
         if ($checkoutToken === null && in_array((string)($paymentMethod ?? ''), ['transfer','transferencia'], true)) {
-            $itemsJson = json_encode($effectiveCart['items'] ?? [], JSON_UNESCAPED_UNICODE);
+            // Canonicalizar solo datos estables de la compra: nunca incluir stock u otros campos mutables.
+            $tokenItems = [];
+            foreach (($effectiveCart['items'] ?? []) as $tokenItem) {
+                $tokenItems[] = [
+                    (int)($tokenItem['id'] ?? 0),
+                    (int)($tokenItem['variant_id'] ?? 0),
+                    (int)($tokenItem['qty'] ?? 0),
+                    (string)($tokenItem['price'] ?? 0),
+                ];
+            }
+            usort($tokenItems, static fn(array $a, array $b): int => ($a[0] <=> $b[0]) ?: ($a[1] <=> $b[1]));
+            $itemsJson = json_encode($tokenItems, JSON_UNESCAPED_UNICODE);
             $checkoutToken = substr(hash('sha256', (string)$userId.'|'.(string)$addressId.'|'.(string)$total.'|'.(string)$itemsJson), 0, 64);
 
             $existing = $orderRepo->findIdByCheckoutToken($checkoutToken);

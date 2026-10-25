@@ -720,7 +720,7 @@ public function export(): void
         SELECT
             v.id, v.product_id, v.sku, v.internal_code,
             v.cost, v.price, v.list_price, v.is_active,
-            v.ship_weight, v.ship_height, v.ship_width, v.ship_length,
+            NULL AS ship_weight, NULL AS ship_height, NULL AS ship_width, NULL AS ship_length,
             curv.code AS cost_currency_code,
             iv.stock, iv.low_stock_threshold
         FROM product_variants v
