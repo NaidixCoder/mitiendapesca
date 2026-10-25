@@ -42,3 +42,12 @@ Revisión inicial de `config/routes.php` y evidencias en `docs/PLAN_MAESTRO_PREP
 - **Paso siguiente obligatorio:** expandir individualmente las **192 rutas Admin** con controlador/acción/permiso/CSRF/persistencia y relacionar suites de pruebas existentes; incluir endpoints administrativos externos a `/admin`.
 - En entorno privado comprobar puerto/datadir antes de escribir; bloquear producción con P0/P1 sin resolver.
 - El documento es una **primera matriz funcional**, no certifica E2E Admin ni sustituye los gates de producción.
+
+
+## Avance F1 — inventario de rutas detallado (24/10/2026)
+
+- Se añadió `docs/preproduccion/INVENTARIO_RUTAS_ADMIN_DETALLADO.csv`, generado de forma reproducible con `scripts/dev/inventario_e2e_admin_detallado.py`.
+- **192/192 rutas declaradas con prefijo `/admin` inventariadas individualmente**, método, destino, grupo funcional, operación de lectura/escritura, triage de prioridad y checklist específico de autenticación, autorización por objeto, CSRF, persistencia e idempotencia/concurrencia.
+- Vinculación preliminar a evidencia ya disponible por dominio, **sin acreditar automáticamente cada ruta** ni confundir QA de vista con HTTP autenticado y SQL.
+- **Limitación explícita:** los controles indicados como REVISAR son tareas de auditoría, no afirmaciones de existencia/ausencia de vulnerabilidades. Los destinos dinámicos, endpoints sin prefijo y llamadas JavaScript todavía requieren investigación de consumidores.
+- El siguiente lote debe comprobar en el código los middleware/helpers efectivos, parametrización de `id`, acciones por rol y suites específicas, comenzando por Usuarios, Pedidos y Catálogo. No hacer pruebas destructivas sobre el negocio.
