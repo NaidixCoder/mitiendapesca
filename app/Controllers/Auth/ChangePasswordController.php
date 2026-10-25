@@ -130,16 +130,14 @@ class ChangePasswordController
             return;
         }
 
-        // Actualizar "marca" en sesión para evitar logout inmediato por invalidador
-        $_SESSION['_pwd_changed_at'] = $svc->getPasswordChangedAt($uid) ?? date('Y-m-d H:i:s');
-
-        // Regenerar sesión (mitiga fixation)
-        if (session_status() === PHP_SESSION_ACTIVE) {
-            @session_regenerate_id(true);
+        // El cambio revoca todas las sesiones (incluida la actual).
+        // Evitar redirigir a /cuenta con una cookie cuya session_version quedó obsoleta.
+        \App\Services\Auth\Auth::logout();
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
         }
-
-        flash('ok', 'Contraseña cambiada correctamente.');
-        redirect('/cuenta');
+        flash('ok', 'Contraseña cambiada. Iniciá sesión nuevamente con tu nueva contraseña.');
+        redirect('/login');
     }
 }
 
