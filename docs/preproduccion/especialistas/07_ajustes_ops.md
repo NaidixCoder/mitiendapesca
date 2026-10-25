@@ -28,3 +28,13 @@ Leer antes de actuar: docs/PLAN_MAESTRO_PREPRODUCCION.md (incluido §7: OWASP AS
 ## Entrega del especialista
 
 Crear solo docs/preproduccion/especialistas/RESULTADO_07.md con matriz caso→ruta→ASVS→evidencia→resultado→defecto, pruebas previas reaprovechadas, pruebas nuevas, riesgos P0/P1, regresiones y teardown. MAIN audita independientemente y decide cierre. Cualquier excepción que requiera propietario se eleva antes de operar.
+
+## Restricción obligatoria — API Correo Argentino en producción
+
+**PROHIBIDO efectuar llamadas a la API productiva de Correo Argentino durante la preproducción**, incluso consultas cuyo efecto no esté comprobado. No crear ni importar envíos, solicitar admisiones, generar etiquetas, consultar tracking contra producción ni disparar otras operaciones remotas. La configuración actualmente efectiva debe auditarse **sin revelar secretos**; no asumir que está en sandbox.
+
+- Ejecutar E2E interno exclusivamente sobre clon de la aplicación y MariaDB privada con **cliente HTTP simulado/fake** y respuestas controladas: éxito, error, timeout, reintento, duplicados, validaciones, tarifas, etiquetas y seguimiento si existen esos flujos.
+- Aplicar **bloqueo de salida de red hacia Correo Argentino** (fail-closed) en los procesos de prueba, para que una configuración incorrecta no genere operaciones externas. Verificar ese bloqueo con evidencia antes de cualquier prueba de escritura.
+- No reutilizar `.env` comercial ni copiar tokens productivos al entorno aislado. No modificar ni revocar credenciales/configuración del servicio real.
+- Documentar separadamente pruebas internas aprobadas y **homologación externa NO EJECUTADA**. Toda llamada externa futura requiere entorno de pruebas verificado o autorización **expresa y previa del propietario**, con alcance, consecuencias y costos identificados; jamás realizar envíos reales por decisión del especialista.
+- Si el flujo no puede aislarse o simularse de modo seguro, **detener solo ese ensayo y marcar BLOQUEADO**, continuando los demás casos independientes.
