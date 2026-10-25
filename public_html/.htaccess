@@ -13,6 +13,11 @@ Options -Indexes
   RewriteRule ^ index.php [L]
 </IfModule>
 
+# Bloquear diagnósticos temporales incluso si se recrean accidentalmente
+<FilesMatch "^(phpinfo|tmp_session_dump|tmp_session_info)\.php$">
+  Require all denied
+</FilesMatch>
+
 # Bloquear archivos sensibles
 <FilesMatch "(^\.env|composer\.(json|lock)|phpunit\.xml|\.git|\.htaccess)$">
   Require all denied

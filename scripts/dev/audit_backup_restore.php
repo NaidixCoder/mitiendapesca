@@ -1,8 +1,23 @@
 <?php
 declare(strict_types=1);
+// Never run this destructive audit against an implicit application database.
+if (getenv('MI_QA_BACKUP_RESTORE') !== 'PRIVATE_SYNTHETIC_ONLY') {
+    fwrite(STDERR, "REFUSED: explicit private QA backup authorization required\n");
+    exit(2);
+}
 require dirname(__DIR__, 2).'/bootstrap.php';
 $source = (string)DB::pdo()->query('SELECT DATABASE()')->fetchColumn();
 $sourceDb = DB::pdo();
+$hostCheck = (string)env('DB_HOST', '');
+$portCheck = (int)env('DB_PORT', 0);
+$datadirCheck = str_replace('\\', '/', (string)$sourceDb->query('SELECT @@datadir')->fetchColumn());
+$tempCheck = str_replace('\\', '/', (string)sys_get_temp_dir());
+if ($hostCheck !== '127.0.0.1' || $portCheck < 18900 || $portCheck > 18999
+    || !preg_match('/^mi_qa_backup_[a-zA-Z0-9_]+$/', $source)
+    || !str_starts_with(strtolower($datadirCheck), strtolower(rtrim($tempCheck, '/').'/'))) {
+    fwrite(STDERR, "REFUSED: source DB, port or datadir is not an isolated synthetic QA instance\n");
+    exit(2);
+}
 $size=(string)$sourceDb->query("SELECT ROUND(COALESCE(SUM(data_length+index_length),0)/1024/1024,2) FROM information_schema.tables WHERE table_schema=DATABASE()")->fetchColumn();
 echo "SOURCE_TABLES=".$sourceDb->query('SHOW TABLES')->rowCount()." SIZE_MB=$size\n";
 $stamp=date('Ymd_His');
