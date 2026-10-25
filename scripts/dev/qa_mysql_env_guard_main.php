@@ -9,3 +9,16 @@ if (!function_exists('env')) {
  }
 }
 if (!defined('QA_MAIN_GUARD')) define('QA_MAIN_GUARD', true);
+// QA-only mail sink: PHP server MUST have mail disabled at startup.
+if (PHP_SAPI === 'cli-server' && function_exists('mail')) {
+    http_response_code(503);
+    exit('QA REFUSED: native mail() is enabled');
+}
+if (!function_exists('mail')) {
+    function mail($to, $subject, $message, $additional_headers = '', $additional_params = ''): bool {
+        if (!str_ends_with(strtolower((string)$to), '@example.invalid')) return false;
+        $sink = sys_get_temp_dir().DIRECTORY_SEPARATOR.'mi_pesca_qa_mail_sink_20261025.txt';
+        file_put_contents($sink, "TO=".$to."\nSUBJECT=".$subject."\nBODY=".$message."\n--END--\n", FILE_APPEND | LOCK_EX);
+        return true;
+    }
+}

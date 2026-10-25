@@ -66,3 +66,33 @@ Se reutiliza exclusivamente la DB `mi_pesca_qa_local` con esquema de 65 tablas y
 
 ### Alcance abierto
 Continúan NO ACREDITADOS como E2E full: registro y recuperación de clave completos, CRUD de imagen y variantes, compras/recepción/importaciones con cruce SQL, confirmación idempotente de pedido y stock por HTTP sobre MariaDB, procesamiento webhook MP integrado y conciliación, facturación/NC concurrencia MariaDB y consumidor de SEO tras edición. No hay GO de producción ni declaración de cierre del Bloque A. No repetir estas suites aprobadas salvo cambios afectados.
+
+## MAIN — E2E complementario sobre XAMPP / MySQL local — 25/10/2026
+En servidor PHP de prueba `127.0.0.1:18855` (router QA con comprobación de DB antes de cada petición), DB `mi_pesca_qa_local` (65 tablas y datos sintéticos); versión identificada por servidor `10.4.32-MariaDB`.
+
+### A1 / Seguridad adicional
+- `qa_registration_negative_http_main.py`: GET /registro 200; POST CSRF inválido 419; validaciones email/nombre/contraseñas/términos incompletos 422. **PASS**.
+- El servidor de QA fue reiniciado con `-d disable_functions=mail`. `qa_mysql_env_guard_main.php` exige que la función interna mail esté deshabilitada en PHP cli-server y define un sink QA local **solamente** para emails `@example.invalid`, sin conexión SMTP. La evidencia de envío se registró en archivo temporal fuera de webroot y se borró al terminar.
+- `qa_registration_full_main.py`: registro sintético HTTP JSON 200 /cuenta, correo ficticio interceptado y enlace de verificación consumido por HTTP (302 /cuenta); consulta SQL: `email_verified=1` y token utilizado exactamente una vez. **PASS E2E local de registro y verificación sin emails reales**.
+- `qa_orders_idor_http_main.py` y fixture de pedido sintético: el dueño puede consultar `/cuenta/pedidos/ver?id=...` (200), otro usuario no puede ver la misma orden y se redirige a `/cuenta/pedidos` (302); cleanup confirmado `DELETED=1`. **PASS IDOR focal**.
+- El flujo completo de reset de contraseña requiere más prueba dinámica (el intento de crear un runner quedó bloqueado por control de herramienta). Conservar suites previas como evidencia pero no marcar E2E nuevo.
+
+### A3 / A4 / A6
+- `qa_import_export_http_main.py`: plantilla oficial CSV 200 y exportación real 200 con `text/csv`, 32 columnas idénticas y **3 productos sintéticos**; presencia del producto publicado. **PASS HTTP+CSV**. No equivale a POST importación/rollback.
+- `qa_cart_http_main.py`: además de añadir/actualizar/eliminar con SQL, rechazo con HTTP 422 para producto oculto y agotado, sin ítems añadidos. **PASS negativos de disponibilidad**.
+- `qa_fiscal_fixture_main.php` + `qa_fiscal_http_main.py`: orden sintética + comprobante invoice y NC pendientes en homologación ficticia dentro de la DB QA, UNIQUE `(order_id,kind)` rechaza duplicado; detalle admin HTTP 200 para ambos, cliente HTTP 403 para ambos, listado filtrado HTTP 200; cleanup de orden y comprobantes confirmado. **PASS persistencia SQL + acceso HTTP + aislamiento por rol**, **NO emisión ARCA ni numeración concurrente**.
+- `qa_admin_read_main.py`: **20 rutas admin HTTP 200** incluyendo Proveedores, Importaciones, Dashboard, Productos, Pedidos, Facturación, Libros IVA, Reportes y Cierres; validación de pantalla/ruta, no mutaciones.
+
+### Infraestructura — recuperación local real
+- Verificación previa: la DB `mi_pesca_qa_restore_20261025` **no existía**.
+- `mysqldump.exe --single-transaction --quick --routines --events --triggers` sobre **solamente `mi_pesca_qa_local`**: dump 116246 bytes en TEMP fuera de la web.
+- Restaurado dump a la nueva DB QA separada `mi_pesca_qa_restore_20261025` en el mismo motor XAMPP. `qa_db_restore_verify_main.php`: **65 tablas, 65 cotejos exactos de cantidad de filas y 65 cotejos de esquema** PASS. Transacción InnoDB temporal: INSERT visible dentro de transacción, ROLLBACK revierte INSERT; **PASS**.
+- Se borró únicamente la DB de restauración creada para este test y el volcado temporal. DB principal QA conservada. **Acredita backup/restore lógico y rollback transaccional en el servidor local con datos sintéticos**, no plan de recuperación de hosting ni dump/restore de datos comerciales.
+- El script histórico `audit_backup_restore.php` continúa guardado contra bases no privadas, y no se utilizó ni se forzó.
+
+## Cierre de esta corrida complementaria y gate
+- Se amplió `qa_registration_full_main.py` a **registro → email verificación interceptada → Mi Cuenta 200 → logout POST 302 → Mi Cuenta anónimo 401**, PASS. Los emails enviados se interceptaron en una función test-only PHP con mail nativo deshabilitado; los tokens temporales del sink fueron eliminados.
+- Se amplió `qa_cart_http_main.py` a negativas de producto oculto y sin stock: ambas **422**, `ok=false` y carrito sin agregado, PASS.
+- `qa_admin_read_main.py` cubre ahora **20 URLs GET administrativas HTTP 200**, incluyendo proveedores, importaciones y fiscal.
+- `php scripts/build/gate.php` **916 archivos PHP + 120 JavaScript + regresiones `[gate] OK`, exit 0** (76,35 segundos), ejecutado sobre el árbol con la nueva guardia de QA y los scripts nuevos. No es certificación E2E integral.
+- Se detuvo el servidor privado propio PHP `127.0.0.1:18855` tras comprobar PID y línea de comando. XAMPP MySQL queda activo. No se intervino `.env`, Apache ni BD comercial.

@@ -16,7 +16,7 @@ s,b,_=get('/login');h=H();h.feed(b);time.sleep(2.1)
 s,b,loc=get('/login',{**h.d,'email':'qa-admin-main@example.invalid','password':'QA-ONLY-2026-Test!'})
 print('ADMIN_LOGIN',s,loc)
 if s!=302:raise SystemExit('FAIL admin login')
-for path in ['/admin','/admin/products','/admin/products/edit?id=2','/admin/settings','/admin/orders']:
+for path in ['/admin','/admin/products','/admin/products/edit?id=2','/admin/settings','/admin/orders','/admin/proveedores','/admin/proveedores/new','/admin/imports','/admin/facturacion','/admin/facturacion/comprobantes','/admin/facturacion/compras','/admin/facturacion/libro-iva','/admin/facturacion/libro-iva-compras','/admin/facturacion/reportes','/admin/facturacion/reportes/resumen','/admin/facturacion/reportes/mensual','/admin/facturacion/reportes/saldo-iva','/admin/facturacion/reportes/pedidos-sin-factura','/admin/facturacion/cierres-mensuales','/admin/facturacion/alertas']:
  s,b,loc=get(path)
  print(path,s,'len',len(b),'loc',loc)
  if s!=200:raise SystemExit('FAIL admin route '+path)

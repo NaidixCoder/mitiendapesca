@@ -45,4 +45,8 @@ s,body,_=call('/carrito/quitar',{'_csrf':csrf,'product_id':pid,'variant_id':'0'}
 print('REMOVE',s,body[:270])
 assert s==200 and json.loads(body)['ok']
 s,body,_=call('/carrito');print('CART_AFTER_REMOVE',s,'empty',('QA Producto disponible' not in body))
+for blocked_id,reason in [('3','hidden'),('4','out_of_stock')]:
+ status,payload,_=call('/carrito/agregar',{'_csrf':csrf,'product_id':blocked_id,'qty':'1'},True)
+ print('BLOCKED_ADD',reason,status,payload[:110])
+ assert status==422 and not json.loads(payload).get('ok'),reason
 print('QA_CART_HTTP_DONE')
