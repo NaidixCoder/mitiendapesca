@@ -1,4 +1,4 @@
-param([switch]$RaceOnly)
+param([switch]$RaceOnly, [switch]$CandidateTokenFix, [switch]$AccountAdmin, [switch]$Responsive)
 # MiTiendaPesca — E2E HTTP privado. EJECUTAR SOLO LOCALMENTE por el propietario.
 # Bootstrap REAL de la aplicación + MariaDB privada; no usa la instancia de XAMPP.
 $ErrorActionPreference='Stop'
@@ -55,6 +55,31 @@ try {
  Require (-not(Test-Path (Join-Path $site '.env'))) 'commercial env copied'
  # Vendor files are copied into the temporary site, never linked to the commercial tree.
  Require (Test-Path (Join-Path $site 'vendor\autoload.php')) 'vendor dependencies missing in private clone'
+ if($CandidateTokenFix){
+  # The shared CheckoutOrderService belongs to MAIN: patch ONLY the disposable copy for validation.
+  $candidateFile=Join-Path $site 'app\Services\Checkout\CheckoutOrderService.php'
+  $oldToken=@'
+            $itemsJson = json_encode($effectiveCart['items'] ?? [], JSON_UNESCAPED_UNICODE);
+'@
+  $newToken=@'
+            $stableItems = [];
+            foreach ((array)($effectiveCart['items'] ?? []) as $entry) {
+                $stableItems[] = [
+                    (int)($entry['product_id'] ?? $entry['id'] ?? 0),
+                    (int)($entry['variant_id'] ?? 0),
+                    (int)($entry['qty'] ?? $entry['quantity'] ?? 0),
+                    (int)($entry['price'] ?? 0),
+                ];
+            }
+            usort($stableItems, static fn(array $a,array $b): int => $a <=> $b);
+            $itemsJson = json_encode($stableItems, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+'@
+  $content=[IO.File]::ReadAllText($candidateFile)
+  Require ($content.Contains($oldToken.TrimEnd("`r","`n"))) 'candidate patch target not present'
+  $patched=$content.Replace($oldToken.TrimEnd("`r","`n"),$newToken.TrimEnd("`r","`n"))
+  [IO.File]::WriteAllText($candidateFile,$patched,(New-Object Text.UTF8Encoding($false)))
+  Write-Host '[QA] Stable checkout token candidate installed ONLY in disposable clone.'
+ }
  New-Item -ItemType Directory -Path (Join-Path $site 'storage') | Out-Null
  $qaSessions=Join-Path $base 'sessions'
  New-Item -ItemType Directory -Path $qaSessions | Out-Null
@@ -63,6 +88,7 @@ try {
   'APP_ENV=local',
   'APP_DEBUG=false',
   'APP_URL=http://127.0.0.1:18897',
+  'ASSET_URL=http://127.0.0.1:18897/assets',
   'DB_HOST=127.0.0.1',
   "DB_PORT=$port",
   "DB_NAME=$dbName",
@@ -138,12 +164,37 @@ try {
  if($raceResult){Write-Host $raceResult}
  if($raceError){Write-Warning $raceError}
  Require ($raceProc.ExitCode -eq 0 -and $raceResult -match 'CHECKOUT_REAL_HTTP_CONCURRENCY_PASS 3') 'parallel HTTP checkout failed'
+ $accountResult=''
+ if($AccountAdmin){
+  $accountTest=Join-Path $repo 'scripts\dev\checkout_04_account_orders_private.py'
+  Require (Test-Path $accountTest -PathType Leaf) 'account/admin QA missing'
+  $accountOut=Join-Path $base 'account_http.out';$accountErr=Join-Path $base 'account_http.err'
+  $accountProc=Start-Process -FilePath 'python' -ArgumentList @([char]34+$accountTest+[char]34) -Wait -PassThru -RedirectStandardOutput $accountOut -RedirectStandardError $accountErr
+  $accountResult=Get-Content -LiteralPath $accountOut -Raw -ErrorAction SilentlyContinue
+  $accountError=Get-Content -LiteralPath $accountErr -Raw -ErrorAction SilentlyContinue
+  if($accountResult){Write-Host $accountResult}
+  if($accountError){Write-Warning $accountError}
+  Require ($accountProc.ExitCode -eq 0 -and $accountResult -match 'CHECKOUT_04_ACCOUNT_ADMIN_HTTP_PASS') 'account/admin HTTP QA failed'
+ }
+ $visualResult=''
+ if($Responsive){
+  Require $AccountAdmin 'responsive requires full account/admin suite first'
+  $visualScript=Join-Path $repo 'scripts\dev\checkout_04_visual_private.mjs'
+  Require (Test-Path $visualScript -PathType Leaf) 'responsive QA script missing'
+  $visualOut=Join-Path $base 'visual.out';$visualErr=Join-Path $base 'visual.err'
+  $visualProc=Start-Process -FilePath 'node' -ArgumentList @([char]34+$visualScript+[char]34) -Wait -PassThru -RedirectStandardOutput $visualOut -RedirectStandardError $visualErr
+  $visualResult=Get-Content -LiteralPath $visualOut -Raw -ErrorAction SilentlyContinue
+  $visualError=Get-Content -LiteralPath $visualErr -Raw -ErrorAction SilentlyContinue
+  if($visualResult){Write-Host $visualResult}
+  if($visualError){Write-Warning $visualError}
+  Require ($visualProc.ExitCode -eq 0 -and $visualResult -match 'CHECKOUT_04_BROWSER_RESPONSIVE 20/20 failures=0') 'responsive browser QA failed'
+ }
  $success=$true
- [IO.File]::WriteAllText($log,("PRIVATE AUTHENTIC HTTP E2E PASS`n"+$result+"`n"+$raceResult),(New-Object Text.UTF8Encoding($false)))
+ [IO.File]::WriteAllText($log,("PRIVATE AUTHENTIC HTTP E2E PASS`n"+$result+"`n"+$raceResult+"`n"+$accountResult+"`n"+$visualResult),(New-Object Text.UTF8Encoding($false)))
 } catch {
  Write-Warning ("[QA] FAIL: "+$_.Exception.Message)
  $diag=@("PRIVATE AUTHENTIC HTTP E2E FAILED: "+$_.Exception.Message)
- foreach($file in @('qa_http.out','qa_http.err','race_http.out','race_http.err','schema.err','php.err','php_b.err')){
+ foreach($file in @('qa_http.out','qa_http.err','race_http.out','race_http.err','account_http.out','account_http.err','visual.out','visual.err','schema.err','php.err','php_b.err')){
   $candidate=Join-Path $base $file
   if(Test-Path -LiteralPath $candidate -PathType Leaf){
    $diag+=("--- "+$file+" ---")

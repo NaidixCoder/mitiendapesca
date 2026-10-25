@@ -8,7 +8,7 @@ $user=(string)getenv('MI_QA_DB_USER');
 $pass=(string)getenv('MI_QA_DB_PASS');
 $mode=$argv[1]??'';
 if($host!=='127.0.0.1'||$port!==18997||$name!=='mi_checkout_http_private_qa'
-   ||$user!=='root'||$pass===''||!in_array($mode,['seed','snapshot','session','hide','show','stock_low','stock_restore','cart_restore','race_reset','diagnose','cart_check'],true)){
+   ||$user!=='root'||$pass===''||!in_array($mode,['seed','snapshot','session','hide','show','stock_low','stock_restore','cart_restore','race_reset','diagnose','cart_check','account_snapshot'],true)){
     fwrite(STDERR,"REFUSED: private QA identity invalid\n");exit(2);
 }
 $db=new PDO("mysql:host=$host;port=$port;dbname=$name;charset=utf8mb4",$user,$pass,[
@@ -27,6 +27,9 @@ if(in_array($mode,['hide','show','stock_low','stock_restore','cart_restore','rac
             $db->exec('DELETE FROM order_items WHERE product_id=197');
             $db->exec('DELETE FROM orders WHERE user_id=197');
             $db->exec('UPDATE inventory SET stock=5 WHERE product_id=197');
+            // A prior checkout can trigger publication sync. Reset the entire synthetic product baseline.
+            $db->exec('UPDATE products SET is_active=1 WHERE id=197');
+            $db->exec('UPDATE categories SET is_active=1 WHERE id=197');
             $db->exec('DELETE FROM cart_items WHERE cart_id=197');
             $db->exec('INSERT INTO cart_items(cart_id,product_id,variant_id,quantity) VALUES(197,197,NULL,2)');
             $db->commit();
@@ -44,6 +47,8 @@ if(in_array($mode,['hide','show','stock_low','stock_restore','cart_restore','rac
    if(strlen($password)<20)throw new RuntimeException('QA password missing');
    $db->beginTransaction();
    try {
+    // Synthetic product has no images: prevent publication sync from deactivating it.
+    $db->exec("INSERT INTO app_settings(setting_key,setting_value) VALUES ('catalog_allow_publish_without_images','1')");
     $db->exec("INSERT INTO categories(id,name,slug,is_active) VALUES (197, 'Categoria QA E2E','categoria-qa-e2e',1)");
     $db->exec("INSERT INTO products(id,sku,slug,name,category_id,sale_mode,iva_rate,price,list_price,is_active)
           VALUES(197,'QA-E2E-P','producto-qa-e2e','Producto sintetico E2E',197,'simple',0.2100,1500,1500,1)");
@@ -51,6 +56,11 @@ if(in_array($mode,['hide','show','stock_low','stock_restore','cart_restore','rac
     $st=$db->prepare("INSERT INTO users(id,name,email,password_hash,email_verified,session_version,role)
         VALUES(197,'Comprador QA','comprador-checkout@example.test',?,1,1,'customer')");
     $st->execute([password_hash($password,PASSWORD_DEFAULT)]);
+    $second=$db->prepare("INSERT INTO users(id,name,email,password_hash,email_verified,session_version,role) VALUES(198,'Comprador B QA','comprador-b-checkout@example.test',?,1,1,'customer')");
+    $second->execute([password_hash($password,PASSWORD_DEFAULT)]);
+    $admin=$db->prepare("INSERT INTO users(id,name,email,password_hash,email_verified,session_version,role) VALUES(199,'Administrador QA','admin-checkout@example.test',?,1,1,'admin')");
+    $admin->execute([password_hash($password,PASSWORD_DEFAULT)]);
+    $db->exec("INSERT INTO user_addresses(id,user_id,label,full_name,street,number,city,state,zip,is_default) VALUES(198,198,'Ajena','Cliente B QA','Calle B','198','Firmat','Santa Fe','2630',1)");
     $db->exec("INSERT INTO user_addresses(id,user_id,label,full_name,street,number,city,state,zip,is_default)
         VALUES(197,197,'Casa','Comprador QA','Calle QA','197','Firmat','Santa Fe','2630',1)");
     $db->exec("INSERT INTO carts(id,user_id,status) VALUES(197,197,'active')");
@@ -65,6 +75,11 @@ if(in_array($mode,['hide','show','stock_low','stock_restore','cart_restore','rac
        fwrite(STDERR,'QA cart fixture invalid: lines='.$lines.' qty='.$qty.PHP_EOL);exit(1);
     }
     echo "PRIVATE_QA_CART_EXACTLY_ONE_LINE_OK\n";
+}elseif($mode==='account_snapshot'){
+    $orders=$db->query('SELECT id,user_id,status,checkout_token FROM orders ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
+    $addresses=$db->query('SELECT id,user_id,is_default,street FROM user_addresses ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
+    $stock=(int)$db->query('SELECT stock FROM inventory WHERE product_id=197')->fetchColumn();
+    echo json_encode(['orders'=>$orders,'addresses'=>$addresses,'stock'=>$stock],JSON_UNESCAPED_UNICODE)."\n";
 }elseif($mode==='snapshot'){
     $order=(int)$db->query("SELECT COUNT(*) FROM orders WHERE user_id=197")->fetchColumn();
     $items=(int)$db->query("SELECT COUNT(*) FROM order_items WHERE product_id=197")->fetchColumn();
@@ -85,7 +100,10 @@ if(in_array($mode,['hide','show','stock_low','stock_restore','cart_restore','rac
     if((int)($_SESSION['uid']??0)!==197)throw new RuntimeException('QA synthetic user not authenticated');
     if($mode==='diagnose'){
         $q=$db->query('SELECT c.id,c.status,COUNT(ci.id) AS item_count FROM carts c LEFT JOIN cart_items ci ON ci.cart_id=c.id WHERE c.user_id=197 GROUP BY c.id,c.status ORDER BY c.id')->fetchAll(PDO::FETCH_ASSOC);
-        echo json_encode(['user_id'=>(int)($_SESSION['uid']??0),'shipping'=>$_SESSION['checkout_shipping']??null,'flash'=>$_SESSION['_flash']??($_SESSION['flash']??null),'carts'=>$q],JSON_UNESCAPED_UNICODE)."\n";
+        $product=$db->query('SELECT id,is_active,category_id FROM products WHERE id=197')->fetch(PDO::FETCH_ASSOC);
+        $category=$db->query('SELECT id,is_active,parent_id FROM categories WHERE id=197')->fetch(PDO::FETCH_ASSOC);
+        $settings=$db->query("SELECT setting_key,setting_value FROM app_settings WHERE setting_key IN ('catalog_hide_inactive_category_products','catalog_allow_publish_without_images')")->fetchAll(PDO::FETCH_ASSOC);
+        echo json_encode(['user_id'=>(int)($_SESSION['uid']??0),'shipping'=>$_SESSION['checkout_shipping']??null,'flash'=>$_SESSION['_flash']??($_SESSION['flash']??null),'carts'=>$q,'product'=>$product,'category'=>$category,'settings'=>$settings],JSON_UNESCAPED_UNICODE)."\n";
         session_write_close();
         exit(0);
     }
