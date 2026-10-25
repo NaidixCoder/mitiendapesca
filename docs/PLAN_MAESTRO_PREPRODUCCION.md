@@ -128,3 +128,8 @@ El **23/10/2026** PHP comunicó advertencia adicional relativa a `session.upload
 **Etapa staging:** al contratar hosting, configurar entorno cerrado con PHP parcheado y DB sintética, pruebas completas HTTP/UI/roles/cookies/archivos/concurrencia, backup+restore, HTTPS, sandbox o proveedores deshabilitados. Correo Argentino en producción no se usa para pruebas. Staging verificado tampoco autoriza producción sin acto GO y aprobación expresa.
 
 **Mantenimiento:** cualquier nueva auditoría actualizará tablero y reporte del especialista con estado, evidencia y pendientes, manteniendo histórico. P0/P1 reales nunca se rebautizan como diferidos para avanzar una etapa.
+
+
+## 9. Actualización operativa 25/10/2026 — continuidad QA exclusivamente LOCAL
+
+Por decisión expresa del propietario, el siguiente trabajo de preproducción es **exclusivamente local**, con especialistas 05–08 activos y 09–10 posteriores. Ver documento rector vigente `docs/preproduccion/PLAN_QA_LOCAL_05_10.md` y mandatos reescritos `docs/preproduccion/especialistas/05_pagos.md` a `08_publico.md`. La división previa local/staging se conserva como antecedente, pero **no prescribe el trabajo actual**. La certificación para producción sigue separada y NO GO. MAIN conserva control de reservas, integración selectiva y evidencias; cada especialista trabaja solo pruebas locales viables, con servicios externos simulados, sin llamadas productivas ni cambios no autorizados.

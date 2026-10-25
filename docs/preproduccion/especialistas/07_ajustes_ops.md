@@ -1,40 +1,18 @@
-# MiTiendaPesca — Chat especialista 7: Ajustes, envíos, SEO, marketing y auditoría
+# Especialista 07 — Ajustes y operaciones — cierre QA LOCAL
+**Objetivo cerrado:** validar configuración y consumidores locales: Ajustes, envíos, SEO, marketing/email simulados, auditoría y dashboard; no rehacer módulos.
+**Evidencia reutilizable:** Ajustes 155/155, navegación 132/132, Auditoría 105/105 y QA previa de marketing, conforme a sus informes y versiones. Reutilizar si vigente.
+### Trabajo asignado
+1. Comprobar que los ajustes críticos se guardan y son leídos por consumidores correctos: tienda, precios, pagos, envíos/retiro, configuración fiscal y flags de activación; contratos SQL/HTTP focales disponibles.
+2. Verificar permisos y CSRF en cambios, secretos no expuestos, validaciones y fallbacks; comprobar simulaciones locales de tarifación/envíos, SEO, marketing y auditoría sin emitir mensajes reales.
+3. Correo Argentino: **PROHIBIDA TODA LLAMADA A LA API PRODUCTIVA**, incluso consulta de seguimiento, validación, etiquetas o tarifas. No usar tokens comerciales. Solo mocks con salida de red bloqueada; si no se puede aislar con seguridad, marcar NO EJECUTADO y continuar el resto.
+4. Hay cambios sin commit de Ajustes/Auditoría y vistas fiscales en el árbol. **NO MODIFICAR** esos archivos ni asumir aprobación de sus autores. Solicitar reserva a MAIN ante defecto, sin tocar mientras tanto.
+5. Externalidades (envíos reales, email SMTP, cron/colas de hosting, proveedores) quedan **PENDIENTE EXTERNO**. Cerrar con brechas locales concretas, sin reabrir 155/105 casos por rutina.
+**Entrega:** `docs/preproduccion/especialistas/RESULTADO_07.md` con tabla configuración→consumidor→prueba→evidencia.
 
-**Mandato:** auditoría y pruebas E2E exhaustivas sobre funcionalidades existentes; NO reconstruir módulos ni modificar sin reserva.
-
-## Áreas y objetivos
-
-Áreas 2,13,14,15,16. Ajustes→consumidores, envíos, Correo, dashboard, SEO, email, campañas, auditoría, reportes.
-
-Código/rutas de investigación: Settings, Audit, Marketing, SEO, Shipping y consumidores.
-
-Evidencias previas para reutilizar: 155/155 Ajustes, 132/132 navegación, 105/105 Auditoría y pruebas Marketing.
-
-Coordinación: Ajustes y Auditoría tienen archivos ajenos sin commit: estricta SOLO LECTURA hasta reserva MAIN.
-
-## Documentación obligatoria
-
-Leer antes de actuar: docs/PLAN_MAESTRO_PREPRODUCCION.md (incluido §7: OWASP ASVS/PHP), docs/preproduccion/CHECKLIST_21_AREAS.md, docs/preproduccion/MATRIZ_E2E.md, inventarios CSV de rutas, docs/COORDINACION.md, docs/PROTOCOLO_GIT_MULTICHAT.md, docs/PROTOCOLO_EJECUCION_INTEGRAL_V2.md, docs/PROTOCOLO_EJECUCION_INTEGRAL_V3.md, docs/EJECUCION_E2E_MARIADB_PRIVADA.md, docs/pruebas/PROTOCOLO_NAVEGADORES.md, docs/seguridad/ y docs/modulos/ relevantes. Consultar las evidencias de QA transversal y CIERRE_MERCADOPAGO cuando aplique. No dar por vigente una conclusión histórica superada.
-
-## Protocolo obligatorio
-
-1. Inventariar las rutas reales, sus controladores, traits, dependencias, roles, CSRF, mutaciones, tablas y consumidores; incluir AJAX/API/cron/webhooks.
-2. Vincular checklist + ASVS aplicable a suites anteriores; registrar diferencia entre contrato estático, SQL aislado, HTTP autenticado, navegador y E2E transaccional. No repetir sin motivo y no asumir un PASS ajeno.
-3. Ejecutar nuevos casos solo en clon aislado, MariaDB privada descartable y cuentas sintéticas; verificar datadir/puerto y no usar .env comercial. No usar proveedores reales, pagos, facturas ni emails sin permiso.
-4. Probar camino feliz, errores, entrada maliciosa segura, controles por rol e ID, CSRF, límite, rollback, concurrencia e idempotencia según riesgo. Capturar esperado/observado HTTP+UI+SQL.
-5. Si se confirma defecto, documentar pasos y P0/P1/P2/P3, solicitar reserva de archivos; no sobrescribir cambios ajenos, ni rutas/migraciones/helpers compartidos. Solo MAIN hace commits e integra.
-6. Cerrar browsers/procesos propios, remover entorno descartable y verificar teardown. Dejar scripts, fecha, commit, resultado, capturas redaccionadas, límites y pendientes. **No proclamar E2E completo sin recorrido real.**
-
-## Entrega del especialista
-
-Crear solo docs/preproduccion/especialistas/RESULTADO_07.md con matriz caso→ruta→ASVS→evidencia→resultado→defecto, pruebas previas reaprovechadas, pruebas nuevas, riesgos P0/P1, regresiones y teardown. MAIN audita independientemente y decide cierre. Cualquier excepción que requiera propietario se eleva antes de operar.
-
-## Restricción obligatoria — API Correo Argentino en producción
-
-**PROHIBIDO efectuar llamadas a la API productiva de Correo Argentino durante la preproducción**, incluso consultas cuyo efecto no esté comprobado. No crear ni importar envíos, solicitar admisiones, generar etiquetas, consultar tracking contra producción ni disparar otras operaciones remotas. La configuración actualmente efectiva debe auditarse **sin revelar secretos**; no asumir que está en sandbox.
-
-- Ejecutar E2E interno exclusivamente sobre clon de la aplicación y MariaDB privada con **cliente HTTP simulado/fake** y respuestas controladas: éxito, error, timeout, reintento, duplicados, validaciones, tarifas, etiquetas y seguimiento si existen esos flujos.
-- Aplicar **bloqueo de salida de red hacia Correo Argentino** (fail-closed) en los procesos de prueba, para que una configuración incorrecta no genere operaciones externas. Verificar ese bloqueo con evidencia antes de cualquier prueba de escritura.
-- No reutilizar `.env` comercial ni copiar tokens productivos al entorno aislado. No modificar ni revocar credenciales/configuración del servicio real.
-- Documentar separadamente pruebas internas aprobadas y **homologación externa NO EJECUTADA**. Toda llamada externa futura requiere entorno de pruebas verificado o autorización **expresa y previa del propietario**, con alcance, consecuencias y costos identificados; jamás realizar envíos reales por decisión del especialista.
-- Si el flujo no puede aislarse o simularse de modo seguro, **detener solo ese ensayo y marcar BLOQUEADO**, continuando los demás casos independientes.
+## Reglas obligatorias de esta tanda LOCAL (25/10/2026)
+- Este mandato prevalece sobre la formulación antigua "E2E exhaustivo" únicamente para esta ronda. Leer antes: `docs/preproduccion/PLAN_QA_LOCAL_05_10.md`, `docs/preproduccion/CONTROL_VIVO.md`, `docs/COORDINACION.md`, matriz E2E y documentación específica. `PLAN_DOS_ETAPAS_LOCAL_STAGING.md` queda como antecedente histórico, no orden activa de desplegar.
+- Sólo Windows/XAMPP y pruebas sin servicios externos. Reutilizar suites acreditadas, no repetir auditorías completas ni fabricar ejecutores complejos. Test simple de código/lint/contratos o HTTP sobre clon local permitido si es seguro, está autorizado y no choca con herramientas ni procesos de otros chats. No eludir bloqueos de seguridad. Un caso inaccesible pasa a **PENDIENTE EXTERNO/ENTORNO**, con pasos y riesgo, jamás PASS.
+- Leer `git status --short` y reservas. No editar `config/routes.php`, `helpers.php`, esquemas o código compartido, ni archivos con cambios ajenos, sin reserva explícita de MAIN. Especialistas no hacen commits, push, reset, clean ni borrado de evidencia.
+- Usar datos sintéticos y MariaDB aislada/descartable cuando corresponda. Jamás `.env` comercial, BD real, email real, MP productivo, ARCA productiva ni **ninguna llamada a API productiva de Correo Argentino**. Simular proveedores y bloquear salidas cuando haya riesgo; ante duda, abstenerse solo de ese ensayo.
+- Actualizar **únicamente** tu archivo `RESULTADO_XX.md` como entrega y los archivos de código expresamente reservados. No modificar `CONTROL_VIVO.md` (lo mantiene MAIN). Registro: HEAD, fecha, prueba, alcance, esperado/observado, PASS/FAIL/NO EJECUTADO, evidencia verificable, defectos con prioridad, teardown, cambios y lista corta de pendientes.
+- Cierre: **APTO PARA REVISIÓN MAIN (LOCAL)** si los tests locales elegibles pasan y no quedan P0/P1 confirmados abiertos dentro del ámbito; **BLOQUEADO DEFECTO** si hay P0/P1; **PARCIAL LOCAL** si faltan pruebas locales practicables. No proclamar GO de producción. Detener al cumplir, no ampliar alcance.
