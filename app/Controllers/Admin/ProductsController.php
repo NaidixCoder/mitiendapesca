@@ -347,14 +347,12 @@ private function wantsJson(): bool
         return (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
             || (isset($_SERVER['HTTP_ACCEPT']) && stripos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false);
     }
-
     private function jsonOrRedirect(bool $ok, string $message, array $data = []): void
     {
         if ($this->wantsJson()) {
             json(['ok'=>$ok, 'message'=>$message] + $data, $ok ? 200 : 400);
             return;
         }
-        // No confiar en next ni Referer: solo destinos locales de Productos.
         $next = $_POST['next'] ?? null;
         if (!is_string($next) || strlen($next) > 1024
             || !preg_match('~\A/admin/products(?:/edit|/variants)?(?:\?[a-zA-Z0-9_=&-]*)?\z~D', $next)) {
@@ -363,7 +361,6 @@ private function wantsJson(): bool
         flash($ok ? 'ok' : 'error', $message);
         redirect($next);
     }
-
     private function bustDashboardCaches(): void
     {
         @cache_forget('kpi:prod_activos');
