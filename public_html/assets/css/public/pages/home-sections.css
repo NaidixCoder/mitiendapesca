@@ -4,13 +4,15 @@
    ======================================== */
 
 .home-sec {
-  padding: var(--v2-space-6) var(--v2-space-3);
+  padding-block: var(--v2-space-6);
 }
 
+/* Mismo ancho útil que Mi Cuenta: 1400px incluyendo gutters. */
 .home-sec__container {
   width: 100%;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
+  padding-inline: var(--v2-space-3);
 }
 
 .home-sec__head {
@@ -397,15 +399,16 @@
    ======================================== */
 
 .home-brand-strip {
-  padding: var(--v2-space-5) var(--v2-space-3);
+  padding-block: var(--v2-space-5);
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--v2-color-surface) 92%, transparent), color-mix(in srgb, var(--v2-color-surface-soft) 78%, transparent));
 }
 
 .home-brand-strip__container {
   width: 100%;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
+  padding-inline: var(--v2-space-3);
 }
 
 .home-brand-strip__grid {
@@ -1169,7 +1172,8 @@
 }
 
 @media (min-width: 768px) {
-  .home-sec {
+  .home-sec__container,
+  .home-brand-strip__container {
     padding-inline: var(--v2-space-6);
   }
 
@@ -1180,10 +1184,6 @@
 
   .home-sec__cta {
     margin-top: 0;
-  }
-
-  .home-brand-strip {
-    padding-inline: var(--v2-space-6);
   }
 
   .home-brand-strip__grid {
@@ -1300,7 +1300,8 @@
 }
 
 @media (min-width: 1200px) {
-  .home-sec {
+  .home-sec__container,
+  .home-brand-strip__container {
     padding-inline: var(--v2-space-6);
   }
 

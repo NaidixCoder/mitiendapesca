@@ -3,17 +3,20 @@
   --v2-color-primary-700: #01585a;
   --v2-color-accent: #ffc300;
   --v2-color-bg: #f7fafc;
-  --v2-color-bg-gray: #5a5a5a;
   --v2-color-surface: #ffffff;
+  --v2-color-surface-soft: var(--v2-color-white-soft);
+  --v2-color-soft: color-mix(in srgb, var(--v2-color-primary) 5%, var(--v2-color-white));
   --v2-color-text: #0f172a;
   --v2-color-text-muted: #64748b;
   --v2-color-border: #e2e8f0;
+  --v2-color-border-strong: #dbe3ec;
   --v2-color-success: #16a34a;
   --v2-color-warning: #f59e0b;
   --v2-color-danger: #dc2626;
   --v2-color-info: #0284c7;
   --v2-color-white: #ffffff;
   --v2-color-white-soft: #f4fffe;
+  --v2-color-hero-green: #2b9f86;
   --v2-color-danger-soft: #ff4646;
   --v2-bg-gradient:
     radial-gradient(900px 420px at 20% 0%, color-mix(in srgb, var(--v2-color-accent) 28%, transparent), transparent 60%),
@@ -30,7 +33,6 @@
   --v2-text-lg: 20px;
   --v2-text-xl: 25px;
   --v2-text-2xl: 32px;
-  --v2-text-3xl: 42px;
 
   --v2-space-1: 4px;
   --v2-space-2: 8px;
@@ -40,12 +42,15 @@
   --v2-space-6: 24px;
   --v2-space-7: 28px;
   --v2-space-8: 36px;
+  --v2-space-9: 38px;
   --v2-space-10: 40px;
   --v2-space-12: 48px;
 
   --v2-radius-sm: 10px;
   --v2-radius-md: 14px;
   --v2-radius-lg: 18px;
+  --v2-radius-xl: 22px;
+  --v2-radius-pill: 999px;
 
   --v2-shadow-sm: 0 4px 12px rgba(2, 6, 23, 0.06);
   --v2-shadow-md: 0 12px 28px rgba(2, 6, 23, 0.10);

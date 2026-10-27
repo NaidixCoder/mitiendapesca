@@ -305,3 +305,27 @@
     padding-block: var(--v2-space-12);
   }
 }
+
+/* Controles propios de autenticacion: migrados desde legacy-compat.css. */
+.auth-login .input-error,
+.input-error {
+  border-color: rgb(239 68 68) !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, .20) !important;
+}
+.site-reset__submit.btn-brand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  padding: .625rem 1rem;
+  border-radius: 12px;
+  background: var(--v2-color-primary);
+  color: var(--v2-color-white);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
+  transition: transform 180ms cubic-bezier(.2,.8,.2,1), box-shadow 180ms cubic-bezier(.2,.8,.2,1), background 180ms cubic-bezier(.2,.8,.2,1);
+}
+.site-reset__submit.btn-brand:hover {
+  background: color-mix(in srgb, var(--v2-color-primary) 88%, #000 12%);
+  transform: translateY(-1px);
+}
+.site-reset__submit.btn-brand:active { transform: translateY(0); }

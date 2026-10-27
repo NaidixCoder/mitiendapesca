@@ -101,9 +101,7 @@ $isAdminDocument = str_starts_with((string)(parse_url($_SERVER['REQUEST_URI'] ??
   $resolvedPageId = (string)($pageId ?? '');
   $isAdminPage = str_starts_with($resolvedPageId, 'admin-') || $resolvedPageId === 'admin';
   $isCatalogPage = in_array($resolvedPageId, ['catalog', 'catalogo', 'search', 'catalogo-search'], true);
-  // Modo de transicion: mantener legacy en publico mientras migramos a v2.
-  // Para validar una pantalla solo con v2, cambiar a false temporalmente.
-  $enableLegacyPublicCss = true;
+  // Compatibilidad pública explícita: app.css dejó de cargarse.
 
   $assetVersion = null;
   if (defined('APP_ASSET_VERSION')) {
@@ -148,9 +146,11 @@ $isAdminDocument = str_starts_with((string)(parse_url($_SERVER['REQUEST_URI'] ??
     'css/admin-v3/components/master-shell.css',
   ];
 
-  $publicStyles = [
+  // Base compartida: no incluir CSS de otras pantallas en cada respuesta.
+  $publicBaseStyles = [
     'css/shared/reset.css',
     'css/shared/tokens.css',
+    'css/public/fonts.css',
     'css/shared/base.css',
     'css/shared/components/ui.css',
     'css/shared/components/buttons.css',
@@ -162,31 +162,68 @@ $isAdminDocument = str_starts_with((string)(parse_url($_SERVER['REQUEST_URI'] ??
     'css/public/layouts/public-header.css',
     'css/public/layouts/public-footer.css',
     'css/public/layouts/public-mobile-menu.css',
-    'css/public/components/related-products.css',
-    'css/public/pages/home.css',
-    'css/public/pages/home-hero.css',
-    'css/public/pages/home-sections.css',
-    'css/public/pages/directory.css',
-    'css/public/pages/help.css',
-    'css/public/pages/legal.css',
-    'css/public/pages/auth.css',
-    'css/public/pages/errors.css',
-    'css/public/pages/account.css',
-    'css/public/pages/account-orders-index.css',
-    'css/public/pages/account-addresses.css',
-    'css/public/pages/account-profile.css',
-    'css/public/pages/account-security.css',
-    'css/public/pages/account-complete.css',
-    'css/public/pages/account-loyalty.css',
-    'css/public/pages/account-favorites.css',
-    'css/public/pages/account-order-show.css',
-    'css/public/pages/catalog.css',
-    'css/public/pages/catalog-facets.css',
-    'css/public/pages/catalog-card.css',
-    'css/public/pages/product.css',
-    'css/public/pages/cart.css',
-    'css/public/pages/checkout.css',
   ];
+
+  // La ruta de vista es fiable incluso cuando la propia vista asigna pageId
+  // después de imprimir el head (p. ej. ayuda y páginas legales).
+  $publicView = (string)($name ?? '');
+  $publicPageStyles = [
+    'public/home' => ['home-hero.css', 'home-sections.css', 'catalog-card.css'],
+    'public/ayuda' => ['help.css'],
+    'legal/' => ['legal.css'],
+    'auth/' => ['auth.css'],
+    'errors/' => ['errors.css'],
+    'catalogo/' => ['catalog.css', 'catalog-facets.css', 'catalog-card.css'],
+    'carrito/' => ['cart.css', 'catalog-card.css', 'related-products.css'],
+    'checkout/' => ['checkout.css'],
+    // account-orders-index.css contiene también el sidebar compartido de Cuenta.
+    'cuenta/' => ['account.css', 'account-orders-index.css'],
+
+  ];
+  $publicStyles = $publicBaseStyles;
+  foreach ($publicPageStyles as $viewPrefix => $files) {
+    if ($publicView === $viewPrefix || str_starts_with($publicView, $viewPrefix)) {
+      foreach ($files as $file) {
+        $folder = $file === 'related-products.css' ? 'components' : 'pages';
+        $publicStyles[] = 'css/public/' . $folder . '/' . $file;
+      }
+      break;
+    }
+  }
+  // Dependencias específicas sobre la familia de vistas identificada.
+  if (str_starts_with($publicView, 'catalogo/')) {
+    if (($resolvedPageId === 'product') || str_contains($publicView, 'producto')) {
+      $publicStyles[] = 'css/public/pages/product.css';
+      $publicStyles[] = 'css/public/components/related-products.css';
+    }
+    if (str_contains($publicView, 'categorias') || str_contains($publicView, 'marcas')) {
+      $publicStyles[] = 'css/public/pages/directory.css';
+    }
+  }
+  if (str_starts_with($publicView, 'cuenta/')) {
+    // Antes se importaba globalmente desde app.css; ahora solo en Mi Cuenta.
+    $publicStyles[] = 'css/public/components/account.css';
+    $accountStyles = [
+      'direcciones/index' => ['account-addresses.css'],
+      'direcciones/form' => ['account-addresses.css', 'account-address-edit.css'],
+      'pedidos/index' => ['account-orders-index.css'],
+      'pedidos/show' => ['account-order-show.css'],
+      'perfil' => ['account-profile.css'],
+      'seguridad' => ['account-security.css'],
+      'complete' => ['account-complete.css'],
+      'lealtad' => ['account-loyalty.css'],
+      // Favoritos reutiliza product-grid, product-card y quick-add de Catálogo.
+      'favoritos' => ['catalog.css', 'catalog-card.css', 'account-favorites.css'],
+    ];
+    foreach ($accountStyles as $suffix => $files) {
+      if (str_starts_with(substr($publicView, strlen('cuenta/')), $suffix)) {
+        foreach ($files as $file) $publicStyles[] = 'css/public/pages/' . $file;
+        break;
+      }
+    }
+  }
+  // Evita enlaces duplicados si una dependencia se comparte.
+  $publicStyles = array_values(array_unique($publicStyles));
   ?>
 
   <?php if ($isAdminPage): ?>
@@ -195,10 +232,7 @@ $isAdminDocument = str_starts_with((string)(parse_url($_SERVER['REQUEST_URI'] ??
   <link rel="stylesheet" href="<?= e(asset($cssFile) . $assetQuery) ?>">
   <?php endforeach; ?>
   <?php else: ?>
-  <!-- Publico: flujo de transicion (legacy + v2) -->
-  <?php if ($enableLegacyPublicCss): ?>
-  <link rel="stylesheet" href="<?= e(asset('css/public/app.css') . $assetQuery) ?>">
-  <?php endif; ?>
+  <!-- Publico: estilos compartidos y específicos por página -->
   <?php foreach ($publicStyles as $cssFile): ?>
   <link rel="stylesheet" href="<?= e(asset($cssFile) . $assetQuery) ?>">
   <?php endforeach; ?>

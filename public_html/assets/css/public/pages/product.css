@@ -1366,3 +1366,14 @@ body.is-gallery-open {
     display: none;
   }
 }
+
+/* Input de cantidad: sin controles nativos de incremento. */
+.product-buybox__stepper-input.no-spin::-webkit-outer-spin-button,
+.product-buybox__stepper-input.no-spin::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.product-buybox__stepper-input.no-spin {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
